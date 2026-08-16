@@ -1,0 +1,23 @@
+import Boletim from './pages/Boletim';
+import Chat from './pages/Chat';
+import Home from './pages/Home';
+import Juntinhos from './pages/Juntinhos';
+import Onboarding from './pages/Onboarding';
+import Perfil from './pages/Perfil';
+import __Layout from './Layout.jsx';
+
+
+export const PAGES = {
+    "Boletim": Boletim,
+    "Chat": Chat,
+    "Home": Home,
+    "Juntinhos": Juntinhos,
+    "Onboarding": Onboarding,
+    "Perfil": Perfil,
+}
+
+export const pagesConfig = {
+    mainPage: "Onboarding",
+    Pages: PAGES,
+    Layout: __Layout,
+};

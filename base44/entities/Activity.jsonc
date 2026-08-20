@@ -1,0 +1,68 @@
+{
+  "name": "Activity",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da atividade"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da atividade"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da atividade"
+    },
+    "time": {
+      "type": "string",
+      "description": "Hor\u00e1rio da atividade"
+    },
+    "child_id": {
+      "type": "string",
+      "description": "ID do filho relacionado"
+    },
+    "child_name": {
+      "type": "string",
+      "description": "Nome do filho"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "aventura",
+        "educativa",
+        "esportiva",
+        "criativa",
+        "natureza",
+        "culinaria",
+        "jogos"
+      ],
+      "description": "Categoria da atividade"
+    },
+    "is_suggested": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 uma sugest\u00e3o do app"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a atividade foi realizada"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Avalia\u00e7\u00e3o da atividade (1-5)"
+    },
+    "feedback": {
+      "type": "string",
+      "description": "Coment\u00e1rio sobre a atividade"
+    }
+  },
+  "required": [
+    "title",
+    "date"
+  ]
+}

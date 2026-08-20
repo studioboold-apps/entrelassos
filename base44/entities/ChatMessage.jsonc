@@ -1,0 +1,27 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID da conversa"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "Quem enviou a mensagem"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado da mensagem"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "role",
+    "content"
+  ]
+}

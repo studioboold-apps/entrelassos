@@ -1,0 +1,33 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "age": {
+      "type": "number",
+      "description": "Idade do pai"
+    },
+    "sexual_orientation": {
+      "type": "string",
+      "description": "Orienta\u00e7\u00e3o sexual"
+    },
+    "religious_orientation": {
+      "type": "string",
+      "description": "Orienta\u00e7\u00e3o religiosa"
+    },
+    "political_orientation": {
+      "type": "string",
+      "description": "Orienta\u00e7\u00e3o pol\u00edtica"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se completou o cadastro inicial"
+    }
+  },
+  "required": [
+    "age",
+    "sexual_orientation",
+    "religious_orientation",
+    "political_orientation"
+  ]
+}

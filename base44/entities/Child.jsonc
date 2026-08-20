@@ -1,0 +1,33 @@
+{
+  "name": "Child",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da crian\u00e7a"
+    },
+    "age": {
+      "type": "number",
+      "description": "Idade da crian\u00e7a"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "masculino",
+        "feminino",
+        "outro"
+      ],
+      "description": "Sexo da crian\u00e7a"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de nascimento"
+    }
+  },
+  "required": [
+    "name",
+    "age",
+    "gender"
+  ]
+}

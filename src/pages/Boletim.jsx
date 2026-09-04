@@ -56,7 +56,10 @@ const activityCategoryLabels = {
   criativa: 'Criativa',
   natureza: 'Natureza',
   culinaria: 'Culinária',
-  jogos: 'Jogos'
+  jogos: 'Jogos',
+  escolar: 'Escolar',
+  cursos: 'Cursos',
+  oficinas: 'Oficinas'
 };
 
 export default function Boletim() {

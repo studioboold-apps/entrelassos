@@ -36,7 +36,10 @@
         "criativa",
         "natureza",
         "culinaria",
-        "jogos"
+        "jogos",
+        "escolar",
+        "cursos",
+        "oficinas"
       ],
       "description": "Categoria da atividade"
     },

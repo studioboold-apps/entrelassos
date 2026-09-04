@@ -24,7 +24,10 @@ import {
   Palette,
   TreePine,
   ChefHat,
-  Gamepad2
+  Gamepad2,
+  School,
+  GraduationCap,
+  Wrench
 } from 'lucide-react';
 import ActivityCard from '@/components/ActivityCard';
 
@@ -38,6 +41,9 @@ const categories = [
   { id: 'natureza', label: 'Natureza', icon: TreePine },
   { id: 'culinaria', label: 'Culinária', icon: ChefHat },
   { id: 'jogos', label: 'Jogos', icon: Gamepad2 },
+  { id: 'escolar', label: 'Escolar', icon: School },
+  { id: 'cursos', label: 'Cursos', icon: GraduationCap },
+  { id: 'oficinas', label: 'Oficinas', icon: Wrench },
 ];
 
 export default function Juntinhos() {
@@ -143,7 +149,7 @@ Considere:
 - Mix de atividades indoor e outdoor
 - Atividades que fortaleçam o vínculo pai-filho
 
-Para cada sugestão, especifique a categoria: aventura, educativa, esportiva, criativa, natureza, culinaria ou jogos`,
+Para cada sugestão, especifique a categoria: aventura, educativa, esportiva, criativa, natureza, culinaria, jogos, escolar (eventos escolares como reuniões, provas, festivais), cursos (cursos extracurriculares como idiomas, música, robótica) ou oficinas (oficinas e workshops como arte, marcenaria, cozinha experimental)`,
         response_json_schema: {
           type: "object",
           properties: {

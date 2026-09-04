@@ -23,6 +23,22 @@
       "type": "string",
       "format": "date",
       "description": "Data de nascimento"
+    },
+    "favorite_hobby": {
+      "type": "string",
+      "description": "Hobby favorito da crian\u00e7a"
+    },
+    "favorite_color": {
+      "type": "string",
+      "description": "Cor favorita da crian\u00e7a"
+    },
+    "favorite_food": {
+      "type": "string",
+      "description": "Comida favorita da crian\u00e7a"
+    },
+    "favorite_movie_genre": {
+      "type": "string",
+      "description": "Estilo de filme favorito da crian\u00e7a"
     }
   },
   "required": [

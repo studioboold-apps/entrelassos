@@ -1,0 +1,27 @@
+{
+  "name": "CommunityComment",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "ID do post relacionado"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado do coment\u00e1rio"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Nome do autor"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "ID do autor"
+    }
+  },
+  "required": [
+    "post_id",
+    "content",
+    "author_name"
+  ]
+}

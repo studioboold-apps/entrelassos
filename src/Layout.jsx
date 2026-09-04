@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, MessageCircle, Calendar, Award, User } from 'lucide-react';
+import { Home, MessageCircle, Calendar, Award, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { name: 'Início', icon: Home, page: 'Home' },
-  { name: 'Chat', icon: MessageCircle, page: 'Chat' },
+  { name: 'Comunid.', icon: Users, page: 'Comunidade' },
   { name: 'Juntinhos', icon: Calendar, page: 'Juntinhos' },
   { name: 'Boletim', icon: Award, page: 'Boletim' },
   { name: 'Perfil', icon: User, page: 'Perfil' },

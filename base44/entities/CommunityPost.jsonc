@@ -1,0 +1,46 @@
+{
+  "name": "CommunityPost",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado do post"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Nome do autor"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "ID do autor"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "experiencia",
+        "dica",
+        "duvida",
+        "conquista"
+      ],
+      "description": "Categoria do post"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de curtidas"
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs dos usu\u00e1rios que curtiram"
+    }
+  },
+  "required": [
+    "content",
+    "author_name",
+    "category"
+  ]
+}

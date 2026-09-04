@@ -26,10 +26,11 @@ export default function Onboarding() {
     age: '',
     sexual_orientation: '',
     religious_orientation: '',
-    political_orientation: ''
+    political_orientation: '',
+    marital_status: ''
   });
   const [children, setChildren] = useState([]);
-  const [newChild, setNewChild] = useState({ name: '', age: '', gender: '' });
+  const [newChild, setNewChild] = useState({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -46,7 +47,7 @@ export default function Onboarding() {
   const addChild = () => {
     if (newChild.name && newChild.age && newChild.gender) {
       setChildren([...children, { ...newChild, age: parseInt(newChild.age) }]);
-      setNewChild({ name: '', age: '', gender: '' });
+      setNewChild({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
     }
   };
 
@@ -198,6 +199,25 @@ export default function Onboarding() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <Label className="text-zinc-400">Estado Civil</Label>
+                <Select
+                  value={userData.marital_status}
+                  onValueChange={(v) => setUserData({ ...userData, marital_status: v })}
+                >
+                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800">
+                    <SelectItem value="solteiro">Solteiro</SelectItem>
+                    <SelectItem value="casado">Casado</SelectItem>
+                    <SelectItem value="divorciado">Divorciado</SelectItem>
+                    <SelectItem value="viuvo">Viúvo</SelectItem>
+                    <SelectItem value="uniao_estavel">União Estável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </motion.div>
         );
@@ -279,6 +299,33 @@ export default function Onboarding() {
                     <SelectItem value="outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  placeholder="Hobby favorito"
+                  value={newChild.favorite_hobby}
+                  onChange={(e) => setNewChild({ ...newChild, favorite_hobby: e.target.value })}
+                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
+                />
+                <Input
+                  placeholder="Cor favorita"
+                  value={newChild.favorite_color}
+                  onChange={(e) => setNewChild({ ...newChild, favorite_color: e.target.value })}
+                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
+                />
+                <Input
+                  placeholder="Comida favorita"
+                  value={newChild.favorite_food}
+                  onChange={(e) => setNewChild({ ...newChild, favorite_food: e.target.value })}
+                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
+                />
+                <Input
+                  placeholder="Filme favorito"
+                  value={newChild.favorite_movie_genre}
+                  onChange={(e) => setNewChild({ ...newChild, favorite_movie_genre: e.target.value })}
+                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
+                />
               </div>
 
               <Button

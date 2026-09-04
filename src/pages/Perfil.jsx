@@ -23,7 +23,7 @@ export default function Perfil() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [editingChild, setEditingChild] = useState(null);
-  const [childForm, setChildForm] = useState({ name: '', age: '', gender: '' });
+  const [childForm, setChildForm] = useState({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -49,7 +49,8 @@ export default function Perfil() {
     age: user?.age || '',
     sexual_orientation: user?.sexual_orientation || '',
     religious_orientation: user?.religious_orientation || '',
-    political_orientation: user?.political_orientation || ''
+    political_orientation: user?.political_orientation || '',
+    marital_status: user?.marital_status || ''
   });
 
   React.useEffect(() => {
@@ -58,7 +59,8 @@ export default function Perfil() {
         age: user.age || '',
         sexual_orientation: user.sexual_orientation || '',
         religious_orientation: user.religious_orientation || '',
-        political_orientation: user.political_orientation || ''
+        political_orientation: user.political_orientation || '',
+        marital_status: user.marital_status || ''
       });
     }
   }, [user]);
@@ -76,7 +78,7 @@ export default function Perfil() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] });
       setShowAddChild(false);
-      setChildForm({ name: '', age: '', gender: '' });
+      setChildForm({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
     },
   });
 
@@ -85,7 +87,7 @@ export default function Perfil() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] });
       setEditingChild(null);
-      setChildForm({ name: '', age: '', gender: '' });
+      setChildForm({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
     },
   });
 
@@ -113,7 +115,15 @@ export default function Perfil() {
   };
 
   const openEditChild = (child) => {
-    setChildForm({ name: child.name, age: child.age.toString(), gender: child.gender });
+    setChildForm({
+      name: child.name,
+      age: child.age.toString(),
+      gender: child.gender,
+      favorite_hobby: child.favorite_hobby || '',
+      favorite_color: child.favorite_color || '',
+      favorite_food: child.favorite_food || '',
+      favorite_movie_genre: child.favorite_movie_genre || ''
+    });
     setEditingChild(child);
   };
 
@@ -213,6 +223,10 @@ export default function Perfil() {
               <span className="text-zinc-500">Política</span>
               <span className="text-zinc-300 capitalize">{user?.political_orientation?.replace(/_/g, ' ') || '-'}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Estado Civil</span>
+              <span className="text-zinc-300 capitalize">{user?.marital_status?.replace(/_/g, ' ') || '-'}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -228,7 +242,7 @@ export default function Perfil() {
             variant="outline"
             size="sm"
             onClick={() => {
-              setChildForm({ name: '', age: '', gender: '' });
+              setChildForm({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
               setEditingChild(null);
               setShowAddChild(true);
             }}
@@ -385,6 +399,25 @@ export default function Perfil() {
               </Select>
             </div>
 
+            <div>
+              <Label className="text-zinc-400">Estado Civil</Label>
+              <Select
+                value={profileForm.marital_status}
+                onValueChange={(v) => setProfileForm(prev => ({ ...prev, marital_status: v }))}
+              >
+                <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-white">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-800 border-zinc-700">
+                  <SelectItem value="solteiro">Solteiro</SelectItem>
+                  <SelectItem value="casado">Casado</SelectItem>
+                  <SelectItem value="divorciado">Divorciado</SelectItem>
+                  <SelectItem value="viuvo">Viúvo</SelectItem>
+                  <SelectItem value="uniao_estavel">União Estável</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button
               className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
               onClick={handleSaveProfile}
@@ -445,6 +478,46 @@ export default function Perfil() {
                   <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label className="text-zinc-400">Hobby Favorito</Label>
+              <Input
+                value={childForm.favorite_hobby || ''}
+                onChange={(e) => setChildForm(prev => ({ ...prev, favorite_hobby: e.target.value }))}
+                placeholder="Ex: Futebol, desenho..."
+                className="mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
+              />
+            </div>
+
+            <div>
+              <Label className="text-zinc-400">Cor Favorita</Label>
+              <Input
+                value={childForm.favorite_color || ''}
+                onChange={(e) => setChildForm(prev => ({ ...prev, favorite_color: e.target.value }))}
+                placeholder="Ex: Azul, vermelho..."
+                className="mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
+              />
+            </div>
+
+            <div>
+              <Label className="text-zinc-400">Comida Favorita</Label>
+              <Input
+                value={childForm.favorite_food || ''}
+                onChange={(e) => setChildForm(prev => ({ ...prev, favorite_food: e.target.value }))}
+                placeholder="Ex: Pizza, macarrão..."
+                className="mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
+              />
+            </div>
+
+            <div>
+              <Label className="text-zinc-400">Estilo de Filme Favorito</Label>
+              <Input
+                value={childForm.favorite_movie_genre || ''}
+                onChange={(e) => setChildForm(prev => ({ ...prev, favorite_movie_genre: e.target.value }))}
+                placeholder="Ex: Animação, aventura..."
+                className="mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
+              />
             </div>
 
             <Button

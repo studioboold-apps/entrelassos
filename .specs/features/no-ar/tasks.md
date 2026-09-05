@@ -141,7 +141,27 @@ Backup criptografado **antes** do upload, chave fora do bucket
 
 ### `F5.1` — credenciais reais
 **Depende de:** `D7`.
-Projeto no Google Cloud, tela de consentimento, `redirect_uri` de produção.
+Projeto no Google Cloud, tela de consentimento, e **origens JavaScript
+autorizadas** — `https://web-production-1d6f.up.railway.app`.
+
+**Não é `redirect_uri`.** Medido no bundle publicado: o login é o fluxo de
+*token de identidade* do GIS (`accounts.google.com/gsi/client` está lá, e o
+botão sai de `google.accounts.id.renderButton`), que resolve tudo dentro da
+página e nunca redireciona. Campo de redirecionamento não é lido por esse
+fluxo, e pedi-lo custaria uma rodada configurando o lugar errado.
+
+**O encanamento já está pronto e vazio — medido em 05/09/2026.** No bundle no
+ar, `Sz="AGUARDANDO-D7"` é o identificador do Google e `Pz=""` o da Apple: o
+valor declarado no IaC atravessa o `--build-arg` do Railway, o `define` do
+`vite.config.js` e chega ao navegador. A suspeita de que faltava o prefixo
+`VITE_` no `Dockerfile` era falsa, e quem a derrubou foi um `grep` no bundle,
+não a leitura do arquivo.
+
+Como o marcador não é vazio, a tela **tenta** desenhar o botão: chama
+`initialize` com um identificador que o Google não conhece, e o que sobra é
+uma área vazia onde deveria estar o botão. Nada aqui é código a escrever —
+falta só o valor real.
+
 **Aceite:** uma pessoa entra no app publicado com a conta dela e cadastra um
 filho. É o aceite do objetivo inteiro.
 

@@ -164,7 +164,9 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
 - [x] `TB.2` — ADR-001 aprovado; as cinco decisões fechadas (`ADR-001.md` §6):
       base de dados do zero, PWA, provider de IA por env, Fly.io/Railway, login Google+Apple
 - [x] `TB.3` — monorepo, `envs/`, `docker-compose.yml` e `Makefile`
-      (aceite do `make up` pendente: Docker não estava rodando)
+      (aceite do `make up` pendente: **falta um runtime de Docker** na máquina)
+- [x] `TB.4` — schema Drizzle das 7 entidades, migration aplicada e revertida
+      em banco limpo; sem as três colunas sensíveis, que esperam `TL.1`
 - [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
 - [ ] Executar o `tasks.md` da saída escolhida
 

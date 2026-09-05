@@ -73,14 +73,35 @@ Fly.io/Railway, login Google+Apple. ADR-001 com status **aprovado**.
 - O frontend atual **move sem alteração** — mover e reescrever no mesmo passo
   esconde qual dos dois quebrou
 - **Aceite:** `make up` sobe Postgres; o frontend ainda roda contra a Base44
-- ⚠️ **`make up` não foi verificado** — o Docker não estava rodando na máquina.
-  Rodar antes de começar `TB.4`, que precisa do banco de pé
+- ⚠️ **`make up` não foi verificado, e não dá para verificar hoje:** existe o
+  CLI do Docker (28.5.1) mas **nenhum runtime instalado** — sem Docker Desktop,
+  OrbStack ou Colima, o `docker.sock` não tem quem atenda. Falta instalar um dos
+  três; até lá o Postgres local do Homebrew (18.4) cobre o desenvolvimento
 
-### TB.4 — Schema Drizzle das 7 entidades
+### TB.4 — Schema Drizzle das 7 entidades ✅ feito
 - VARCHAR no lugar de ENUM, PK em UUID, migrations versionadas
 - **Aceite:** migration aplica e reverte em banco limpo
 - **⚠️ Os três campos sensíveis de `User` dependem de `TL.1`** — não criar
   coluna para dado cuja permanência ainda não foi decidida
+
+**Provado em 04/09/2026** contra um cluster PostgreSQL 18 descartável (o Docker
+Desktop não está instalado nesta máquina — ver TB.3): migration aplica, as 8
+tabelas nascem, `DROP SCHEMA … CASCADE` derruba tudo, e a reaplicação em banco
+limpo recria as 8. Fumaça verificada no mesmo banco: UUID gerado pelo servidor,
+`join` de atividade com filho, o unique de `insight_ratings` recusando a nota
+repetida, e o `ON DELETE CASCADE` esvaziando filhos, atividades e notas ao
+apagar o pai.
+
+**Três decisões de modelagem que divergem da Base44, e o motivo:**
+
+| Base44 | aqui | por quê |
+|---|---|---|
+| `Activity.child_name` ao lado de `child_id` | só `child_id` | o nome é derivado do vínculo (`Juntinhos.jsx:107`); cópia diverge na primeira edição. A API devolve `childName` pelo join |
+| `CommunityPost.likes_count` + `liked_by[]` | tabela `community_post_likes` | duas verdades para o mesmo fato; a contagem sai do `COUNT` |
+| `author_name` em post e comentário | só `author_id` | mesma cópia derivada, mesmo defeito |
+
+Isso muda o **formato de resposta** que o frontend espera — é trabalho de
+`TB.8`, não uma quebra escondida.
 
 ### TB.5 — API REST dos 7 recursos
 - `/v1/children`, `/v1/activities`, `/v1/insight-ratings`,
@@ -150,6 +171,19 @@ Hoje o app **se declara PWA e não é**: `index.html` aponta para
 > 🤖 Modelo: `opus` 🧠 · **vale em qualquer saída**
 
 ### TL.1 — Decidir o destino dos três campos sensíveis
+
+**Medido em 04/09/2026** — onde cada campo é de fato consumido:
+
+| campo | consumidores |
+|---|---|
+| `sexual_orientation` | **nenhum.** Coletado no Onboarding, exibido no Perfil, e mais nada. Obrigatório no schema e sem uso |
+| `religious_orientation` | prompt da IA em `Chat.jsx:63`, `Home.jsx:78`, `Comunidade.jsx:72` |
+| `political_orientation` | prompt da IA em `Home.jsx:79`, `Comunidade.jsx:73` |
+| `marital_status` | só Onboarding e Perfil — **não é dado sensível** pela LGPD art. 11 |
+
+Isto pesa na decisão: o campo mais delicado dos três é o único que não serve
+para nada hoje. E os outros dois só existem porque saem daqui para o provedor
+de IA — o que é justamente o uso que exige consentimento específico.
 Três opções, e a escolha é do usuário:
 1. **Remover** — o produto funciona sem eles?
 2. **Tornar opcionais** + consentimento específico e destacado, com a finalidade

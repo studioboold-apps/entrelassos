@@ -4,6 +4,8 @@
  * Licenca: proprietaria.
  */
 
+import { sql } from 'drizzle-orm';
+
 import { readEnvironment } from './config/environment';
 import { createDatabaseClient } from './database/client';
 import { buildApplicationRoutes } from './app';
@@ -14,8 +16,8 @@ import {
   HTTP_METHODS,
   SHUTDOWN_TIMEOUT_MS,
 } from './modules/shared/http/http.constant';
-import { respondWithData } from './modules/shared/http/response.util';
 import { createRouter } from './modules/shared/http/router';
+import { checkHealth, respondWithHealth } from './modules/shared/health/health.use-case';
 import { createLogger } from './modules/shared/logger/logger';
 
 const environment = readEnvironment();
@@ -47,6 +49,13 @@ const router = createRouter({
 });
 const cors = createCorsPolicy(environment.WEB_ORIGINS);
 
+/**
+ * `select 1` a cada consulta de saude: e' o que separa "o processo subiu" de "a
+ * API funciona". Barato o bastante para o intervalo do provedor, e e' o unico
+ * jeito de o deploy quebrado nao ser promovido.
+ */
+const pingDatabase = (): Promise<unknown> => database.execute(sql`select 1`);
+
 // /health fica FORA da tabela de rotas de proposito: assim toda rota da tabela e
 // autenticada por construcao, e nao por lembrar de marcar cada uma.
 const server = Bun.serve({
@@ -57,7 +66,7 @@ const server = Bun.serve({
 
     const url = new URL(request.url);
     if (url.pathname === HEALTH_PATH && request.method === HTTP_METHODS.GET) {
-      return cors.decorate(request, respondWithData({ status: 'ok' }));
+      return cors.decorate(request, respondWithHealth(await checkHealth({ pingDatabase })));
     }
     return cors.decorate(request, await router.handle(request));
   },

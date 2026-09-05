@@ -24,12 +24,16 @@ IMAGE_TAG ?= local
 API_IMAGE := $(PROJECT_NAME)-api:$(IMAGE_TAG)
 WEB_IMAGE := $(PROJECT_NAME)-web:$(IMAGE_TAG)
 
-# O contêiner nao enxerga o `localhost` da maquina: o banco de desenvolvimento
-# mora no host, e o docker chega nele pelo gateway.
-IMAGE_HOST := host.docker.internal
-IMAGE_DATABASE_URL := $(subst localhost,$(IMAGE_HOST),$(DATABASE_URL))
+# Medido: o compose publica o banco em `127.0.0.1:$(POSTGRES_PORT)`, so no
+# loopback (security.md §5). Contêiner que chega pelo `host-gateway` NAO vem do
+# loopback, entao ele nunca conecta — e como `/health` nao toca no banco, a
+# imagem responde saudavel mentindo. A ligacao certa e' entrar na rede do
+# compose e chamar o servico pelo nome, na porta de dentro.
+IMAGE_NETWORK := $(COMPOSE_PROJECT)_default
+IMAGE_DATABASE_URL := postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
 IMAGE_API_PORT ?= 3410
 IMAGE_WEB_PORT ?= 5410
+IMAGE_SICK_PORT ?= 3411
 
 # Medido: a imagem de producao RECUSA subir sem provedor de login — `AUTH_DEV_SIGN_IN`
 # nao vale com `NODE_ENV=production`, e o boot morre dizendo o que falta. E' o
@@ -101,20 +105,21 @@ images: image-api image-web ## constroi as duas imagens
 # Imagem que compila nao e imagem que responde: o bundle pode subir e morrer no
 # primeiro `import`, e o `dist` pode ir vazio para dentro do contêiner sem que
 # nada reclame. Este alvo SOBE as duas e pergunta.
-image-smoke: images up migrate ## prova que as duas imagens sobem e respondem
+image-smoke: images up ## prova que as duas imagens sobem, migram e respondem
 	@set -e; \
-	trap 'docker rm -f $(PROJECT_NAME)-smoke-api $(PROJECT_NAME)-smoke-web >/dev/null 2>&1 || true' EXIT; \
-	docker run -d --rm --name $(PROJECT_NAME)-smoke-api \
-		--add-host=$(IMAGE_HOST):host-gateway \
+	trap 'docker rm -f $(PROJECT_NAME)-smoke-api $(PROJECT_NAME)-smoke-web $(PROJECT_NAME)-smoke-doente >/dev/null 2>&1 || true' EXIT; \
+	echo "migrate (de dentro da imagem) -> $$(docker run --rm --network $(IMAGE_NETWORK) \
+		-e DATABASE_URL='$(IMAGE_DATABASE_URL)' \
+		$(API_IMAGE) bun dist/database/migrate.js >/dev/null 2>&1 && echo ok || echo FALHOU)"; \
+	docker run -d --rm --name $(PROJECT_NAME)-smoke-api --network $(IMAGE_NETWORK) \
 		-e DATABASE_URL='$(IMAGE_DATABASE_URL)' \
 		-e AUTH_JWT_SECRET='$(AUTH_JWT_SECRET)' \
 		-e LLM_PROVIDER='$(LLM_PROVIDER)' \
 		-e GOOGLE_CLIENT_ID='$(IMAGE_GOOGLE_CLIENT_ID)' \
 		-e API_PORT=3000 \
 		-p 127.0.0.1:$(IMAGE_API_PORT):3000 $(API_IMAGE) >/dev/null; \
-	docker run -d --rm --name $(PROJECT_NAME)-smoke-web \
-		--add-host=$(IMAGE_HOST):host-gateway \
-		-e API_ORIGIN='http://$(IMAGE_HOST):$(IMAGE_API_PORT)' \
+	docker run -d --rm --name $(PROJECT_NAME)-smoke-web --network $(IMAGE_NETWORK) \
+		-e API_ORIGIN='http://$(PROJECT_NAME)-smoke-api:3000' \
 		-p 127.0.0.1:$(IMAGE_WEB_PORT):8080 $(WEB_IMAGE) >/dev/null; \
 	for attempt in 1 2 3 4 5 6 7 8 9 10; do \
 		curl -fsS http://127.0.0.1:$(IMAGE_API_PORT)/health >/dev/null 2>&1 && break || sleep 1; \
@@ -122,7 +127,17 @@ image-smoke: images up migrate ## prova que as duas imagens sobem e respondem
 	echo "api  /health         -> $$(curl -fsS http://127.0.0.1:$(IMAGE_API_PORT)/health)"; \
 	echo "web  /health         -> $$(curl -fsS http://127.0.0.1:$(IMAGE_WEB_PORT)/health)"; \
 	echo "web  /               -> HTTP $$(curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/)"; \
-	echo "web  /v1/me (repasse)-> HTTP $$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/v1/me)"
+	echo "web  /v1/me (repasse)-> HTTP $$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/v1/me)"; \
+	docker run -d --rm --name $(PROJECT_NAME)-smoke-doente --network $(IMAGE_NETWORK) \
+		-e DATABASE_URL='postgres://ninguem:ninguem@banco-que-nao-existe:5432/nada' \
+		-e AUTH_JWT_SECRET='$(AUTH_JWT_SECRET)' \
+		-e LLM_PROVIDER='$(LLM_PROVIDER)' \
+		-e GOOGLE_CLIENT_ID='$(IMAGE_GOOGLE_CLIENT_ID)' \
+		-e API_PORT=3000 \
+		-p 127.0.0.1:$(IMAGE_SICK_PORT):3000 $(API_IMAGE) >/dev/null; \
+	sleep 3; \
+	echo "api  /health SEM banco -> HTTP $$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_SICK_PORT)/health)"; \
+	docker rm -f $(PROJECT_NAME)-smoke-doente >/dev/null
 
 typecheck: ## checagem de tipos
 	cd apps/api-pai-presente && bun run typecheck

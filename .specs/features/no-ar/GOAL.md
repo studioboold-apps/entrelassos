@@ -171,6 +171,12 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 ### Fase 4 — publicar
 - [x] `P4.1` — `Dockerfile` das duas apps, build reprodutível
 - [ ] `P4.2` — publicado no provedor de `D6`, migrations no deploy
+      travado em `D6`. Feito o que não depende dela: migration rodando de
+      DENTRO da imagem (`bun dist/database/migrate.js`, o comando de release
+      dos dois provedores), `/health` perguntando ao banco de verdade, e
+      `docs/DEPLOY.md` com o contrato inteiro. Medido: `flyctl` não está
+      instalado; `railway 5.47.1` está, e autenticado. Publicar cria
+      infraestrutura cobrada na conta do dono — é decisão dele.
 - [ ] `P4.3` — HTTPS, cabeçalhos e CSP sem `unsafe-inline` (`S-005`)
 - [ ] `P4.4` — backup criptografado e observabilidade sem PII
 

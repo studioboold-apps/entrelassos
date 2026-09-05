@@ -206,6 +206,15 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 
 ### Fase 5 — entrada
 - [ ] `P5.1` — credenciais reais de `D7`, login provado por uma pessoa
+      **BLOQUEADA em `D7`, e o bloqueio é medido.** Tudo o que não depende dele
+      está feito: o app está no ar em `https://web-production-1d6f.up.railway.app`,
+      e o bundle publicado traz `Sz="AGUARDANDO-D7"` — o identificador atravessa
+      o IaC, o `--build-arg`, o `ENV` e o `define` do Vite e chega ao navegador.
+      Falta só o valor real, que sai de uma conta Google Cloud que não é minha.
+      O que o Google precisa é **origem JavaScript autorizada**, não
+      `redirect_uri`: o fluxo é o token de identidade do GIS, que resolve dentro
+      da página. `public-environment.test.js` guarda os quatro elos, e foi visto
+      reprovar quando um deles cai.
 
 ### Fase 6 — dívida
 - [x] `P6.1` — o que a Fase 2 tocou sai nos padrões; o resto vira lista datada

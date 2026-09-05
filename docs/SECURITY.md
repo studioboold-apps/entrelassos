@@ -262,3 +262,45 @@ retenção fecha a outra ponta.
 | # | Item | Por quê |
 |---|---|---|
 | S-007 | A purga dos 5 anos ainda não roda sozinha | O prazo está definido (acima) e a coluna existe; falta o trabalho agendado que apaga. Enquanto não existir, a retenção é política escrita e não comportamento — e o que não executa não protege |
+| S-008 | **A senha do Postgres de produção apareceu no meu terminal e precisa ser rotacionada** | Ver abaixo. A rotação derruba a conexão da API até o redeploy pegar a senha nova, então quem escolhe a hora é você |
+
+---
+
+## `S-008` — senha do Postgres queimada no terminal (05/09/2026)
+
+**O que houve.** Ao conferir o ambiente do Railway eu rodei
+`railway variables --service api`, que imprime a tabela com a `DATABASE_URL`
+inteira. A máscara que apliquei depois pegou a linha, mas **não a célula
+quebrada em duas linhas** pela largura da tabela, e a senha saiu legível na
+saída do comando. `security.md` §4 não abre exceção: *segredo que apareceu em
+terminal é segredo queimado*.
+
+Depois disso toda leitura de variável passou a sair por `--json` num filtro que
+imprime só fato derivado — comprimento e prefixo de hash. Foi assim que a
+auditoria acima foi feita, e é assim que ela deve continuar sendo feita.
+
+**O que a medição diz sobre o risco real.** O serviço `postgres` **não tem proxy
+TCP público**: as variáveis dele não trazem `RAILWAY_TCP_PROXY_DOMAIN` nem
+`RAILWAY_TCP_PROXY_PORT`, e o único endereço é `postgres.railway.internal:5432`,
+que só existe dentro da rede privada do projeto. Quem tivesse a senha e não
+tivesse acesso ao projeto no Railway não teria por onde usá-la. Isso **reduz a
+urgência e não dispensa a rotação** — a regra é sobre o segredo ter vazado, não
+sobre alguém ter conseguido usá-lo.
+
+**Por que ainda não rotacionei.** A rotação tem uma janela em que a senha do
+papel no banco e a das variáveis do serviço não são a mesma, e nessa janela a
+API não conecta. É operação em produção com o app no ar; a hora é decisão de
+quem opera, não minha.
+
+**Procedimento, quando for a hora:**
+
+1. Gerar a senha nova fora do terminal (o gerador do Railway, ou um cofre).
+2. `ALTER USER postgres WITH PASSWORD …` no banco, pela sessão do próprio
+   Railway — nunca com a senha escrita na linha de comando, que vai para o
+   histórico do shell.
+3. Trocar `POSTGRES_PASSWORD` e `PGPASSWORD` no serviço `postgres`. A
+   `DATABASE_URL` da API é **referência** (`database.env.DATABASE_URL` no IaC),
+   então ela se recompõe sozinha.
+4. Redeploy da API para pegar o valor novo, e conferir por `/health` — que já
+   dá um `select 1` no banco, então ele responde a pergunta certa.
+5. Conferir que `railway config plan` continua sem acusar deriva.

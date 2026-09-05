@@ -29,6 +29,9 @@ const RUN_ID = randomUUID();
 const PARENT_EMAIL = `e2e-${RUN_ID}@teste.dev`;
 const PARENT_ID_TOKEN = `${PARENT_EMAIL}|Pai de Teste`;
 const TODAY = new Date().toISOString().slice(0, 10);
+/** Fixo de proposito: dia que nenhum relogio de maquina pode acertar por acaso. */
+const FIXED_DAY = '2031-12-01';
+const FIXED_BIRTH_DAY = '2018-03-15';
 
 function readId(record: Record<string, unknown>): string {
   const { id } = record;
@@ -100,6 +103,41 @@ describe.skipIf(!IS_ENABLED)('fumaca ponta a ponta contra a API de verdade', () 
     const activity = readDataRecord(response);
     expect(activity).toMatchObject({ childId, isCompleted: false });
     activityId = readId(activity);
+  });
+
+  /**
+   * Coluna `date` nao tem hora nem fuso, mas o driver do Bun a entrega como
+   * `Date` e o JSON a publica como instante em UTC. `new Date` na tela le esse
+   * instante no fuso local e, a oeste de Greenwich, cai no DIA ANTERIOR: a
+   * atividade do dia 1 aparecia no dia 30 e o ponto do calendario ia junto.
+   *
+   * O teste de unidade nao alcanca isto — a repository falsa devolve texto,
+   * que e mais honesto que o driver de verdade. So o banco real prova.
+   */
+  test('o dia de calendario chega ao cliente como DIA, nunca como instante', async () => {
+    const created = await client.send({
+      method: HTTP_METHODS.POST,
+      path: ACTIVITIES_PATH,
+      body: { title: `Dia fixo ${RUN_ID}`, activityDate: FIXED_DAY },
+    });
+
+    expect(created.status).toBe(HTTP_STATUS.CREATED);
+    expect(readDataRecord(created).activityDate).toBe(FIXED_DAY);
+
+    const listed = await client.send({ method: HTTP_METHODS.GET, path: ACTIVITIES_PATH });
+    const found = readDataList(listed).find((activity) => activity.activityDate === FIXED_DAY);
+    expect(found).toBeDefined();
+  });
+
+  test('a data de nascimento do filho segue a mesma regra', async () => {
+    const created = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHILDREN_PATH,
+      body: { name: 'Filha de Teste', age: 8, gender: 'feminino', birthDate: FIXED_BIRTH_DAY },
+    });
+
+    expect(created.status).toBe(HTTP_STATUS.CREATED);
+    expect(readDataRecord(created).birthDate).toBe(FIXED_BIRTH_DAY);
   });
 
   test('concluir a atividade PERSISTE, e nao so ecoa', async () => {

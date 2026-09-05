@@ -6,7 +6,6 @@
 
 import {
   boolean,
-  date,
   index,
   integer,
   pgTable,
@@ -17,7 +16,7 @@ import {
 
 import { childrenTable } from '../Child/child.table';
 import { usersTable } from '../User/user.table';
-import { buildIdentityColumns } from '../shared/columns.constant';
+import { buildIdentityColumns, calendarDate } from '../shared/columns.constant';
 import { DOMAIN_VALUE_LENGTH, MEDIUM_TEXT_LENGTH } from '../shared/shared.constant';
 
 // A Base44 guardava child_name ao lado de child_id; o nome e derivavel do
@@ -35,7 +34,7 @@ export const activitiesTable = pgTable(
     }),
     title: varchar('title', { length: MEDIUM_TEXT_LENGTH }).notNull(),
     description: text('description'),
-    activityDate: date('activity_date').notNull(),
+    activityDate: calendarDate('activity_date').notNull(),
     activityTime: varchar('activity_time', { length: DOMAIN_VALUE_LENGTH }),
     category: varchar('category', { length: DOMAIN_VALUE_LENGTH }),
     isSuggested: boolean('is_suggested').notNull().default(false),

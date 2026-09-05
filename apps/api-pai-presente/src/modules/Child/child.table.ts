@@ -4,10 +4,10 @@
  * Licenca: proprietaria.
  */
 
-import { date, index, integer, pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { usersTable } from '../User/user.table';
-import { buildIdentityColumns } from '../shared/columns.constant';
+import { buildIdentityColumns, calendarDate } from '../shared/columns.constant';
 import { DOMAIN_VALUE_LENGTH, SHORT_TEXT_LENGTH } from '../shared/shared.constant';
 
 export const childrenTable = pgTable(
@@ -20,7 +20,7 @@ export const childrenTable = pgTable(
     name: varchar('name', { length: SHORT_TEXT_LENGTH }).notNull(),
     age: integer('age').notNull(),
     gender: varchar('gender', { length: DOMAIN_VALUE_LENGTH }).notNull(),
-    birthDate: date('birth_date'),
+    birthDate: calendarDate('birth_date'),
     favoriteHobby: varchar('favorite_hobby', { length: SHORT_TEXT_LENGTH }),
     favoriteColor: varchar('favorite_color', { length: SHORT_TEXT_LENGTH }),
     favoriteFood: varchar('favorite_food', { length: SHORT_TEXT_LENGTH }),

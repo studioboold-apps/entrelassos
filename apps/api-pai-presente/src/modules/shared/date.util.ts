@@ -70,3 +70,24 @@ export function buildMonthInstantRange(month: string): MonthInstantRange {
     endExclusive: new Date(Date.UTC(year, monthNumber, 1)),
   };
 }
+
+/** `YYYY-MM-DD` — o tamanho do dia de calendario, sem hora e sem fuso. */
+const CALENDAR_DATE_LENGTH = 10;
+
+export function toCalendarDate(value: Date | string): string;
+export function toCalendarDate(value: Date | string | null): string | null;
+/**
+ * Coluna `date` do Postgres e DIA DE CALENDARIO: nao tem hora nem fuso. O
+ * driver do Bun a entrega como `Date` na meia-noite UTC, e ler esse instante
+ * com getter local a oeste de Greenwich devolve o dia anterior. Os getters
+ * aqui sao UTC de proposito: eles desfazem exatamente o que o driver fez.
+ */
+export function toCalendarDate(value: Date | string | null): string | null {
+  if (value === null) return null;
+  if (typeof value === 'string') return value.slice(0, CALENDAR_DATE_LENGTH);
+
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(value.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

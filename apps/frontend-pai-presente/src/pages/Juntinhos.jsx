@@ -32,6 +32,8 @@ import {
 import ActivityCard from '@/components/ActivityCard';
 import { BRAND_LOGO } from '@/lib/brand';
 import { toMonthKey } from '@/lib/month';
+import { toCalendarDate, toLocalDate } from '@/lib/calendar-date';
+import { describeApiFailure } from '@/lib/api-error-message';
 
 
 const categories = [
@@ -52,14 +54,12 @@ export default function Juntinhos() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showNewActivity, setShowNewActivity] = useState(false);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [newActivity, setNewActivity] = useState({
     title: '',
     description: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: toCalendarDate(new Date()),
     time: '',
     child_id: '',
     category: ''
@@ -80,6 +80,7 @@ export default function Juntinhos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setShowNewActivity(false);
+      setShowSuggestions(false);
       resetForm();
     },
   });
@@ -91,11 +92,39 @@ export default function Juntinhos() {
     },
   });
 
+  /**
+   * A sugestao vem da IA: e dado de servidor, e dado de servidor nao mora em
+   * `useState` (`web.md` §5). Enquanto morava, a falha ia so para o console do
+   * navegador e o botao simplesmente voltava de "Sugerir" — sem chave de IA a
+   * API responde 503 com o motivo escrito, e ninguem lia.
+   */
+  const suggestionsMutation = useMutation({
+    /**
+     * A estacao do ano, a idade dos filhos e o mes montavam o prompt aqui
+     * dentro. Quem conhece os filhos e a API; a tela so diz de que mes quer
+     * sugestao.
+     *
+     * @param {string} month
+     */
+    mutationFn: (month) => api.ai.activitySuggestions(month),
+    onSuccess: () => {
+      setShowSuggestions(true);
+    },
+  });
+
+  const suggestions = suggestionsMutation.data ?? [];
+  const suggestionsFailure = suggestionsMutation.isError ? describeApiFailure(suggestionsMutation.error) : null;
+  const createFailure = createActivityMutation.isError ? describeApiFailure(createActivityMutation.error) : null;
+  const updateFailure = updateActivityMutation.isError ? describeApiFailure(updateActivityMutation.error) : null;
+
+  /** Fora dos dialogos so cabe um aviso; o mais recente e o que a pessoa acabou de provocar. */
+  const screenFailure = suggestionsFailure ?? updateFailure ?? createFailure;
+
   const resetForm = () => {
     setNewActivity({
       title: '',
       description: '',
-      date: format(selectedDate, 'yyyy-MM-dd'),
+      date: toCalendarDate(selectedDate),
       time: '',
       child_id: '',
       category: ''
@@ -129,26 +158,12 @@ export default function Juntinhos() {
     updateActivityMutation.mutate({ id: activityId, data: { rating } });
   };
 
-  const generateSuggestions = async () => {
+  const generateSuggestions = () => {
     if (children.length === 0) return;
-    
-    setLoadingSuggestions(true);
-    try {
-      /**
-       * A estacao do ano, a idade dos filhos e o mes montavam o prompt aqui
-       * dentro. Quem conhece os filhos e a API; a tela so diz de que mes quer
-       * sugestao.
-       */
-      const suggestions = await api.ai.activitySuggestions(toMonthKey(currentMonth));
-
-      setSuggestions(suggestions);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error('Error generating suggestions:', error);
-    }
-    setLoadingSuggestions(false);
+    suggestionsMutation.mutate(toMonthKey(currentMonth));
   };
 
+  /** O dialogo so fecha quando a gravacao volta: fechar antes esconderia a recusa. */
   const acceptSuggestion = (suggestion) => {
     /** A atividade se vincula por id; o nome que a IA devolveu so serve para achar o filho. */
     const child = children.find(c => c.name === suggestion.child_name) ?? children[0];
@@ -156,11 +171,10 @@ export default function Juntinhos() {
       title: suggestion.title,
       description: suggestion.description,
       category: suggestion.category,
-      date: format(selectedDate, 'yyyy-MM-dd'),
+      date: toCalendarDate(selectedDate),
       ...(child ? { child_id: child.id } : {}),
       is_suggested: true,
     });
-    setShowSuggestions(false);
   };
 
   const days = eachDayOfInterval({
@@ -168,11 +182,16 @@ export default function Juntinhos() {
     end: endOfMonth(currentMonth)
   });
 
-  const activitiesForSelectedDate = activities.filter(a => 
-    isSameDay(new Date(a.date), selectedDate)
+  /**
+   * `new Date('2026-09-10')` e meia-noite em Greenwich, nao aqui: a oeste dela o
+   * dia recua um, e a atividade do dia 10 aparecia sob o dia 9 — com o pontinho
+   * do calendario junto. `toLocalDate` le o dia como DIA.
+   */
+  const activitiesForSelectedDate = activities.filter(activity =>
+    isSameDay(toLocalDate(activity.date), selectedDate)
   );
 
-  const daysWithActivities = activities.map(a => new Date(a.date));
+  const daysWithActivities = activities.map(activity => toLocalDate(activity.date));
 
   const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   const firstDayOfMonth = startOfMonth(currentMonth).getDay();
@@ -265,10 +284,10 @@ export default function Juntinhos() {
           <Button
             variant="outline"
             onClick={generateSuggestions}
-            disabled={loadingSuggestions || children.length === 0}
+            disabled={suggestionsMutation.isPending || children.length === 0}
             className="flex-1 h-12 bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
           >
-            {loadingSuggestions ? (
+            {suggestionsMutation.isPending ? (
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
             ) : (
               <Sparkles className="w-5 h-5 mr-2 text-blue-400" />
@@ -277,7 +296,9 @@ export default function Juntinhos() {
           </Button>
           <Button
             onClick={() => {
-              setNewActivity(prev => ({ ...prev, date: format(selectedDate, 'yyyy-MM-dd') }));
+              /** Sem isto o dialogo reabre com o aviso da tentativa anterior, que ja passou. */
+              createActivityMutation.reset();
+              setNewActivity(prev => ({ ...prev, date: toCalendarDate(selectedDate) }));
               setShowNewActivity(true);
             }}
             className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
@@ -286,6 +307,12 @@ export default function Juntinhos() {
             Nova Atividade
           </Button>
         </div>
+
+        {screenFailure && (
+          <p role="alert" className="text-sm text-red-400 mt-3">
+            {screenFailure.message}
+          </p>
+        )}
       </div>
 
       {/* Selected Date Activities */}
@@ -415,6 +442,12 @@ export default function Juntinhos() {
               </div>
             </div>
 
+            {createFailure && (
+              <p role="alert" className="text-sm text-red-400">
+                {createFailure.message}
+              </p>
+            )}
+
             <Button
               className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
               onClick={handleCreateActivity}
@@ -437,6 +470,11 @@ export default function Juntinhos() {
           </DialogHeader>
           
           <div className="space-y-3">
+            {createFailure && (
+              <p role="alert" className="text-sm text-red-400">
+                {createFailure.message}
+              </p>
+            )}
             {suggestions.map((suggestion, index) => (
               <motion.div
                 key={index}

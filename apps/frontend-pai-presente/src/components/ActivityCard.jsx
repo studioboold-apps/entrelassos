@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, User, CheckCircle, Tent, BookOpen, Dumbbell, Palette, TreePine, ChefHat, Gamepad2, School, GraduationCap, Wrench } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toLocalDate } from '@/lib/calendar-date';
 import { Button } from '@/components/ui/button';
 import RatingButton from '@/components/ui/RatingButton';
 
@@ -26,7 +27,16 @@ export default function ActivityCard({
   onRate,
   delay = 0 
 }) {
-  const isPast = new Date(activity.date) < new Date();
+  /**
+   * O dia da atividade e dia de calendario. Lido por `new Date`, ele virava
+   * meia-noite em Greenwich e, a oeste dela, caia no dia anterior — o cartao
+   * do dia 10 dizia "9 de set" e ja nascia passado.
+   *
+   * E a comparacao e DIA contra DIA: contra o instante de agora, a atividade
+   * marcada para hoje a tarde vira passada logo depois da meia-noite.
+   */
+  const activityDay = toLocalDate(activity.date);
+  const isPast = activityDay.getTime() < startOfDay(new Date()).getTime();
   const config = categoryConfig[activity.category] || categoryConfig.aventura;
   const Icon = config.icon;
 
@@ -73,7 +83,7 @@ export default function ActivityCard({
           <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
             <span className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
-              {format(new Date(activity.date), "d 'de' MMM", { locale: ptBR })}
+              {format(activityDay, "d 'de' MMM", { locale: ptBR })}
             </span>
             {activity.time && (
               <span className="flex items-center gap-1">

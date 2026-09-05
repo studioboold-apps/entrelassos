@@ -122,15 +122,16 @@ seja, dentro da F2 — e o que sobrar vira decisão consciente, não esqueciment
 
 ---
 
-## 4. As quatro decisões abertas
+## 4. As decisões que não são minhas
 
 Nenhuma é técnica o bastante para eu tomar sozinho: todas custam dinheiro, prazo
-ou risco jurídico.
+ou risco jurídico. `TL.1` e `D6` já foram fechadas; `D7`, `D8` e `D9` seguem
+abertas, e as duas primeiras é que travam a entrada e a IA no ar.
 
 | # | decisão | recomendação |
 |---|---|---|
 | **`TL.1`** | os três campos sensíveis: remover, virar opcional com consentimento específico, ou manter com base legal registrada | **remover os três.** O primeiro sai de graça (ninguém lê); os outros dois melhoram o prompt de IA de um jeito que não paga o passivo de guardar religião e política de quem tem filho pequeno |
-| **`D6`** | Fly.io ou Railway, e qual domínio | **Fly.io** — Postgres gerenciado, região em São Paulo, e o app é PWA (latência conta). Domínio: preciso saber se você já tem um |
+| **`D6`** | ~~Fly.io ou Railway, e qual domínio~~ **FECHADA: Railway** | recomendei Fly.io pela região em São Paulo; o dono escolheu Railway, que **não tem região sul-americana** — ficou em `us-east4`. Domínio: `web-production-1d6f.up.railway.app`, cunhado no deploy |
 | **`D7`** | login: só Google no lançamento, ou Google + Apple | **só Google.** A Apple exige conta paga de desenvolvedor (US$ 99/ano) e revisão; o código já suporta os dois, então ligar a Apple depois é configuração, não obra |
 | **`D8`** | provedor de IA em produção e quem paga a chave | o código é agnóstico por env (`D4`). Falta escolher e ter a chave — sem ela, quatro rotas respondem erro |
 
@@ -170,13 +171,23 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 
 ### Fase 4 — publicar
 - [x] `P4.1` — `Dockerfile` das duas apps, build reprodutível
-- [ ] `P4.2` — publicado no provedor de `D6`, migrations no deploy
-      travado em `D6`. Feito o que não depende dela: migration rodando de
-      DENTRO da imagem (`bun dist/database/migrate.js`, o comando de release
-      dos dois provedores), `/health` perguntando ao banco de verdade, e
-      `docs/DEPLOY.md` com o contrato inteiro. Medido: `flyctl` não está
-      instalado; `railway 5.47.1` está, e autenticado. Publicar cria
-      infraestrutura cobrada na conta do dono — é decisão dele.
+- [x] `P4.2` — publicado no provedor de `D6`, migrations no deploy
+      **No ar em `https://web-production-1d6f.up.railway.app`.** Medido em
+      05/09/2026: `GET /` responde `200` com o HTML; `GET /v1/activities`
+      responde `401 UNAUTHENTICATED` **no envelope da API**, que é o que prova
+      o repasse pela rede privada; dentro do contêiner, `/health` responde
+      `{"data":{"status":"ok","database":"ok"}}`; e o pre-deploy deixou 11
+      tabelas no schema `public` — migration de dentro da imagem, nunca
+      `drizzle-kit push`.
+      Três deploys falharam antes, e nenhuma das mensagens apontava a causa:
+      (1) o `Dockerfile` publicava o estágio de **backup**, porque `docker
+      build` sem `--target` constrói o ÚLTIMO estágio — a mensagem falava de
+      `meta/_journal.json`; (2) faltava a variável `PORT`, e sem ela o provedor
+      sondou porta nenhuma por cinco minutos com o processo VIVO; (3) o
+      `Bun.serve` ligava só em IPv4 numa rede privada IPv6. Os três viraram
+      teste antes de virar conserto.
+      A produção é declarada em `.railway/railway.ts` — `railway config plan`
+      compara com o ambiente vivo antes de tocar em nada.
 - [x] `P4.3` — HTTPS, cabeçalhos e CSP sem `unsafe-inline` (`S-005`)
       medido nas imagens: 6 de 6 cabeçalhos nas duas, `script-src 'self'` sem
       `unsafe-inline` nem `unsafe-eval`, e 308 para `https` atrás do proxy. A

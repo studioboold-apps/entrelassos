@@ -1,8 +1,8 @@
 # Publicar o Pai Presente
 
-Estado em 05/09/2026: **as imagens existem e foram provadas localmente; nada foi
-publicado.** O que falta não é código — é a decisão `D6` (Fly.io ou Railway, e
-qual domínio) e a conta no provedor escolhido.
+Estado em 05/09/2026: **está no ar.** `D6` fechou em **Railway**, e o endereço
+público é `https://web-production-1d6f.up.railway.app`. A API não tem endereço
+público de propósito (§1), e as migrations entraram pelo pre-deploy (§2).
 
 ---
 
@@ -120,33 +120,84 @@ rápida, e isso se decide com o domínio definitivo na mão.
 
 Detalhes e a dívida do `style-src` estão em `docs/SECURITY.md` (`S-005`).
 
-## 6. `D6` continua aberta, e a medição que ela precisa
+## 6. `D6` fechou: **Railway**
+
+O dono do projeto escolheu Railway. A recomendação escrita no `GOAL.md` era
+Fly.io, e o único argumento a favor dela era a região `gru` (São Paulo).
 
 | item | medido em 05/09/2026 |
 |---|---|
-| `flyctl` | **não instalado**; `~/.fly` não existe — exige instalar, criar conta e cadastrar cartão |
-| `railway` | **instalado (5.47.1) e autenticado** na conta do dono do projeto |
-| região | o argumento a favor do Fly é `gru` (São Paulo); confirmar a região sul-americana do Railway antes de trocar |
-| domínio | ninguém disse ainda se existe um |
+| `flyctl` | **não instalado**; `~/.fly` não existe — exigiria instalar, criar conta e cadastrar cartão |
+| `railway` | **instalado e autenticado** na conta do dono do projeto |
+| região | o Railway **não tem região na América do Sul** — Holanda, EUA e Singapura. `us-east4-eqdc4a` é o mais perto do Brasil que existe lá |
+| domínio | `web-production-1d6f.up.railway.app`, cunhado por `railway domain --service web --port 8080` |
 
-A recomendação do `GOAL.md` continua **Fly.io** (Postgres gerenciado, região em
-São Paulo, e o app é PWA — latência conta). A conta já pronta é a do Railway.
-A escolha custa dinheiro e é do dono do projeto.
+A latência sul-americana era o argumento do Fly, e ele morreu na escolha do
+provedor — não adianta repeti-lo aqui. Domínio próprio, quando houver, entra
+como `customDomains` e não muda mais nada do desenho.
 
-## 7. Quando `D6` fechar
+## 7. A produção é declarada em código
 
-1. criar o Postgres gerenciado e pegar o endereço privado;
-2. criar os dois serviços apontando para `apps/api-pai-presente/Dockerfile` e
-   `apps/frontend-pai-presente/Dockerfile`, com a **raiz do monorepo** como
-   contexto de build;
-3. declarar as variáveis da §4 e o comando de migration da §2;
-4. apontar o health check em `/health` nos dois;
-5. `APP_ENV=production` no build da web — sem ele o valor não entra no bundle.
+`.railway/railway.ts` descreve os três recursos, e `railway config plan` compara
+o arquivo com o ambiente vivo antes de tocar em nada. Painel clicado não tem
+diferença para mostrar, não entra em revisão e não se refaz num ambiente novo —
+é a mesma razão que tirou o `drizzle-kit push` do caminho (§2).
 
-O aceite de `F4.2` é URL pública respondendo `/health` e a tela falando com a
-API. Enquanto os passos acima não rodarem, ele não está atingido.
+```bash
+railway config plan          # mostra a diferença
+railway config apply --yes   # aplica
+railway up --service api --ci
+railway up --service web --ci
+```
 
-## 8. O backup, quando `D6` fechar
+### Três defeitos que só o deploy encontrou
+
+Nenhum deles aparece em teste local, e nenhuma das três mensagens de erro
+apontava para a causa. Os três viraram teste antes de virar conserto.
+
+| o que quebrou | a mensagem que apareceu | a causa |
+|---|---|---|
+| a imagem publicada era a de **backup** | `Can't find meta/_journal.json file` | `docker build` sem `--target` constrói o **último** estágio, e o `backup` estava no fim. Ele não carrega `drizzle` |
+| o health check falhou **10 vezes em 5 minutos** com o processo vivo | `service unavailable` | não existia variável `PORT` no serviço, e sem domínio o provedor não sabia para onde sondar |
+| — | — | `Bun.serve` liga em `0.0.0.0` (só IPv4) e a rede privada do Railway é IPv6; corrigido para `::` antes de a causa real aparecer, e mantido por ser o certo |
+
+O primeiro é o mais traiçoeiro: **a ordem dos estágios do `Dockerfile` é uma
+decisão de produção escrita onde ela não parece uma.** Está protegida por
+`apps/api-pai-presente/src/config/dockerfile-stages.test.ts`.
+
+### O que o `plan` acusa e não é deriva
+
+Logo depois de um `apply` bem-sucedido, o `plan` volta a listar cinco mudanças:
+`source.type`, `deploy.region` e `deploy.restartPolicyType` dos dois serviços, e
+`AUTH_JWT_SECRET`. A API do provedor devolve `null` nesses campos, então o
+planejador não consegue ver o que ele mesmo acabou de gravar.
+
+O `AUTH_JWT_SECRET` foi **medido**, não suposto: hash `87884204ee82` antes do
+`apply` e `87884204ee82` depois. Ele não é rotacionado, e ninguém é deslogado.
+Fosse o contrário, todo `apply` derrubaria a sessão de todos os pais.
+
+### O aceite de `F4.2`, medido
+
+| o que | resultado em 05/09/2026 |
+|---|---|
+| `GET /` na URL pública | `200`, o HTML da tela |
+| `GET /health` na URL pública | `200 {"data":{"status":"ok"}}` — o da **web** |
+| `GET /v1/activities` na URL pública | `401 UNAUTHENTICATED`, no envelope da **API** — é isto que prova o repasse pela rede privada |
+| `GET /health` dentro do contêiner da API | `{"data":{"status":"ok","database":"ok"}}` |
+| migrations | 11 tabelas no schema `public`, aplicadas pelo pre-deploy |
+
+O `/health` público é o da web, não o da API: a web tem o dela e o caminho é o
+mesmo. Quem prova o banco é o health check interno do provedor, que faz
+`select 1` a cada sondagem — e é ele que impede um deploy quebrado de ser
+promovido.
+
+### O que continua fechado
+
+`GOOGLE_CLIENT_ID=AGUARDANDO-D7` é **marcador, não credencial**. O boot exige
+algum valor; enquanto `D7` não trouxer o `client_id` real, a tela de entrada do
+Google não funciona no ar. Quem abre isso é `F5.1`.
+
+## 8. O backup — ainda não agendado
 
 O alvo de backup **não sobe na imagem da API**. `pg_dump` não existe na imagem
 oficial do Bun, e instalar `postgresql-client` no serviço que atende HTTP
@@ -173,7 +224,7 @@ a imagem constrói, sobe, e só falha no primeiro agendamento.
 | frequência | diária, fora do horário de pico |
 | comando | `bun dist/backup/run-backup.js` |
 | restauração | `bun dist/backup/run-restore.js [chave-do-objeto]` — sem argumento, o mais recente |
-| onde | Fly: `fly machine run --schedule daily`; Railway: serviço de cron apontando para o mesmo estágio |
+| onde | um serviço de cron no Railway apontando para o estágio `backup` do mesmo `Dockerfile` |
 
 ### Variáveis do trabalho de backup
 
@@ -189,14 +240,14 @@ a imagem constrói, sobe, e só falha no primeiro agendamento.
 ### A guarda da chave
 
 A chave de cifra **não pode viver no mesmo lugar que o cifrado**: com as duas
-juntas, o vazamento do balde é o vazamento do banco inteiro. Ela é segredo do
-provedor de execução (`fly secrets set` / variável do Railway), nunca
+juntas, o vazamento do balde é o vazamento do banco inteiro. Ela é variável selada do
+Railway, nunca
 `--build-arg` — argumento de build fica assado na camada da imagem, legível por
 quem puxar a imagem.
 
 Gerar: `openssl rand -base64 32`. **Perder a chave é perder todos os backups
 cifrados com ela** — não há recuperação, é AES-256-GCM. Guardar uma cópia no
-cofre de senhas do dono do projeto faz parte de fechar `D6`.
+cofre de senhas do dono do projeto é pré-requisito do primeiro backup.
 
 ### O restore precisa ser ensaiado no ambiente publicado
 

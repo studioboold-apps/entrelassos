@@ -31,6 +31,12 @@ const IMMUTABLE_PREFIX = '/assets/';
 const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
 const REVALIDATE_CACHE = 'no-cache';
 
+/**
+ * Todas as interfaces, IPv4 e IPv6. O padrao do `Bun.serve` e' `0.0.0.0`, que
+ * so atende IPv4 — e a rede privada do provedor e' IPv6.
+ */
+const SERVER_BIND_HOSTNAME = '::';
+
 const HTTP_NOT_FOUND = 404;
 const HTTP_BAD_GATEWAY = 502;
 
@@ -105,6 +111,7 @@ async function serveApplicationShell(distDirectory) {
  */
 export function createWebServer({ port, distDirectory, apiOrigin }) {
   return Bun.serve({
+    hostname: SERVER_BIND_HOSTNAME,
     port,
     async fetch(request) {
       const { pathname } = new URL(request.url);

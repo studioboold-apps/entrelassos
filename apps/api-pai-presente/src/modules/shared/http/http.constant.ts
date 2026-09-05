@@ -36,6 +36,13 @@ export const HEALTH_PATH = '/health';
  * volta na resposta, nao so no log.
  */
 export const TRACE_ID_HEADER = 'X-Trace-Id';
+/**
+ * Todas as interfaces, IPv4 e IPv6. O padrao do `Bun.serve` e' `0.0.0.0`, que
+ * so atende IPv4 — e a rede privada do provedor e' IPv6, o que faz o container
+ * subir saudavel e mesmo assim recusar toda checagem de saude.
+ */
+export const SERVER_BIND_HOSTNAME = '::';
+
 export const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 /** Teto de paginacao (apis.md § Paginacao). */

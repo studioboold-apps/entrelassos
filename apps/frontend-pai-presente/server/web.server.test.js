@@ -42,6 +42,18 @@ afterAll(() => {
   api?.stop(true);
 });
 
+/**
+ * A rede privada do provedor e' IPv6, e a checagem de saude chega por ela. O
+ * padrao do `Bun.serve` e' `0.0.0.0`, que so escuta IPv4: o container sobe, diz
+ * que esta no ar, e recusa toda checagem — medido na API em 05/09/2026, dez
+ * tentativas seguidas ate o deploy ser descartado com o processo vivo.
+ */
+describe('a tela escuta onde a rede privada chama', () => {
+  test('o servidor atende em todas as interfaces, IPv6 inclusive', () => {
+    expect(web.hostname).toBe('::');
+  });
+});
+
 describe('a tela e a API saem da MESMA origem', () => {
   /**
    * O cookie de sessao e' `SameSite=Lax` e host-only: tela num host e API em

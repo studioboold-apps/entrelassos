@@ -14,6 +14,7 @@ import { createCorsPolicy } from './modules/shared/http/cors';
 import {
   HEALTH_PATH,
   HTTP_METHODS,
+  SERVER_BIND_HOSTNAME,
   SHUTDOWN_TIMEOUT_MS,
 } from './modules/shared/http/http.constant';
 import { createRouter } from './modules/shared/http/router';
@@ -59,6 +60,7 @@ const pingDatabase = (): Promise<unknown> => database.execute(sql`select 1`);
 // /health fica FORA da tabela de rotas de proposito: assim toda rota da tabela e
 // autenticada por construcao, e nao por lembrar de marcar cada uma.
 const server = Bun.serve({
+  hostname: SERVER_BIND_HOSTNAME,
   port: environment.API_PORT,
   async fetch(request: Request): Promise<Response> {
     const intercepted = cors.intercept(request);

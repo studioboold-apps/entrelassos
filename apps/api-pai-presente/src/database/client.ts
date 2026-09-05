@@ -6,12 +6,14 @@
 
 import { drizzle } from 'drizzle-orm/bun-sql';
 
-import { environment } from '../config/environment';
 import * as schema from './schema';
 
-export const database = drizzle(environment.DATABASE_URL, {
-  schema,
-  casing: 'snake_case',
-});
+/**
+ * Fabrica, nao singleton de modulo: importar o cliente nao pode exigir
+ * DATABASE_URL, senao todo teste de contrato passa a precisar de banco.
+ */
+export function createDatabaseClient(databaseUrl: string) {
+  return drizzle(databaseUrl, { schema, casing: 'snake_case' });
+}
 
-export type Database = typeof database;
+export type Database = ReturnType<typeof createDatabaseClient>;

@@ -167,6 +167,8 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
       (aceite do `make up` pendente: **falta um runtime de Docker** na máquina)
 - [x] `TB.4` — schema Drizzle das 7 entidades, migration aplicada e revertida
       em banco limpo; sem as três colunas sensíveis, que esperam `TL.1`
+- [x] `TB.5` — as 25 rotas dos 7 recursos, com 56 testes de contrato
+      (feliz e falha por rota); toda rota `/v1` responde **401** até `TB.6`
 - [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
 - [ ] Executar o `tasks.md` da saída escolhida
 

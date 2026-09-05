@@ -53,3 +53,15 @@ export type ChatRole = (typeof CHAT_ROLES)[number];
 export const DOMAIN_VALUE_LENGTH = 32;
 export const SHORT_TEXT_LENGTH = 120;
 export const MEDIUM_TEXT_LENGTH = 255;
+
+/** Faixa da nota de 1 a 5, unica em todo o produto (atividade e insight). */
+export const RATING_MIN = 1;
+export const RATING_MAX = 5;
+
+export const CHILD_AGE_MIN = 0;
+export const CHILD_AGE_MAX = 25;
+export const ADULT_AGE_MIN = 16;
+export const ADULT_AGE_MAX = 120;
+
+/** Teto de texto livre (post, comentario, mensagem de chat). */
+export const FREE_TEXT_MAX_LENGTH = 4000;

@@ -6,8 +6,9 @@
 
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
 
-import { database } from './client';
+import { environment } from '../config/environment';
+import { createDatabaseClient } from './client';
 
-// Migration versionada e o unico caminho fora do local descartavel
-// (database.md — `drizzle-kit push` nao roda em CI, staging nem producao).
-await migrate(database, { migrationsFolder: './drizzle' });
+await migrate(createDatabaseClient(environment.DATABASE_URL), {
+  migrationsFolder: './drizzle',
+});

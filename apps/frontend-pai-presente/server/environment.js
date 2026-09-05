@@ -1,0 +1,32 @@
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
+const DEFAULT_PORT = 8080;
+const DEFAULT_DIST_DIRECTORY = 'dist';
+
+/**
+ * Falha no BOOT, nunca na primeira chamada (`nodejs.md`): sem `API_ORIGIN` a
+ * imagem subiria saudavel, serviria a tela e devolveria erro so quando o pai
+ * tentasse entrar — e o painel do provedor mostraria tudo verde.
+ *
+ * @param {Record<string, string | undefined>} source
+ */
+export function readServerEnvironment(source) {
+  const apiOrigin = (source.API_ORIGIN ?? '').trim();
+  if (apiOrigin.length === 0) throw new Error('API_ORIGIN nao definido');
+
+  const rawPort = (source.WEB_PORT ?? '').trim();
+  const port = rawPort.length === 0 ? DEFAULT_PORT : Number(rawPort);
+  if (!Number.isInteger(port) || port <= 0) throw new Error(`WEB_PORT invalido: ${rawPort}`);
+
+  const distDirectory = (source.WEB_DIST_DIR ?? '').trim();
+
+  return {
+    apiOrigin,
+    port,
+    distDirectory: distDirectory.length === 0 ? DEFAULT_DIST_DIRECTORY : distDirectory,
+  };
+}

@@ -1,0 +1,26 @@
+# O contexto e a RAIZ do monorepo: o lockfile e os manifestos das duas apps
+# moram aqui, e build de workspace sem eles instala versao diferente da testada.
+
+.git
+.omc
+.specs
+docs
+node_modules
+**/node_modules
+**/dist
+# teste nao roda em producao, e nem entra na imagem
+**/*.test.js
+**/*.test.ts
+**/e2e
+
+# segredo nunca entra em imagem (security.md §4)
+.env
+.env.*
+envs/env.*.local
+*.local
+
+*.log
+.DS_Store
+Dockerfile
+**/Dockerfile
+.dockerignore

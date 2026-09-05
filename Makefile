@@ -20,7 +20,26 @@ export
 COMPOSE_PROJECT := $(PROJECT_NAME)-$(subst .,-,$(ENV))
 COMPOSE := docker compose --project-name $(COMPOSE_PROJECT)
 
-.PHONY: help compose-project up down logs psql generate migrate seed install dev dev-web dev-api build test test-e2e typecheck validate clean
+IMAGE_TAG ?= local
+API_IMAGE := $(PROJECT_NAME)-api:$(IMAGE_TAG)
+WEB_IMAGE := $(PROJECT_NAME)-web:$(IMAGE_TAG)
+
+# O contêiner nao enxerga o `localhost` da maquina: o banco de desenvolvimento
+# mora no host, e o docker chega nele pelo gateway.
+IMAGE_HOST := host.docker.internal
+IMAGE_DATABASE_URL := $(subst localhost,$(IMAGE_HOST),$(DATABASE_URL))
+IMAGE_API_PORT ?= 3410
+IMAGE_WEB_PORT ?= 5410
+
+# Medido: a imagem de producao RECUSA subir sem provedor de login — `AUTH_DEV_SIGN_IN`
+# nao vale com `NODE_ENV=production`, e o boot morre dizendo o que falta. E' o
+# comportamento certo (fail-closed, security.md §2), entao a fumaca entrega o
+# identificador que a producao vai entregar. Vazio no `env.dev` porque o D7 ainda
+# nao tem credencial real (`F5.1`); identificador de cliente OIDC e' publico, nunca
+# segredo.
+IMAGE_GOOGLE_CLIENT_ID ?= fumaca.apps.googleusercontent.com
+
+.PHONY: help compose-project up down logs psql generate migrate seed install dev dev-web dev-api build images image-api image-web image-smoke test test-e2e typecheck validate clean
 
 help: ## lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$'  Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -66,6 +85,44 @@ dev-api: ## sobe a api
 
 build: ## build de producao
 	cd apps/frontend-pai-presente && bun run build
+
+image-api: ## constroi a imagem da API
+	docker build -f apps/api-pai-presente/Dockerfile -t $(API_IMAGE) .
+
+image-web: ## constroi a imagem da web (APP_ENV e assado no bundle, web.md §12)
+	docker build -f apps/frontend-pai-presente/Dockerfile \
+		--build-arg APP_ENV=$(APP_ENV) \
+		--build-arg GOOGLE_CLIENT_ID=$(GOOGLE_CLIENT_ID) \
+		--build-arg APPLE_CLIENT_ID=$(APPLE_CLIENT_ID) \
+		-t $(WEB_IMAGE) .
+
+images: image-api image-web ## constroi as duas imagens
+
+# Imagem que compila nao e imagem que responde: o bundle pode subir e morrer no
+# primeiro `import`, e o `dist` pode ir vazio para dentro do contêiner sem que
+# nada reclame. Este alvo SOBE as duas e pergunta.
+image-smoke: images up migrate ## prova que as duas imagens sobem e respondem
+	@set -e; \
+	trap 'docker rm -f $(PROJECT_NAME)-smoke-api $(PROJECT_NAME)-smoke-web >/dev/null 2>&1 || true' EXIT; \
+	docker run -d --rm --name $(PROJECT_NAME)-smoke-api \
+		--add-host=$(IMAGE_HOST):host-gateway \
+		-e DATABASE_URL='$(IMAGE_DATABASE_URL)' \
+		-e AUTH_JWT_SECRET='$(AUTH_JWT_SECRET)' \
+		-e LLM_PROVIDER='$(LLM_PROVIDER)' \
+		-e GOOGLE_CLIENT_ID='$(IMAGE_GOOGLE_CLIENT_ID)' \
+		-e API_PORT=3000 \
+		-p 127.0.0.1:$(IMAGE_API_PORT):3000 $(API_IMAGE) >/dev/null; \
+	docker run -d --rm --name $(PROJECT_NAME)-smoke-web \
+		--add-host=$(IMAGE_HOST):host-gateway \
+		-e API_ORIGIN='http://$(IMAGE_HOST):$(IMAGE_API_PORT)' \
+		-p 127.0.0.1:$(IMAGE_WEB_PORT):8080 $(WEB_IMAGE) >/dev/null; \
+	for attempt in 1 2 3 4 5 6 7 8 9 10; do \
+		curl -fsS http://127.0.0.1:$(IMAGE_API_PORT)/health >/dev/null 2>&1 && break || sleep 1; \
+	done; \
+	echo "api  /health         -> $$(curl -fsS http://127.0.0.1:$(IMAGE_API_PORT)/health)"; \
+	echo "web  /health         -> $$(curl -fsS http://127.0.0.1:$(IMAGE_WEB_PORT)/health)"; \
+	echo "web  /               -> HTTP $$(curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/)"; \
+	echo "web  /v1/me (repasse)-> HTTP $$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/v1/me)"
 
 typecheck: ## checagem de tipos
 	cd apps/api-pai-presente && bun run typecheck

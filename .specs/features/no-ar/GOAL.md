@@ -169,7 +169,7 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 - [x] `P3.2` — apagar a conta e exportar os dados (art. 18), com trilha de auditoria
 
 ### Fase 4 — publicar
-- [ ] `P4.1` — `Dockerfile` das duas apps, build reprodutível
+- [x] `P4.1` — `Dockerfile` das duas apps, build reprodutível
 - [ ] `P4.2` — publicado no provedor de `D6`, migrations no deploy
 - [ ] `P4.3` — HTTPS, cabeçalhos e CSP sem `unsafe-inline` (`S-005`)
 - [ ] `P4.4` — backup criptografado e observabilidade sem PII

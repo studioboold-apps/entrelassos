@@ -44,10 +44,31 @@ function mapKeysDeep(value, translateKey) {
   );
 }
 
+/**
+ * As telas nasceram no Base44 com todo campo em `''` e mandam os sete sempre.
+ * Para a API `''` nao e ausencia: `shortTextSchema` exige um caractere e
+ * `maritalStatus` e enum, entao `POST /v1/children` respondia 400 nomeando os
+ * quatro hobbies em branco — o pai que preenchia so nome, idade e genero nao
+ * conseguia cadastrar filho nenhum. Campo em branco e campo nao informado, e o
+ * `PATCH` ja entende ausencia como "nao mexe".
+ *
+ * So a string vazia sai. `false` e `0` sao resposta do pai, e some-los reverteria
+ * a escolha dele em silencio.
+ */
+function withoutBlankValues(value) {
+  if (Array.isArray(value)) return value.map(withoutBlankValues);
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, item]) => item !== '')
+      .map(([key, item]) => [key, withoutBlankValues(item)]),
+  );
+}
+
 /** Payload que sai da tela para a API. */
 export function toApiPayload(value, aliases = {}) {
   const table = { ...GLOBAL_ALIASES, ...aliases };
-  return mapKeysDeep(value, (key) => table[key] ?? toCamelCase(key));
+  return mapKeysDeep(withoutBlankValues(value), (key) => table[key] ?? toCamelCase(key));
 }
 
 /** Resposta que volta da API para a tela. */

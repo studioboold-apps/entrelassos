@@ -33,6 +33,13 @@ function readPageFileNames() {
     .sort();
 }
 
+const MAIN_PAGE_PATTERN = /mainPage:\s*"([A-Za-z0-9_]+)"/;
+
+function readMainPageName() {
+  const source = readFileSync(join(SOURCE_DIRECTORY, 'pages.config.js'), 'utf8');
+  return source.match(MAIN_PAGE_PATTERN)?.[1];
+}
+
 describe('pages.config.js', () => {
   /**
    * `Comunidade.jsx` existia, o menu ja tinha a aba, e o roteador nao conhecia a
@@ -41,5 +48,25 @@ describe('pages.config.js', () => {
    */
   test('toda tela em src/pages esta registrada', () => {
     expect(readRegisteredPageNames()).toEqual(readPageFileNames());
+  });
+
+  /**
+   * `mainPage` era `Onboarding`, e `/` e a rota que o app abre sempre. O pai que
+   * ja terminou o cadastro voltava para o assistente a cada visita, com a barra
+   * de navegacao escondida (`Layout.jsx` a esconde exatamente nessa tela) e sem
+   * saida: o unico botao final exige `children.length > 0`, entao sair de la
+   * significava cadastrar o mesmo filho de novo.
+   *
+   * A porta de entrada e a `Home`, que ja tem a guarda no sentido contrario —
+   * usuario sem `onboarding_completed` e mandado para o assistente.
+   */
+  test('a rota inicial nao e o assistente de cadastro', () => {
+    expect(readMainPageName()).toBe('Home');
+  });
+
+  test('a Home manda para o assistente quem ainda nao terminou o cadastro', () => {
+    const home = readFileSync(join(SOURCE_DIRECTORY, 'pages', 'Home.jsx'), 'utf8');
+    expect(home).toContain('!user.onboarding_completed');
+    expect(home).toContain("createPageUrl('Onboarding')");
   });
 });

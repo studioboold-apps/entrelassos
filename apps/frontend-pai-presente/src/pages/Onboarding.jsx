@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, ArrowLeft, Plus, X, User, Baby } from 'lucide-react';
 import { BRAND_LOGO } from '@/lib/brand';
+import { describeApiFailure } from '@/lib/api-error-message';
 
 
 const steps = [
@@ -30,6 +31,7 @@ export default function Onboarding() {
     marital_status: ''
   });
   const [children, setChildren] = useState([]);
+  const [saveFailure, setSaveFailure] = useState(null);
   const [newChild, setNewChild] = useState({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
 
   const handleNext = () => {
@@ -57,6 +59,7 @@ export default function Onboarding() {
 
   const handleComplete = async () => {
     setLoading(true);
+    setSaveFailure(null);
     try {
       await api.auth.updateMe({
         ...userData,
@@ -70,7 +73,12 @@ export default function Onboarding() {
 
       navigate(createPageUrl('Home'));
     } catch (error) {
-      console.error('Error saving onboarding data:', error);
+      /**
+       * Antes daqui so saia `console.error`: o botao voltava de "Salvando..." e
+       * nada acontecia. O pai nao tem console — para ele o aplicativo apenas nao
+       * salvava. A recusa da API ja nomeia os campos; agora ela chega na tela.
+       */
+      setSaveFailure(describeApiFailure(error));
     }
     setLoading(false);
   };
@@ -389,6 +397,12 @@ export default function Onboarding() {
 
       {/* Navigation */}
       <div className="px-6 pb-8 space-y-3">
+        {saveFailure && (
+          <p role="alert" className="text-sm text-red-400 text-center">
+            {saveFailure.message}
+          </p>
+        )}
+
         {currentStep === steps.length - 1 ? (
           <Button
             className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"

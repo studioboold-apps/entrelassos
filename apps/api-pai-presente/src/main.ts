@@ -21,7 +21,7 @@ import { checkHealth, respondWithHealth } from './modules/shared/health/health.u
 import { createLogger } from './modules/shared/logger/logger';
 
 const environment = readEnvironment();
-const logger = createLogger('boot');
+const logger = createLogger({ traceId: 'boot', source: 'main' });
 const database = createDatabaseClient(environment.DATABASE_URL);
 
 const isProduction = environment.NODE_ENV === 'production';

@@ -7,6 +7,7 @@
 import { z } from 'zod';
 
 import { LLM_PROVIDERS } from '../modules/Ai/ai.constant';
+import { BACKUP_DESTINATIONS } from '../modules/Backup/backup.constant';
 
 type EnvironmentSource = Record<string, string | undefined>;
 
@@ -63,7 +64,35 @@ const aiShape = {
   LLM_MODEL: z.string().default(''),
 } as const;
 
+const backupShape = {
+  /**
+   * 32 bytes em base64. Vazia e ESTADO valido para quem nunca vai fazer backup
+   * (a maquina de desenvolvimento), e morre em voz alta no job — a alternativa,
+   * exigir aqui, mataria a API inteira no boot por causa de uma tarefa noturna.
+   */
+  BACKUP_ENCRYPTION_KEY: z.string().default(''),
+  BACKUP_DESTINATION: z
+    .enum([BACKUP_DESTINATIONS.FILESYSTEM, BACKUP_DESTINATIONS.S3])
+    .default(BACKUP_DESTINATIONS.FILESYSTEM),
+  BACKUP_DIRECTORY: z.string().default('.backups'),
+  BACKUP_S3_BUCKET: z.string().default(''),
+  BACKUP_S3_ENDPOINT: z.string().default(''),
+  /** Entra no NOME do objeto: separa o balde de staging do de producao. */
+  BACKUP_ENVIRONMENT: z.string().default('dev'),
+  /**
+   * Para onde o restore escreve. Vazio significa "de volta no mesmo banco", que
+   * e' o caso do incidente; a PROVA aponta para um banco descartavel, porque
+   * ensaiar restauracao por cima do banco vivo e' o ensaio que ninguem faz.
+   */
+  RESTORE_DATABASE_URL: z.string().default(''),
+} as const;
+
 const databaseEnvironmentSchema = z.object({ ...runtimeShape, ...databaseShape });
+const backupEnvironmentSchema = z.object({
+  ...runtimeShape,
+  ...databaseShape,
+  ...backupShape,
+});
 const aiEnvironmentSchema = z.object({ ...runtimeShape, ...aiShape });
 const seedEnvironmentSchema = z.object({
   ...runtimeShape,
@@ -79,6 +108,7 @@ const environmentSchema = z.object({
 });
 
 export type DatabaseEnvironment = z.infer<typeof databaseEnvironmentSchema>;
+export type BackupEnvironment = z.infer<typeof backupEnvironmentSchema>;
 export type AiEnvironment = z.infer<typeof aiEnvironmentSchema>;
 export type SeedEnvironment = z.infer<typeof seedEnvironmentSchema>;
 export type Environment = z.infer<typeof environmentSchema>;
@@ -92,6 +122,13 @@ export function readDatabaseEnvironment(
   source: EnvironmentSource = process.env,
 ): DatabaseEnvironment {
   return databaseEnvironmentSchema.parse(source);
+}
+
+/** O job de backup fala com o banco e com o balde, e nada mais. */
+export function readBackupEnvironment(
+  source: EnvironmentSource = process.env,
+): BackupEnvironment {
+  return backupEnvironmentSchema.parse(source);
 }
 
 export function readAiEnvironment(

@@ -9,6 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/database/migrate.ts",
     "db:seed": "bun src/database/seed.ts",
+    "backup:run": "bun src/backup/run-backup.ts",
+    "backup:restore": "bun src/backup/run-restore.ts",
     "test": "bun test"
   },
   "dependencies": {

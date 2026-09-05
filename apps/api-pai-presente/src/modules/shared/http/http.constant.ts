@@ -29,6 +29,13 @@ export const SET_COOKIE_HEADER = 'Set-Cookie';
 export const COOKIE_HEADER = 'Cookie';
 export const ORIGIN_HEADER = 'Origin';
 export const HEALTH_PATH = '/health';
+
+/**
+ * O rastro que o pai consegue citar. Sem PII no log (security.md §1), este id
+ * opaco e' o unico jeito de achar a chamada de quem reclamou — e por isso ele
+ * volta na resposta, nao so no log.
+ */
+export const TRACE_ID_HEADER = 'X-Trace-Id';
 export const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 /** Teto de paginacao (apis.md § Paginacao). */

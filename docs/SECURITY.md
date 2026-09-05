@@ -175,8 +175,90 @@ credencial: um arquivo baixado com ele dentro vira chave de sessão onde quer qu
 o arquivo pare. O e2e afirma que a string `refreshTokenHash` não aparece no
 JSON exportado.
 
+## Backup cifrado antes de subir (`security.md` §5)
+
+O dump nunca sai em claro do processo. `create-backup.use-case.ts` chama o
+`pg_dump`, cifra em memória com **AES-256-GCM** e só então entrega ao destino —
+disco em desenvolvimento, S3 em produção, atrás da mesma interface
+`BackupStorage`. O envelope é `magic(5) | iv(12) | authTag(16) | ciphertext`: a
+etiqueta de autenticação viaja junto, então um arquivo adulterado **falha ao
+decifrar** em vez de restaurar lixo silenciosamente.
+
+**A chave fica fora do balde.** Ela vem de `BACKUP_ENCRYPTION_KEY`, variável de
+ambiente validada no boot; o balde guarda só o cifrado. Guardar as duas coisas
+no mesmo lugar transforma o vazamento do balde no vazamento do banco inteiro, e
+é o modo de falhar que o §5 nomeia.
+
+O nome do objeto é `pai-presente/<ambiente>/<AAAA-MM-DD>/<carimbo>.sql.enc` — só
+tempo e ambiente. Nada de nome de criança nem de e-mail na chave (§7): o
+inventário de um balde costuma ser legível por mais gente que o conteúdo dele.
+
+### O restore é PROVADO, não presumido
+
+`make backup-proof` roda o ciclo inteiro: semeia, cifra, guarda, cria um banco
+descartável e restaura nele. Cada metade sozinha passa sem valer nada — cifrar
+sem restaurar guarda um arquivo indecifrável, e restaurar sem comparar aceita um
+dump truncado como sucesso.
+
+A comparação **não é o sha do arquivo**. Medido: o mesmo banco, dumpado duas
+vezes seguidas, dá dois shas diferentes (`88d21c43…` e depois `e2407ba9…`) — o
+Postgres 17 abre cada dump com um `\restrict` de valor sorteado. Uma prova
+montada assim reprova **sempre**, inclusive quando o restore está perfeito; eu
+li "restore DIVERGIU" antes de descobrir que o defeito era a régua.
+
+O que se compara é o que o restore precisa devolver:
+
+| medida | como | por que existe |
+|---|---|---|
+| **dados** | `pg_dump --data-only` sem as linhas de sessão, em sha256 | é o conteúdo |
+| **forma** | colunas e tipos de `information_schema`, em sha256 | tabela perdida que estava **vazia** não muda a medida de dados |
+
+Última execução: envelope de 28 559 bytes, **0** ocorrências dos nomes semeados
+dentro do cifrado, `dados` e `forma` idênticos nos dois lados.
+
+## O log não carrega PII (`security.md` §1)
+
+A redação mora no **logger**, não na disciplina de quem escreve a linha: chave
+sensível vira `[REDACTED]` por nome (`email`, `name`, `childName`, `phone`,
+`taxId`, …) e o texto livre passa por padrão (e-mail, CPF, telefone), porque a
+mensagem de erro do Postgres chega com o valor grudado na frase — é o caminho
+por onde o `cause` do filtro de exceção vazaria.
+
+`make log-pii-audit` varre a **saída de uma API viva** respondendo pedido de
+verdade, com cinco iscas plantadas, e não o código-fonte: `logger.info('salvo',
+{ child })` passa em revisão e só aparece quando executa. Vinte chamadas,
+metade recusada de propósito.
+
+Duas defesas contra a varredura que passa por estar cega:
+
+1. **Controle positivo.** O detector vive em `scripts/log-pii.detector.ts` com
+   oito testes que exigem que ele ache cada isca. Sem eles, "nenhum achado"
+   viraria carimbo de aprovação em vez de medição.
+2. **Guarda de captura vazia.** Se a linha de boot não chegou ao cano, a
+   varredura **falha** em vez de aprovar — arquivo esquecido produz varredura
+   limpa por não ter medido nada.
+
+As iscas são escolhidas: e-mail, CPF e telefone têm **padrão**, então o logger
+os apaga até grudados numa frase; nome de pessoa **não tem padrão nenhum** e só
+sobrevive pela redação por chave. Sem a isca de nome, a varredura mediria só
+metade da defesa.
+
+## Retenção de `audit_log` — 5 anos (fecha S-006)
+
+A trilha sobrevive à exclusão da conta de propósito, mas "para sempre" não é
+política: guardar sem prazo contraria a minimização do art. 6º da LGPD tão
+diretamente quanto guardar de menos contraria o art. 48.
+
+**Prazo: 5 anos** a contar do registro. É o teto entre os prazos que podem
+cobrar a prova — 3 anos da reparação civil (art. 206 §3º do Código Civil) e 5
+anos do CDC e da sanção administrativa da ANPD. Menos que isso apagaria a prova
+antes de ela deixar de ser pedida.
+
+O que a trilha guarda já é o mínimo (ator, alvo, IP cortado em 64, carimbo); a
+retenção fecha a outra ponta.
+
 ### Aberto
 
 | # | Item | Por quê |
 |---|---|---|
-| S-006 | Não há retenção definida para `audit_log` | A trilha sobrevive à conta de propósito, mas "para sempre" não é política. Definir prazo antes do go-live (`P4.4`) |
+| S-007 | A purga dos 5 anos ainda não roda sozinha | O prazo está definido (acima) e a coluna existe; falta o trabalho agendado que apaga. Enquanto não existir, a retenção é política escrita e não comportamento — e o que não executa não protege |

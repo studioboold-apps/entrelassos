@@ -27,3 +27,6 @@ bun-debug.log*
 .DS_Store
 *.suo
 *.sw?
+
+# Backup local: o banco inteiro, cifrado, mas ainda o banco inteiro.
+.backups/

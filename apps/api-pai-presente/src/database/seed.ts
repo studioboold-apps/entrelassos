@@ -158,4 +158,4 @@ const summary = await runSeed({
 });
 
 /** O resumo E a medicao do aceite: a segunda rodada tem de sair toda em zero. */
-createLogger(SEED_TRACE_ID).info('seed aplicado', { ...summary });
+createLogger({ traceId: SEED_TRACE_ID, source: 'seed' }).info('seed aplicado', { ...summary });

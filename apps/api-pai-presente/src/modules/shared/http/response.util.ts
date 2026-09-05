@@ -5,7 +5,13 @@
  */
 
 import type { FieldErrorDetail } from '../errors/app.error';
-import { CONTENT_TYPE_JSON, HTTP_STATUS, SECURITY_HEADERS, SET_COOKIE_HEADER } from './http.constant';
+import {
+  CONTENT_TYPE_JSON,
+  HTTP_STATUS,
+  SECURITY_HEADERS,
+  SET_COOKIE_HEADER,
+  TRACE_ID_HEADER,
+} from './http.constant';
 
 export type PaginationEnvelope = {
   readonly total: number;
@@ -63,5 +69,17 @@ export function respondWithError({
 export function withCookies(response: Response, cookies: readonly string[]): Response {
   const headers = new Headers(response.headers);
   for (const cookie of cookies) headers.append(SET_COOKIE_HEADER, cookie);
+  return new Response(response.body, { status: response.status, headers });
+}
+
+/**
+ * Carimba o rastro na resposta. Uma funcao so: o roteador e o CORS respondem
+ * por caminhos diferentes, e resposta sem rastro e' a que ninguem consegue
+ * achar depois — justamente a que deu errado.
+ */
+export function stampTraceId(response: Response, traceId: string): Response {
+  const headers = new Headers(response.headers);
+  headers.set(TRACE_ID_HEADER, traceId);
+
   return new Response(response.body, { status: response.status, headers });
 }

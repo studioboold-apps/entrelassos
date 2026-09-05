@@ -10,7 +10,7 @@ import { createLogger } from '../../shared/logger/logger';
 import { LLM_TIMEOUT_MS } from '../ai.constant';
 import { LlmProviderFailedError, LlmResponseInvalidError } from '../ai.error';
 
-const logger = createLogger('ai-provider');
+const logger = createLogger({ traceId: 'ai-provider', source: 'ai-provider' });
 
 export type PostJsonParams = {
   readonly url: string;

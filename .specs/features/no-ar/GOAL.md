@@ -181,7 +181,17 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
       medido nas imagens: 6 de 6 cabeçalhos nas duas, `script-src 'self'` sem
       `unsafe-inline` nem `unsafe-eval`, e 308 para `https` atrás do proxy. A
       dívida do `style-src` está escrita em `docs/SECURITY.md`.
-- [ ] `P4.4` — backup criptografado e observabilidade sem PII
+- [x] `P4.4` — backup criptografado e observabilidade sem PII
+      as duas metades do aceite MEDIDAS. Restore provado por `make backup-proof`:
+      envelope de 28 559 bytes, 0 ocorrências dos nomes semeados dentro do
+      cifrado, e o banco descartável voltou com `dados` e `forma` idênticos aos
+      da origem. A régua ingênua — sha do dump inteiro — reprova SEMPRE no
+      Postgres 17, que abre cada dump com um `\restrict` sorteado; li "restore
+      DIVERGIU" antes de descobrir que o errado era a medição. Varredura de PII
+      por `make log-pii-audit`: 20 chamadas a uma API viva com 5 iscas
+      plantadas, nenhum achado — com controle positivo (8 testes que exigem que
+      o detector ache cada isca) e guarda que REPROVA se a linha de boot não
+      chegou, porque captura vazia parece varredura limpa.
 
 ### Fase 5 — entrada
 - [ ] `P5.1` — credenciais reais de `D7`, login provado por uma pessoa

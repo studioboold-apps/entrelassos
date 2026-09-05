@@ -6,6 +6,7 @@
 
 import { ForbiddenOriginError } from '../errors/shared.error';
 import { handleUncaughtError } from './exception-filter';
+import { stampTraceId } from './response.util';
 import {
   CORS_ALLOWED_HEADERS,
   CORS_ALLOWED_METHODS,
@@ -64,7 +65,11 @@ export function createCorsPolicy(allowedOrigins: readonly string[]): CorsPolicy 
           },
         });
       } catch (error) {
-        return handleUncaughtError({ error, method: request.method, path: url.pathname });
+        const traceId = crypto.randomUUID();
+        return stampTraceId(
+          handleUncaughtError({ error, method: request.method, path: url.pathname, traceId }),
+          traceId,
+        );
       }
     },
 

@@ -7,6 +7,7 @@
 import type { AuthenticatedUserResolver } from '../auth/authenticated-user.interface';
 import { RouteNotFoundError, UnauthenticatedError } from '../errors/shared.error';
 import { handleUncaughtError } from './exception-filter';
+import { stampTraceId } from './response.util';
 import type {
   PublicRouteDefinition,
   RouteDefinition,
@@ -71,14 +72,18 @@ export function createRouter(params: CreateRouterParams): Router {
   return {
     async handle(request: Request): Promise<Response> {
       const url = new URL(request.url);
+      const traceId = crypto.randomUUID();
       try {
         const publicMatch = findRoute(publicRoutes, request.method, url.pathname);
         if (publicMatch !== undefined) {
-          return await publicMatch.route.handle({
-            request,
-            url,
-            pathParams: publicMatch.pathParams,
-          });
+          return stampTraceId(
+            await publicMatch.route.handle({
+              request,
+              url,
+              pathParams: publicMatch.pathParams,
+            }),
+            traceId,
+          );
         }
 
         const match = findRoute(routes, request.method, url.pathname);
@@ -93,9 +98,12 @@ export function createRouter(params: CreateRouterParams): Router {
           pathParams: match.pathParams,
           authenticatedUser,
         };
-        return await match.route.handle(handlerParams);
+        return stampTraceId(await match.route.handle(handlerParams), traceId);
       } catch (error) {
-        return handleUncaughtError({ error, method: request.method, path: url.pathname });
+        return stampTraceId(
+          handleUncaughtError({ error, method: request.method, path: url.pathname, traceId }),
+          traceId,
+        );
       }
     },
   };

@@ -9,18 +9,23 @@ import { ERROR_CODES } from '../errors/codes';
 import { createLogger } from '../logger/logger';
 import { respondWithError } from './response.util';
 
+const EXCEPTION_FILTER_SOURCE = 'exception-filter';
+
 export type HandleUncaughtErrorParams = {
   readonly error: unknown;
   readonly method: string;
   readonly path: string;
+  /** O mesmo que volta no cabecalho da resposta — e' o que junta os dois lados. */
+  readonly traceId: string;
 };
 
 /**
  * Unico lugar que converte erro em resposta (§7). Use case e controller nao
  * capturam; erro desconhecido vira 500 generico, sem stack trace ao cliente.
  */
-export function handleUncaughtError({ error, method, path }: HandleUncaughtErrorParams): Response {
-  const logger = createLogger(crypto.randomUUID());
+export function handleUncaughtError(params: HandleUncaughtErrorParams): Response {
+  const { error, method, path, traceId } = params;
+  const logger = createLogger({ traceId, source: EXCEPTION_FILTER_SOURCE });
 
   if (error instanceof AppError) {
     if (error.statusCode >= 500) logger.error(error.code, { method, path });

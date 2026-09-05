@@ -145,3 +145,63 @@ A escolha custa dinheiro e é do dono do projeto.
 
 O aceite de `F4.2` é URL pública respondendo `/health` e a tela falando com a
 API. Enquanto os passos acima não rodarem, ele não está atingido.
+
+## 8. O backup, quando `D6` fechar
+
+O alvo de backup **não sobe na imagem da API**. `pg_dump` não existe na imagem
+oficial do Bun, e instalar `postgresql-client` no serviço que atende HTTP
+engordaria a superfície de toda requisição por causa de um trabalho que roda uma
+vez por dia. O `Dockerfile` da API tem um estágio `backup` só para isso:
+
+```bash
+docker build -f apps/api-pai-presente/Dockerfile --target backup -t pai-presente-backup .
+```
+
+Medido em 05/09/2026 dentro da imagem: `pg_dump 17.11`, `psql 17.11`, e
+`bun dist/backup/run-backup.js` chega à validação de ambiente. A versão do
+cliente **acompanha a do servidor** — `pg_dump` mais velho que o banco recusa o
+dump, e essa recusa só apareceria na primeira execução agendada.
+
+O caminho é `dist/backup/run-backup.js`, não `dist/run-backup.js`: com várias
+entradas o `bun build` preserva o caminho relativo à raiz comum. Escrito errado,
+a imagem constrói, sobe, e só falha no primeiro agendamento.
+
+### Agendamento
+
+| item | valor |
+|---|---|
+| frequência | diária, fora do horário de pico |
+| comando | `bun dist/backup/run-backup.js` |
+| restauração | `bun dist/backup/run-restore.js [chave-do-objeto]` — sem argumento, o mais recente |
+| onde | Fly: `fly machine run --schedule daily`; Railway: serviço de cron apontando para o mesmo estágio |
+
+### Variáveis do trabalho de backup
+
+| variável | valor em produção |
+|---|---|
+| `DATABASE_URL` | o endereço **privado** do Postgres, o mesmo da API |
+| `BACKUP_DESTINATION` | `s3` |
+| `BACKUP_S3_BUCKET` / `BACKUP_S3_ENDPOINT` | o balde privado e o endpoint do provedor |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | credencial **só deste balde**, e diferente da de staging (`security.md` §7) |
+| `BACKUP_ENCRYPTION_KEY` | 32 bytes em base64, **guardados fora do balde** |
+| `BACKUP_ENVIRONMENT` | `production` — entra no nome do objeto e separa os ambientes dentro do balde |
+
+### A guarda da chave
+
+A chave de cifra **não pode viver no mesmo lugar que o cifrado**: com as duas
+juntas, o vazamento do balde é o vazamento do banco inteiro. Ela é segredo do
+provedor de execução (`fly secrets set` / variável do Railway), nunca
+`--build-arg` — argumento de build fica assado na camada da imagem, legível por
+quem puxar a imagem.
+
+Gerar: `openssl rand -base64 32`. **Perder a chave é perder todos os backups
+cifrados com ela** — não há recuperação, é AES-256-GCM. Guardar uma cópia no
+cofre de senhas do dono do projeto faz parte de fechar `D6`.
+
+### O restore precisa ser ensaiado no ambiente publicado
+
+`make backup-proof` prova o ciclo **localmente** (§ *Backup cifrado* em
+`SECURITY.md`). Ele não prova a rede, a credencial do balde nem a chave em
+produção. O primeiro backup publicado tem de ser restaurado num banco
+descartável antes de alguém considerar a produção protegida: backup que nunca
+voltou não é backup, é esperança.

@@ -8,6 +8,11 @@ import { fileURLToPath, URL } from 'node:url';
 
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
+
+import { resolveAppEnvironment } from './src/lib/environment.js';
+import { environmentIconPlugin } from './build/environment-icon.plugin.js';
+import { PWA_MANIFEST, PWA_WORKBOX } from './build/pwa.config.js';
 
 const API_PREFIX = '/v1';
 
@@ -30,12 +35,15 @@ function requireEnvironment(name) {
  * no arquivo de env criaria duas verdades que so divergem no dia da rotacao —
  * o botao passaria a assinar com um id que a API nao aceita. Le-se um so, e o
  * prefixo `VITE_` fica no codigo dizendo "isto vai para o navegador".
+ *
+ * `APP_ENV` entra pela mesma porta: e' o ambiente do build, e a tela precisa
+ * dele para decidir se mostra a faixa de aviso (`web.md` §12).
  */
-const PUBLIC_CLIENT_IDS = ['GOOGLE_CLIENT_ID', 'APPLE_CLIENT_ID'];
+const PUBLIC_ENVIRONMENT_NAMES = ['GOOGLE_CLIENT_ID', 'APPLE_CLIENT_ID', 'APP_ENV'];
 
-function definePublicClientIds() {
+function definePublicEnvironment() {
   return Object.fromEntries(
-    PUBLIC_CLIENT_IDS.map((name) => [
+    PUBLIC_ENVIRONMENT_NAMES.map((name) => [
       `import.meta.env.VITE_${name}`,
       JSON.stringify(process.env[name] ?? ''),
     ]),
@@ -43,8 +51,22 @@ function definePublicClientIds() {
 }
 
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
-  define: definePublicClientIds(),
+  plugins: [
+    react(),
+    environmentIconPlugin({ environment: resolveAppEnvironment(process.env.APP_ENV) }),
+    /**
+     * `injectRegister` em arquivo, e nao inline: script inline no `index.html`
+     * obrigaria `unsafe-inline` na CSP (`security.md` §3) so para registrar o
+     * service worker.
+     */
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
+      manifest: PWA_MANIFEST,
+      workbox: PWA_WORKBOX,
+    }),
+  ],
+  define: definePublicEnvironment(),
   /** O `@/` vinha do plugin deles; sem esta linha nenhum import resolve. */
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   /**

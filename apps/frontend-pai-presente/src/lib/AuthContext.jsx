@@ -6,6 +6,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api } from '@/api/client';
+import { forgetCachedApiResponses } from '@/lib/pwa-cache';
 
 const HTTP_UNAUTHORIZED = 401;
 
@@ -53,6 +54,9 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.auth.logout();
     } finally {
+      /** O cache do service worker e' do aparelho, nao da sessao: sem apagar, o
+       * proximo a entrar neste celular leria os dados do pai anterior. */
+      await forgetCachedApiResponses();
       setUser(null);
     }
   }, []);

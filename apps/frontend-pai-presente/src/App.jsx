@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import SignIn from '@/components/SignIn';
+import EnvironmentBanner from '@/components/EnvironmentBanner';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -60,6 +61,8 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+        {/* Fora do Router para a faixa aparecer tambem na tela de entrada. */}
+        <EnvironmentBanner />
         <Router>
           <AuthenticatedApp />
         </Router>

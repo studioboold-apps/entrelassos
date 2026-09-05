@@ -49,7 +49,7 @@ typecheck: ## checagem de tipos
 	cd apps/api-pai-presente && bun run typecheck
 
 test: ## testes
-	cd apps/api-pai-presente && bun test
+	bun test
 
 validate: typecheck test ## portao de qualidade
 

@@ -184,6 +184,13 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
 - [x] `TB.9` — os dois defeitos herdados corrigidos, cada um com **teste antes
       do conserto**: a aba `Comunidade` abre (rota registrada) e a conversa do
       chat sobrevive a fechar e reabrir (`ChatMessage` deixou de ser órfã)
+- [x] `TB.10` — **PWA de verdade**: manifesto, ícones 192/512/maskable, service
+      worker (cache-first de asset, network-first de API) e `offline.html` com a
+      marca, tudo pelo `vite-plugin-pwa`; `index.html` reescrito em `pt-BR`, com
+      o nosso ícone no lugar do logo da **Base44** e sem o `/manifest.json` que
+      nunca existiu; aviso de ambiente do `web.md` §12 (🚧 na aba e faixa no
+      topo, fora de produção); auditoria em `docs/SECURITY.md` — três achados
+      corrigidos, dois abertos
 - [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
 - [ ] Executar o `tasks.md` da saída escolhida
 

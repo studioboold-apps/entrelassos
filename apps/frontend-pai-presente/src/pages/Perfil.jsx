@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '@/api/client';
 import { useAuth } from '@/lib/AuthContext';
@@ -8,6 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   User, 
   Baby, 
@@ -17,6 +27,9 @@ import {
   LogOut
 } from 'lucide-react';
 import { BRAND_LOGO } from '@/lib/brand';
+import { describeApiFailure } from '@/lib/api-error-message';
+import { toProfileUpdate } from '@/lib/profile-form';
+import { toAverageGrade } from '@/lib/average-grade';
 
 
 export default function Perfil() {
@@ -25,6 +38,7 @@ export default function Perfil() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [editingChild, setEditingChild] = useState(null);
+  const [childToDelete, setChildToDelete] = useState(null);
   const [childForm, setChildForm] = useState({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
 
   const { data: user } = useQuery({
@@ -47,25 +61,19 @@ export default function Perfil() {
     queryFn: () => api.entities.Activity.list(),
   });
 
-  const [profileForm, setProfileForm] = useState({
-    age: user?.age || '',
-    sexual_orientation: user?.sexual_orientation || '',
-    religious_orientation: user?.religious_orientation || '',
-    political_orientation: user?.political_orientation || '',
-    marital_status: user?.marital_status || ''
-  });
+  /**
+   * O formulario e' preenchido quando o dialogo ABRE, e nao a cada resposta
+   * nova da consulta do usuario. Do jeito antigo bastava a janela reganhar o
+   * foco no meio da edicao para a busca se refazer e apagar por baixo o que o
+   * pai estava digitando.
+   */
+  const [profileForm, setProfileForm] = useState({ age: '', marital_status: '' });
 
-  React.useEffect(() => {
-    if (user) {
-      setProfileForm({
-        age: user.age || '',
-        sexual_orientation: user.sexual_orientation || '',
-        religious_orientation: user.religious_orientation || '',
-        political_orientation: user.political_orientation || '',
-        marital_status: user.marital_status || ''
-      });
-    }
-  }, [user]);
+  const openEditProfile = () => {
+    setProfileForm({ age: user?.age ?? '', marital_status: user?.marital_status ?? '' });
+    updateProfileMutation.reset();
+    setShowEditProfile(true);
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: (data) => api.auth.updateMe(data),
@@ -100,11 +108,25 @@ export default function Perfil() {
     },
   });
 
+  /**
+   * Tres escritas, tres avisos. Antes, qualquer recusa da API morria no
+   * `onError` que nao existia: o dialogo continuava aberto e mudo, e o pai
+   * clicava em Salvar de novo achando que o toque nao tinha pegado.
+   */
+  const profileFailure = updateProfileMutation.isError
+    ? describeApiFailure(updateProfileMutation.error)
+    : null;
+  const childFailure = createChildMutation.isError
+    ? describeApiFailure(createChildMutation.error)
+    : updateChildMutation.isError
+      ? describeApiFailure(updateChildMutation.error)
+      : null;
+  const deleteFailure = deleteChildMutation.isError
+    ? describeApiFailure(deleteChildMutation.error)
+    : null;
+
   const handleSaveProfile = () => {
-    updateProfileMutation.mutate({
-      ...profileForm,
-      age: parseInt(profileForm.age)
-    });
+    updateProfileMutation.mutate(toProfileUpdate(profileForm));
   };
 
   const handleSaveChild = () => {
@@ -137,10 +159,12 @@ export default function Perfil() {
     logout();
   };
 
-  const totalInsightsRated = ratings.length;
-  const avgRating = ratings.length > 0 
-    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
-    : 0;
+  /**
+   * Sem nota nenhuma, o cartao mostrava `0` — que e' a PIOR nota possivel, nao
+   * a ausencia dela. O modulo comum devolve nada nesse caso, e a tela escreve
+   * um traco; a mesma conta e' a do boletim, e por isso mora num lugar so.
+   */
+  const avgRating = toAverageGrade(ratings.filter((r) => r.rating).map((r) => r.rating));
   const completedActivities = activities.filter(a => a.completed).length;
 
   return (
@@ -188,7 +212,7 @@ export default function Perfil() {
             transition={{ delay: 0.2 }}
             className="bg-zinc-900 rounded-2xl p-4 text-center border border-zinc-800"
           >
-            <p className="text-2xl font-light text-blue-400">{avgRating}⭐</p>
+            <p className="text-2xl font-light text-blue-400">{avgRating === undefined ? '—' : `${avgRating}⭐`}</p>
             <p className="text-xs text-zinc-500 mt-1">Média</p>
           </motion.div>
         </div>
@@ -205,7 +229,7 @@ export default function Perfil() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowEditProfile(true)}
+              onClick={openEditProfile}
               className="text-zinc-400 hover:text-white"
             >
               <Pencil className="w-4 h-4" />
@@ -216,18 +240,6 @@ export default function Perfil() {
             <div className="flex justify-between">
               <span className="text-zinc-500">Idade</span>
               <span className="text-zinc-300">{user?.age || '-'} anos</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Orientação Sexual</span>
-              <span className="text-zinc-300 capitalize">{user?.sexual_orientation?.replace(/_/g, ' ') || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Religião</span>
-              <span className="text-zinc-300 capitalize">{user?.religious_orientation?.replace(/_/g, ' ') || '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Política</span>
-              <span className="text-zinc-300 capitalize">{user?.political_orientation?.replace(/_/g, ' ') || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Estado Civil</span>
@@ -292,7 +304,7 @@ export default function Perfil() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteChildMutation.mutate(child.id)}
+                    onClick={() => setChildToDelete(child)}
                     className="text-zinc-500 hover:text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -301,6 +313,12 @@ export default function Perfil() {
               </div>
             </motion.div>
           ))}
+
+          {deleteFailure && (
+            <p role="alert" className="text-sm text-red-400 px-1">
+              {deleteFailure.message}
+            </p>
+          )}
 
           {children.length === 0 && (
             <div className="text-center py-8 bg-zinc-900 rounded-2xl border border-dashed border-zinc-800">
@@ -350,62 +368,6 @@ export default function Perfil() {
             </div>
 
             <div>
-              <Label className="text-zinc-400">Orientação Sexual</Label>
-              <Select
-                value={profileForm.sexual_orientation}
-                onValueChange={(v) => setProfileForm(prev => ({ ...prev, sexual_orientation: v }))}
-              >
-                <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="heterossexual">Heterossexual</SelectItem>
-                  <SelectItem value="homossexual">Homossexual</SelectItem>
-                  <SelectItem value="bissexual">Bissexual</SelectItem>
-                  <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-zinc-400">Orientação Religiosa</Label>
-              <Select
-                value={profileForm.religious_orientation}
-                onValueChange={(v) => setProfileForm(prev => ({ ...prev, religious_orientation: v }))}
-              >
-                <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="catolico">Católico</SelectItem>
-                  <SelectItem value="evangelico">Evangélico</SelectItem>
-                  <SelectItem value="espirita">Espírita</SelectItem>
-                  <SelectItem value="ateu">Ateu/Agnóstico</SelectItem>
-                  <SelectItem value="outra">Outra</SelectItem>
-                  <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-zinc-400">Orientação Política</Label>
-              <Select
-                value={profileForm.political_orientation}
-                onValueChange={(v) => setProfileForm(prev => ({ ...prev, political_orientation: v }))}
-              >
-                <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="direita">Direita</SelectItem>
-                  <SelectItem value="centro">Centro</SelectItem>
-                  <SelectItem value="esquerda">Esquerda</SelectItem>
-                  <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <Label className="text-zinc-400">Estado Civil</Label>
               <Select
                 value={profileForm.marital_status}
@@ -423,6 +385,12 @@ export default function Perfil() {
                 </SelectContent>
               </Select>
             </div>
+
+            {profileFailure && (
+              <p role="alert" className="text-sm text-red-400">
+                {profileFailure.message}
+              </p>
+            )}
 
             <Button
               className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
@@ -526,6 +494,12 @@ export default function Perfil() {
               />
             </div>
 
+            {childFailure && (
+              <p role="alert" className="text-sm text-red-400">
+                {childFailure.message}
+              </p>
+            )}
+
             <Button
               className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
               onClick={handleSaveChild}
@@ -536,6 +510,39 @@ export default function Perfil() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/*
+        Apagar filho e' irreversivel e leva junto sete campos que o pai digitou
+        um por um. Disparava no toque, sem pergunta: um encostao na lista e o
+        cadastro sumia sem nem um aviso na tela.
+      */}
+      <AlertDialog open={childToDelete !== null} onOpenChange={(open) => { if (!open) setChildToDelete(null); }}>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              Apagar {childToDelete?.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              O cadastro e tudo o que voce preencheu sobre ele serao apagados. Nao da para desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (childToDelete !== null) deleteChildMutation.mutate(childToDelete.id);
+                setChildToDelete(null);
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

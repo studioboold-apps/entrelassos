@@ -4,6 +4,7 @@
  * Licenca: proprietaria.
  */
 
+import { toAverageGrade } from './average-grade';
 import { toLocalDate } from './calendar-date';
 
 /**
@@ -45,22 +46,6 @@ function isInstantInMonth(instant, monthDate) {
   return parsed.getFullYear() === monthDate.getFullYear() && parsed.getMonth() === monthDate.getMonth();
 }
 
-/**
- * Media com uma casa, ou NADA quando ninguem avaliou.
- *
- * Devolver zero seria dizer que a nota foi a pior possivel. Ninguem tirou nota
- * nenhuma — sao coisas diferentes, e a tela precisa poder mostrar cada uma.
- *
- * @param {readonly number[]} grades
- * @returns {string | undefined}
- */
-function toAverage(grades) {
-  if (grades.length === 0) return undefined;
-
-  const total = grades.reduce((sum, grade) => sum + grade, 0);
-
-  return (total / grades.length).toFixed(1);
-}
 
 /**
  * @typedef {object} MonthStatsParams
@@ -84,8 +69,8 @@ export function buildMonthStats({ activities, ratings, month }) {
     completedActivities: completed.length,
     completionRate:
       monthActivities.length === 0 ? 0 : Math.round((completed.length / monthActivities.length) * 100),
-    avgActivityRating: toAverage(completed.filter((a) => a.rating).map((a) => a.rating)),
+    avgActivityRating: toAverageGrade(completed.filter((a) => a.rating).map((a) => a.rating)),
     totalInsightsRead: monthRatings.length,
-    avgInsightRating: toAverage(monthRatings.filter((r) => r.rating).map((r) => r.rating)),
+    avgInsightRating: toAverageGrade(monthRatings.filter((r) => r.rating).map((r) => r.rating)),
   };
 }

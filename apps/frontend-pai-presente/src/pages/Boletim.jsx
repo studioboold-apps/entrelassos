@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '@/api/client';
-import { useQuery } from '@tanstack/react-query';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   ChevronLeft, 
@@ -41,6 +41,8 @@ import {
 } from 'recharts';
 import { BRAND_LOGO } from '@/lib/brand';
 import { toMonthKey } from '@/lib/month';
+import { buildMonthStats } from '@/lib/boletim-stats';
+import { describeApiFailure } from '@/lib/api-error-message';
 
 
 const categoryLabels = {
@@ -65,8 +67,6 @@ const activityCategoryLabels = {
 
 export default function Boletim() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [report, setReport] = useState(null);
-  const [loadingReport, setLoadingReport] = useState(false);
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
@@ -83,38 +83,16 @@ export default function Boletim() {
     queryFn: () => api.auth.me(),
   });
 
-  // Filtrar dados do mês selecionado
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-
-  const monthActivities = activities.filter(a => {
-    const actDate = new Date(a.date);
-    return actDate >= monthStart && actDate <= monthEnd;
-  });
-
+  /**
+   * O recorte do mes tem UMA fonte, e ela tem teste. Aqui a tela refazia a conta
+   * construindo uma data a partir da string do dia, o que a le como meia-noite
+   * UTC: o dia 1 de todo mes caia para o mes anterior, e a nota da IA — que a API
+   * calcula por dia de calendario — falava de um conjunto de atividades diferente
+   * do que os cartoes mostravam.
+   */
+  const stats = buildMonthStats({ activities, ratings: insightRatings, month: currentMonth });
+  const { monthActivities, monthRatings } = stats;
   const completedActivities = monthActivities.filter(a => a.completed);
-  const ratedActivities = completedActivities.filter(a => a.rating);
-
-  const monthRatings = insightRatings.filter(r => {
-    const ratingDate = new Date(r.created_date);
-    return ratingDate >= monthStart && ratingDate <= monthEnd;
-  });
-
-  // Calcular estatísticas
-  const stats = {
-    totalActivities: monthActivities.length,
-    completedActivities: completedActivities.length,
-    completionRate: monthActivities.length > 0 
-      ? Math.round((completedActivities.length / monthActivities.length) * 100) 
-      : 0,
-    avgActivityRating: ratedActivities.length > 0
-      ? (ratedActivities.reduce((sum, a) => sum + a.rating, 0) / ratedActivities.length).toFixed(1)
-      : 0,
-    totalInsightsRead: monthRatings.length,
-    avgInsightRating: monthRatings.length > 0
-      ? (monthRatings.reduce((sum, r) => sum + r.rating, 0) / monthRatings.length).toFixed(1)
-      : 0
-  };
 
   // Dados para gráfico radar por categoria de insight
   const insightsByCategory = Object.keys(categoryLabels).map(cat => {
@@ -139,22 +117,29 @@ export default function Boletim() {
     };
   }).filter(c => c.quantidade > 0);
 
-  // Gerar relatório com IA
-  const generateReport = async () => {
-    setLoadingReport(true);
-    try {
-      /**
-       * As contas do boletim saem do SERVIDOR. Aqui elas so alimentam os
-       * graficos; mandar `completionRate` pronto no prompt, como a Base44
-       * fazia, deixava o proprio cliente escolher a nota que ia receber.
-       */
-      const generated = await api.ai.report(toMonthKey(currentMonth));
+  const reportMutation = useMutation({
+    /**
+     * As contas do boletim saem do SERVIDOR. Aqui elas so alimentam os graficos;
+     * mandar `completionRate` pronto no prompt, como a Base44 fazia, deixava o
+     * proprio cliente escolher a nota que ia receber.
+     *
+     * @param {string} month
+     */
+    mutationFn: (month) => api.ai.report(month),
+  });
 
-      setReport(generated);
-    } catch (error) {
-      console.error('Error generating report:', error);
-    }
-    setLoadingReport(false);
+  const report = reportMutation.data;
+  const loadingReport = reportMutation.isPending;
+
+  /**
+   * Sem chave, `POST /v1/report` responde 503 `AI_NOT_CONFIGURED`. A frase morria
+   * escrita no log do navegador: o pai via o botao girar, voltar ao normal, e
+   * nada acontecia — nenhuma palavra dizendo por que.
+   */
+  const reportFailure = reportMutation.isError ? describeApiFailure(reportMutation.error) : null;
+
+  const generateReport = () => {
+    reportMutation.mutate(toMonthKey(currentMonth));
   };
 
   const getScoreColor = (score) => {
@@ -243,8 +228,15 @@ export default function Boletim() {
               <Star className="w-4 h-4 text-emerald-400" />
               <span className="text-xs text-zinc-500">Avaliação Média</span>
             </div>
+            {/* Zero e' uma nota — a pior. Ninguem ter avaliado e' outra coisa. */}
             <p className="text-2xl font-light text-white">
-              {stats.avgActivityRating}<span className="text-zinc-500 text-sm">/5</span>
+              {stats.avgActivityRating === undefined ? (
+                <span className="text-zinc-600">sem avaliação</span>
+              ) : (
+                <>
+                  {stats.avgActivityRating}<span className="text-zinc-500 text-sm">/5</span>
+                </>
+              )}
             </p>
           </motion.div>
 
@@ -372,6 +364,12 @@ export default function Boletim() {
             </>
           )}
         </Button>
+
+        {reportFailure && (
+          <p role="alert" className="text-sm text-red-400 mt-2">
+            {reportFailure.message}
+          </p>
+        )}
       </div>
 
       {/* Report Card */}

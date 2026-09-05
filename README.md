@@ -1,39 +1,38 @@
-**Welcome to your Base44 project** 
+# Pai Presente
 
-**About**
+App para pais que querem criar filhos com propósito: insights diários,
+calendário de atividades ("Juntinhos"), boletim mensal, comunidade e um chat
+com IA.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+**Este repositório está saindo da Base44.** O plano, as medições e as decisões
+estão em [`.specs/features/codigo-em-casa/`](.specs/features/codigo-em-casa/):
 
-This project contains everything you need to run your app locally.
+| arquivo | o que é |
+|---|---|
+| `GOAL.md` | o rumo, o que já foi medido, e os achados |
+| `ADR-001.md` | por que sair, como sair, e as 4 decisões (aprovado) |
+| `tasks.md` | os passos, em ordem |
 
-**Edit the code in your local development environment**
-
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+## Estrutura
 
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+apps/frontend-pai-presente/   React 18 + Vite — ainda fala com a Base44 (TB.8)
+apps/api-pai-presente/        Bun.serve + Postgres + Drizzle — a nascer (TB.5)
+packages/                     código compartilhado entre apps
+envs/                         env.dev, env.test, env.test.e2e
+.specs/reference/             registro do backend antigo da Base44
 ```
 
-Run the app: `npm run dev`
+## Rodar
 
-**Publish your changes**
+```bash
+cp envs/env.dev.local.example envs/env.dev.local   # preencher os segredos
+make install
+make up          # Postgres local
+make dev-web     # frontend em http://localhost:5173
+make help        # todos os alvos
+```
 
-Open [Base44.com](http://Base44.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+⚠️ **O frontend ainda depende da Base44.** Até `TB.8`, ele fala com o app local
+`6a9b4b26…`, que tem **banco vazio** — nenhum usuário, filho ou atividade.
+Não é defeito: é o que `base44 eject` produz (`GOAL.md` §2).

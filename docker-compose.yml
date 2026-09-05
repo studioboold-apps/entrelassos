@@ -1,0 +1,26 @@
+# Sobe toda a infra local. Um só arquivo na raiz (code-standart.md §4).
+# Todo recurso é nomeado $(PROJECT_NAME)-$(ENV)-<recurso> — nunca nome fixo.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ${PROJECT_NAME}-${ENV}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      # só no loopback: o banco não fica exposto na rede (security.md §5)
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+    name: ${PROJECT_NAME}-${ENV}-postgres-data

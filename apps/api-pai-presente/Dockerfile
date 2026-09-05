@@ -19,19 +19,10 @@ COPY apps/api-pai-presente apps/api-pai-presente
 WORKDIR /repo/apps/api-pai-presente
 RUN bun build ./src/main.ts ./src/database/migrate.ts ./src/backup/run-backup.ts ./src/backup/run-restore.ts --target=bun --outdir=dist
 
-FROM oven/bun:${BUN_VERSION}-alpine AS runtime
-ENV NODE_ENV=production
-WORKDIR /app
-
-# O migrador le `./drizzle` a partir do diretorio de trabalho.
-COPY --from=build /repo/apps/api-pai-presente/dist ./dist
-COPY --from=build /repo/apps/api-pai-presente/drizzle ./drizzle
-
-# `bun` ja existe na imagem oficial e nao e root.
-USER bun
-EXPOSE 3000
-CMD ["bun", "dist/main.js"]
-
+# O `backup` vem ANTES do `runtime` porque `docker build` sem `--target`
+# constroi o ULTIMO estagio, e e assim que o Railway constroi. Com o backup
+# no fim, o que subiu foi a imagem do backup: ela nao carrega `drizzle`, e o
+# pre-deploy morreu falando de migration, nunca de estagio.
 # O backup roda em imagem SEPARADA, e nao na da API.
 #
 # `pg_dump` nao existe na imagem oficial do Bun: o alvo de backup precisa do
@@ -51,3 +42,16 @@ USER bun
 # relativo a raiz comum. Escrito como `dist/run-backup.js` a imagem constroi,
 # sobe e so falha na primeira execucao agendada, com "modulo nao encontrado".
 CMD ["bun", "dist/backup/run-backup.js"]
+
+FROM oven/bun:${BUN_VERSION}-alpine AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+
+# O migrador le `./drizzle` a partir do diretorio de trabalho.
+COPY --from=build /repo/apps/api-pai-presente/dist ./dist
+COPY --from=build /repo/apps/api-pai-presente/drizzle ./drizzle
+
+# `bun` ja existe na imagem oficial e nao e root.
+USER bun
+EXPOSE 3000
+CMD ["bun", "dist/main.js"]

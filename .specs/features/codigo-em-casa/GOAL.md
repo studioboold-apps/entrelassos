@@ -177,6 +177,13 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
       `/v1/report`, `/v1/chat`), saída estruturada pelo mesmo Zod que valida a
       resposta; teto de 30 chamadas/hora **por usuário** compartilhado pelas
       quatro; 11 testes novos, e o de aceite varre o frontend atrás da chave
+- [x] `TB.8` — o encanamento do frontend trocado: `@base44/sdk` e
+      `@base44/vite-plugin` fora do `package.json` e do `bun.lock`, cliente,
+      autenticação e alias escritos por nós; `grep -rn "base44" src/` não devolve
+      nada, e `vite build` passa sem o plugin deles
+- [x] `TB.9` — os dois defeitos herdados corrigidos, cada um com **teste antes
+      do conserto**: a aba `Comunidade` abre (rota registrada) e a conversa do
+      chat sobrevive a fechar e reabrir (`ChatMessage` deixou de ser órfã)
 - [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
 - [ ] Executar o `tasks.md` da saída escolhida
 

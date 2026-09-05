@@ -29,7 +29,7 @@ envs/                         env.dev, env.test, env.test.e2e
 cp envs/env.dev.local.example envs/env.dev.local   # preencher os segredos
 make install
 make up          # Postgres local
-make dev-web     # frontend em http://localhost:5173
+make dev-web     # frontend na WEB_PORT do ambiente (envs/env.dev)
 make help        # todos os alvos
 ```
 

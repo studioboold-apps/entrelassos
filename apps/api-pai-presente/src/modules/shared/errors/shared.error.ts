@@ -38,6 +38,16 @@ export class UnauthenticatedError extends AppError {
   }
 }
 
+export class ForbiddenOriginError extends AppError {
+  constructor() {
+    super({
+      code: ERROR_CODES.shared.FORBIDDEN_ORIGIN,
+      message: 'Origem nao permitida.',
+      statusCode: 403,
+    });
+  }
+}
+
 export class ResourceNotFoundError extends DomainError {
   constructor(code: string, message: string) {
     super({ code, message, statusCode: 404 });

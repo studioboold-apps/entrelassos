@@ -10,9 +10,19 @@ import { createTestClient, readErrorCode } from '../../../testing/http-test.util
 import { ERROR_CODES } from '../errors/codes';
 import { HTTP_METHODS, SECURITY_HEADERS } from './http.constant';
 import { respondWithData } from './response.util';
-import type { RouteDefinition } from './route.types';
+import type { PublicRouteDefinition, RouteDefinition } from './route.types';
 
 const PING_PATH = '/v1/ping';
+const OPEN_PATH = '/v1/aberta';
+
+const publicRoutes: readonly PublicRouteDefinition[] = [
+  {
+    method: HTTP_METHODS.GET,
+    path: OPEN_PATH,
+    summary: 'Rota anonima de teste.',
+    handle: async () => respondWithData({ aberta: true }),
+  },
+];
 
 const routes: readonly RouteDefinition[] = [
   {
@@ -68,8 +78,25 @@ describe('router', () => {
 
   test('toda resposta carrega os cabecalhos de seguranca', async () => {
     const client = createTestClient({ routes });
-    const router = await client.send({ method: HTTP_METHODS.GET, path: PING_PATH });
-    expect(router.status).toBe(200);
-    expect(SECURITY_HEADERS['X-Frame-Options']).toBe('DENY');
+    const response = await client.send({ method: HTTP_METHODS.GET, path: PING_PATH });
+    expect(response.status).toBe(200);
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+      expect(response.headers.get(name)).toBe(value);
+    }
+  });
+});
+
+describe('rotas publicas', () => {
+  test('a rota publica responde sem usuario nenhum', async () => {
+    const client = createTestClient({ routes, publicRoutes, user: undefined });
+    const response = await client.send({ method: HTTP_METHODS.GET, path: OPEN_PATH });
+    expect(response.status).toBe(200);
+  });
+
+  test('registrar rota publica NAO abre as rotas da tabela', async () => {
+    const client = createTestClient({ routes, publicRoutes, user: undefined });
+    const response = await client.send({ method: HTTP_METHODS.GET, path: PING_PATH });
+    expect(response.status).toBe(401);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.shared.UNAUTHENTICATED);
   });
 });

@@ -7,7 +7,8 @@
 import { environment } from './config/environment';
 import { createDatabaseClient } from './database/client';
 import { buildApplicationRoutes } from './app';
-import { createDenyAllResolver } from './modules/shared/auth/deny-all.resolver';
+import { buildAuthModule } from './modules/Auth/auth.module';
+import { createCorsPolicy } from './modules/shared/http/cors';
 import {
   HEALTH_PATH,
   HTTP_METHODS,
@@ -19,26 +20,41 @@ import { createLogger } from './modules/shared/logger/logger';
 
 const logger = createLogger('boot');
 const database = createDatabaseClient(environment.DATABASE_URL);
+
+const isProduction = environment.NODE_ENV === 'production';
+const auth = buildAuthModule({
+  database,
+  jwtSecret: environment.AUTH_JWT_SECRET,
+  clientIds: { google: environment.GOOGLE_CLIENT_ID, apple: environment.APPLE_CLIENT_ID },
+  // `Secure` sai de NODE_ENV, nao de uma variavel propria: variavel esquecida
+  // no painel nao pode ser o que manda o cookie de sessao viajar em claro.
+  isSecureCookie: isProduction,
+});
+
 const router = createRouter({
   routes: buildApplicationRoutes(database),
-  authenticatedUserResolver: createDenyAllResolver(),
+  publicRoutes: auth.publicRoutes,
+  authenticatedUserResolver: auth.authenticatedUserResolver,
 });
+const cors = createCorsPolicy(environment.WEB_ORIGINS);
 
 // /health fica FORA da tabela de rotas de proposito: assim toda rota da tabela e
 // autenticada por construcao, e nao por lembrar de marcar cada uma.
 const server = Bun.serve({
   port: environment.API_PORT,
-  fetch(request: Request): Response | Promise<Response> {
+  async fetch(request: Request): Promise<Response> {
+    const intercepted = cors.intercept(request);
+    if (intercepted !== undefined) return intercepted;
+
     const url = new URL(request.url);
     if (url.pathname === HEALTH_PATH && request.method === HTTP_METHODS.GET) {
-      return respondWithData({ status: 'ok' });
+      return cors.decorate(request, respondWithData({ status: 'ok' }));
     }
-    return router.handle(request);
+    return cors.decorate(request, await router.handle(request));
   },
 });
 
 logger.info('api no ar', { port: server.port, nodeEnv: environment.NODE_ENV });
-logger.warn('sessao ainda nao implementada (TB.6): rotas /v1 respondem 401');
 
 function shutdown(signal: string): void {
   logger.info('encerrando', { signal });

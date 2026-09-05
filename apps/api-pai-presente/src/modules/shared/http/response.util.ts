@@ -5,7 +5,7 @@
  */
 
 import type { FieldErrorDetail } from '../errors/app.error';
-import { CONTENT_TYPE_JSON, HTTP_STATUS, SECURITY_HEADERS } from './http.constant';
+import { CONTENT_TYPE_JSON, HTTP_STATUS, SECURITY_HEADERS, SET_COOKIE_HEADER } from './http.constant';
 
 export type PaginationEnvelope = {
   readonly total: number;
@@ -49,4 +49,15 @@ export function respondWithError({
 }: RespondWithErrorParams): Response {
   const error = details.length > 0 ? { code, message, details } : { code, message };
   return new Response(JSON.stringify({ error }), { status: statusCode, headers: buildHeaders() });
+}
+
+/**
+ * Cookie NAO entra no corpo nem na URL: a unica saida de token e este cabecalho,
+ * e por isso ele se acrescenta a resposta pronta em vez de virar mais um
+ * parametro em cada helper.
+ */
+export function withCookies(response: Response, cookies: readonly string[]): Response {
+  const headers = new Headers(response.headers);
+  for (const cookie of cookies) headers.append(SET_COOKIE_HEADER, cookie);
+  return new Response(response.body, { status: response.status, headers });
 }

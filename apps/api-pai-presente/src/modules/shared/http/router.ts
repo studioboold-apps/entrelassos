@@ -7,10 +7,16 @@
 import type { AuthenticatedUserResolver } from '../auth/authenticated-user.interface';
 import { RouteNotFoundError, UnauthenticatedError } from '../errors/shared.error';
 import { handleUncaughtError } from './exception-filter';
-import type { RouteDefinition, RouteHandlerParams } from './route.types';
+import type {
+  PublicRouteDefinition,
+  RouteDefinition,
+  RouteHandlerParams,
+} from './route.types';
 
-type RouteMatch = {
-  readonly route: RouteDefinition;
+type AnyRoute = RouteDefinition | PublicRouteDefinition;
+
+type RouteMatch<TRoute extends AnyRoute> = {
+  readonly route: TRoute;
   readonly pathParams: Readonly<Record<string, string>>;
 };
 
@@ -35,11 +41,11 @@ function matchPath(
   return pathParams;
 }
 
-function findRoute(
-  routes: readonly RouteDefinition[],
+function findRoute<TRoute extends AnyRoute>(
+  routes: readonly TRoute[],
   method: string,
   requestPath: string,
-): RouteMatch | undefined {
+): RouteMatch<TRoute> | undefined {
   for (const route of routes) {
     if (route.method !== method) continue;
     const pathParams = matchPath(route.path, requestPath);
@@ -50,6 +56,7 @@ function findRoute(
 
 export type CreateRouterParams = {
   readonly routes: readonly RouteDefinition[];
+  readonly publicRoutes?: readonly PublicRouteDefinition[] | undefined;
   readonly authenticatedUserResolver: AuthenticatedUserResolver;
 };
 
@@ -57,11 +64,23 @@ export type Router = {
   handle(request: Request): Promise<Response>;
 };
 
-export function createRouter({ routes, authenticatedUserResolver }: CreateRouterParams): Router {
+export function createRouter(params: CreateRouterParams): Router {
+  const { routes, authenticatedUserResolver } = params;
+  const publicRoutes = params.publicRoutes ?? [];
+
   return {
     async handle(request: Request): Promise<Response> {
       const url = new URL(request.url);
       try {
+        const publicMatch = findRoute(publicRoutes, request.method, url.pathname);
+        if (publicMatch !== undefined) {
+          return await publicMatch.route.handle({
+            request,
+            url,
+            pathParams: publicMatch.pathParams,
+          });
+        }
+
         const match = findRoute(routes, request.method, url.pathname);
         if (match === undefined) throw new RouteNotFoundError();
 

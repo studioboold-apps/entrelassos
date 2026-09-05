@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.44.6",
+    "jose": "^6.2.11",
     "zod": "^4.1.11"
   },
   "devDependencies": {

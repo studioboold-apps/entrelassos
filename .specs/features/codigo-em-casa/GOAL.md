@@ -169,6 +169,10 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
       em banco limpo; sem as três colunas sensíveis, que esperam `TL.1`
 - [x] `TB.5` — as 25 rotas dos 7 recursos, com 56 testes de contrato
       (feliz e falha por rota); toda rota `/v1` responde **401** até `TB.6`
+- [x] `TB.6` — login Google/Apple por `id_token`, sessão só em cookie
+      `HttpOnly`+`SameSite` (`Secure` fora de dev), refresh rotativo com revogação
+      em cadeia no reuso; 17 testes novos, e o de aceite falha se o token
+      aparecer no corpo ou na URL
 - [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
 - [ ] Executar o `tasks.md` da saída escolhida
 

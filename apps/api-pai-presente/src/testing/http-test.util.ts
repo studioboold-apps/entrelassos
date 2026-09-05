@@ -5,7 +5,7 @@
  */
 
 import type { AuthenticatedUser } from '../modules/shared/auth/authenticated-user.interface';
-import type { RouteDefinition } from '../modules/shared/http/route.types';
+import type { PublicRouteDefinition, RouteDefinition } from '../modules/shared/http/route.types';
 import { createRouter } from '../modules/shared/http/router';
 
 export const TEST_USER_ID = '11111111-1111-4111-8111-111111111111';
@@ -18,12 +18,14 @@ export const MISSING_ID = '44444444-4444-4444-8444-444444444444';
 export type TestResponse = {
   readonly status: number;
   readonly payload: unknown;
+  readonly headers: Headers;
 };
 
 export type SendParams = {
   readonly method: string;
   readonly path: string;
   readonly body?: unknown;
+  readonly headers?: Readonly<Record<string, string>> | undefined;
 };
 
 export type TestClient = {
@@ -32,6 +34,7 @@ export type TestClient = {
 
 export type CreateTestClientParams = {
   readonly routes: readonly RouteDefinition[];
+  readonly publicRoutes?: readonly PublicRouteDefinition[] | undefined;
   readonly user?: AuthenticatedUser | undefined;
 };
 
@@ -41,22 +44,29 @@ export function createTestClient(params: CreateTestClientParams): TestClient {
   const user = 'user' in params ? params.user : TEST_USER;
   const router = createRouter({
     routes: params.routes,
+    publicRoutes: params.publicRoutes,
     authenticatedUserResolver: { resolve: async () => user },
   });
 
   return {
-    async send({ method, path, body }: SendParams): Promise<TestResponse> {
+    async send({ method, path, body, headers }: SendParams): Promise<TestResponse> {
+      const requestHeaders = new Headers(headers);
+      if (body !== undefined) requestHeaders.set('content-type', 'application/json');
       const init: RequestInit =
         body === undefined
-          ? { method }
+          ? { method, headers: requestHeaders }
           : {
               method,
               body: typeof body === 'string' ? body : JSON.stringify(body),
-              headers: { 'content-type': 'application/json' },
+              headers: requestHeaders,
             };
       const response = await router.handle(new Request(`http://localhost${path}`, init));
       const text = await response.text();
-      return { status: response.status, payload: text.length > 0 ? JSON.parse(text) : undefined };
+      return {
+        status: response.status,
+        payload: text.length > 0 ? JSON.parse(text) : undefined,
+        headers: response.headers,
+      };
     },
   };
 }

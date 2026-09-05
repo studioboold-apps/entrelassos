@@ -18,11 +18,16 @@ export const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,
   NO_CONTENT: 204,
+  FORBIDDEN: 403,
+  SERVICE_UNAVAILABLE: 503,
 } as const;
 
 export const CONTENT_TYPE_JSON = 'application/json; charset=utf-8';
 
 export const API_VERSION_PREFIX = '/v1';
+export const SET_COOKIE_HEADER = 'Set-Cookie';
+export const COOKIE_HEADER = 'Cookie';
+export const ORIGIN_HEADER = 'Origin';
 export const HEALTH_PATH = '/health';
 export const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -37,3 +42,8 @@ export const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 } as const;
+
+/** Pre-flight (security.md §3): allowlist explicita, nunca `*` com credencial. */
+export const CORS_ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+export const CORS_ALLOWED_HEADERS = 'Content-Type';
+export const CORS_MAX_AGE_SECONDS = '600';

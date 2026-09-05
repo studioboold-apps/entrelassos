@@ -61,6 +61,11 @@ const aiShape = {
 
 const databaseEnvironmentSchema = z.object({ ...runtimeShape, ...databaseShape });
 const aiEnvironmentSchema = z.object({ ...runtimeShape, ...aiShape });
+const seedEnvironmentSchema = z.object({
+  ...runtimeShape,
+  ...databaseShape,
+  AUTH_JWT_SECRET: authShape.AUTH_JWT_SECRET,
+});
 const environmentSchema = z.object({
   ...runtimeShape,
   ...databaseShape,
@@ -71,6 +76,7 @@ const environmentSchema = z.object({
 
 export type DatabaseEnvironment = z.infer<typeof databaseEnvironmentSchema>;
 export type AiEnvironment = z.infer<typeof aiEnvironmentSchema>;
+export type SeedEnvironment = z.infer<typeof seedEnvironmentSchema>;
 export type Environment = z.infer<typeof environmentSchema>;
 
 /**
@@ -88,6 +94,15 @@ export function readAiEnvironment(
   source: EnvironmentSource = process.env,
 ): AiEnvironment {
   return aiEnvironmentSchema.parse(source);
+}
+
+/**
+ * O seed entra pelo login de desenvolvimento e por isso assina token — dai o
+ * segredo. Nao le `AUTH_DEV_SIGN_IN`: quem semeia JA decidiu semear, e ligar o
+ * provedor de desenvolvimento em producao morre no registro de verificadores.
+ */
+export function readSeedEnvironment(source: EnvironmentSource = process.env): SeedEnvironment {
+  return seedEnvironmentSchema.parse(source);
 }
 
 /** O boot do servidor precisa de tudo, e falha antes de aceitar a primeira chamada. */

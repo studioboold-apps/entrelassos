@@ -16,7 +16,7 @@ export
 
 COMPOSE := docker compose --project-name $(PROJECT_NAME)-$(ENV)
 
-.PHONY: help up down logs psql migrate install dev dev-web dev-api build test typecheck validate clean
+.PHONY: help up down logs psql migrate seed install dev dev-web dev-api build test typecheck validate clean
 
 help: ## lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$'  Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -35,6 +35,9 @@ psql: ## abre o psql no banco do ambiente
 
 migrate: ## aplica as migrations no banco do ambiente
 	cd apps/api-pai-presente && bun run db:migrate
+
+seed: migrate ## popula o banco do ambiente pelos use cases (idempotente)
+	cd apps/api-pai-presente && bun run db:seed
 
 install: ## instala dependencias de todas as apps
 	bun install

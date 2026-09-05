@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/database/migrate.ts",
+    "db:seed": "bun src/database/seed.ts",
     "test": "bun test"
   },
   "dependencies": {

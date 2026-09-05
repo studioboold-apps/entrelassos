@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '@/api/client';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Brain, Heart, Wallet, Activity, Loader2, RefreshCw, Users, Sparkles } from 'lucide-react';
 import CommunityPostCard from '@/components/CommunityPostCard';
 import CommunityCreatePost from '@/components/CommunityCreatePost';
 import InsightCard from '@/components/InsightCard';
 import { cn } from '@/lib/utils';
 import { BRAND_LOGO } from '@/lib/brand';
+import { withInsightIds } from '@/lib/insight-identity';
+import { describeApiFailure } from '@/lib/api-error-message';
 
 /** A API ja devolve o feed do mais novo para o mais antigo. */
 const FEED_PAGE_SIZE = 50;
@@ -21,11 +23,9 @@ const insightCategories = [
 ];
 
 export default function Comunidade() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('feed');
   const [activeCategory, setActiveCategory] = useState(null);
-  const [insights, setInsights] = useState([]);
-  const [loadingInsights, setLoadingInsights] = useState(false);
-  const [ratings, setRatings] = useState({});
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -47,62 +47,85 @@ export default function Comunidade() {
     queryFn: () => api.entities.InsightRating.list(),
   });
 
-  useEffect(() => {
-    const ratingsMap = {};
-    savedRatings.forEach(r => { ratingsMap[r.insight_id] = r.rating; });
-    setRatings(ratingsMap);
-  }, [savedRatings]);
+  /**
+   * Pedir insight e' chamada de API, entao e' query — nao estado de tela
+   * alimentado por efeito (`web.md` §5). O efeito antigo so disparava com a
+   * lista vazia, o que travava a aba depois de uma falha: a lista continuava
+   * vazia e a condicao continuava verdadeira, sem nunca tentar de novo.
+   *
+   * O prompt saiu do navegador: ele montava a pergunta com a orientacao
+   * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
+   * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
+   *
+   * A identidade vem do TEXTO (`insight-identity`), nunca do relogio: ela e' a
+   * chave da nota em `PUT /v1/insight-ratings/:id`, e id novo a cada geracao
+   * faz a estrela do pai nunca reaparecer.
+   *
+   * `staleTime: Infinity` porque cada refeitura custa uma chamada de IA — quem
+   * pede texto novo e' o botao de atualizar, deliberadamente.
+   */
+  const insightsQuery = useQuery({
+    queryKey: ['insights', activeCategory],
+    queryFn: async () => withInsightIds(await api.ai.insights(activeCategory ?? undefined)),
+    enabled: activeTab === 'insights' && children.length > 0 && user !== undefined,
+    staleTime: Infinity,
+  });
 
-  useEffect(() => {
-    if (activeTab === 'insights' && children.length > 0 && user && insights.length === 0) {
-      generateInsights();
-    }
-  }, [activeTab, children, user]);
+  const insights = insightsQuery.data ?? [];
+  const loadingInsights = insightsQuery.isFetching;
 
-  const generateInsights = async (category = null) => {
-    setLoadingInsights(true);
-    try {
-      /**
-       * O prompt saiu do navegador: ele montava a pergunta com a orientacao
-       * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
-       * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
-       */
-      const generated = await api.ai.insights(category ?? undefined);
+  /**
+   * Sem chave, `POST /v1/insights` responde 503 `AI_NOT_CONFIGURED`. A frase
+   * morria escrita no log do navegador: o pai via o carregando girar, parar, e
+   * a lista vazia — que e' exatamente o que ele veria se nao houvesse insight
+   * nenhum. Duas situacoes diferentes, uma tela so.
+   */
+  const insightsFailure = insightsQuery.isError ? describeApiFailure(insightsQuery.error) : null;
 
-      setInsights(generated.map((insight, index) => ({
-        ...insight,
-        id: `insight_${Date.now()}_${index}`
-      })));
-    } catch (error) {
-      console.error('Error generating insights:', error);
-    }
-    setLoadingInsights(false);
-  };
-
-  const handleCategoryClick = (categoryId) => {
-    if (activeCategory === categoryId) {
-      setActiveCategory(null);
-      generateInsights();
-    } else {
-      setActiveCategory(categoryId);
-      generateInsights(categoryId);
-    }
-  };
-
-  const handleRate = async (insightId, rating) => {
-    const insight = insights.find(i => i.id === insightId);
-    setRatings(prev => ({ ...prev, [insightId]: rating }));
-    await api.entities.InsightRating.rate({
+  /**
+   * @param {{ insightId: string, rating: number, category: string, title: string }} params
+   */
+  const rateInsight = ({ insightId, rating, category, title }) =>
+    api.entities.InsightRating.rate({
       insight_id: insightId,
-      category: insight.category,
-      rating: rating,
-      insight_title: insight.title
+      category,
+      rating,
+      insight_title: title,
     });
+
+  const rateMutation = useMutation({
+    mutationFn: rateInsight,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['insightRatings'] }),
+  });
+
+  /**
+   * O mapa de notas e' DERIVADO do que o servidor ja trouxe (`react.md`: nunca
+   * usar efeito para transformar dado). A copia em estado divergia — reavaliar
+   * mudava o mapa local e a lista salva ficava com a nota antiga ate alguem
+   * recarregar a pagina.
+   *
+   * A estrela que acende no clique sai da propria escrita em curso, e por isso
+   * nao precisa de desfazer: falhando, a tela volta sozinha ao que o servidor
+   * tem.
+   */
+  const savedRatingsMap = Object.fromEntries(savedRatings.map(r => [r.insight_id, r.rating]));
+  const pendingRating = rateMutation.isPending ? rateMutation.variables : undefined;
+  const ratings = pendingRating === undefined
+    ? savedRatingsMap
+    : { ...savedRatingsMap, [pendingRating.insightId]: pendingRating.rating };
+
+  /** Trocar de categoria troca a CHAVE da query, e a busca sai disso. */
+  const handleCategoryClick = (categoryId) => {
+    setActiveCategory(activeCategory === categoryId ? null : categoryId);
   };
 
-  const filteredInsights = activeCategory
-    ? insights.filter(i => i.category === activeCategory)
-    : insights;
+  const handleRate = (insightId, rating) => {
+    const insight = insights.find(i => i.id === insightId);
+
+    if (insight === undefined) return;
+
+    rateMutation.mutate({ insightId, rating, category: insight.category, title: insight.title });
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 pb-24">
@@ -215,7 +238,7 @@ export default function Comunidade() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
-                onClick={() => generateInsights(activeCategory)}
+                onClick={() => insightsQuery.refetch()}
                 disabled={loadingInsights}
                 className="aspect-square rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all"
               >
@@ -236,7 +259,13 @@ export default function Comunidade() {
                 <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-4" />
                 <p className="text-zinc-500">Gerando insights...</p>
               </div>
-            ) : filteredInsights.length === 0 ? (
+            ) : insightsFailure ? (
+              <div className="text-center py-16">
+                <p role="alert" className="text-sm text-red-400">
+                  {insightsFailure.message}
+                </p>
+              </div>
+            ) : insights.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-zinc-500">
                   {children.length === 0
@@ -247,7 +276,7 @@ export default function Comunidade() {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredInsights.map((insight, index) => (
+                {insights.map((insight, index) => (
                   <InsightCard
                     key={insight.id}
                     {...insight}

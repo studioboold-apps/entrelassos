@@ -75,7 +75,7 @@ Nenhum valor mora neste arquivo nem no repositório (`security.md` §4).
 | `LLM_PROVIDER` | sim | sem padrão, de propósito (`D8`) |
 | `LLM_API_KEY` | depende de `D8` | sem ela, quatro rotas respondem 503 |
 | `GOOGLE_CLIENT_ID` | sim | identificador público; sem provedor nenhum a API **recusa subir** |
-| `APPLE_CLIENT_ID` | não | `D7` decidiu só Google no lançamento |
+| `APPLE_CLIENT_ID` | não | `D7` ainda aberta; a recomendação é só Google no lançamento |
 | `NODE_ENV` | já vem `production` na imagem | é o que liga `Secure` no cookie |
 | `API_PORT` | não | padrão 3000 |
 | `WEB_ORIGINS` | não | com mesma origem, não há CORS a liberar |
@@ -100,7 +100,27 @@ recusa. Isso é proposital (fail-closed, `security.md` §2).
 
 **Segredo nunca vira `--build-arg`** — ele fica gravado na camada da imagem.
 
-## 5. `D6` continua aberta, e a medição que ela precisa
+## 5. HTTPS e cabeçalhos
+
+A imagem da web carimba os seis cabeçalhos em tudo o que ela mesma produz —
+`Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`,
+`X-Content-Type-Options`, `Referrer-Policy` e `Permissions-Policy`. O repasse de
+`/v1` sai **intacto**: a API já traz os dela, e uma CSP de documento colada em
+JSON só confunde quem for depurar.
+
+O TLS é terminado pelo provedor. Ligue o redirecionamento dele mesmo assim
+(`force_https = true` no Fly; ligado por padrão no Railway): a imagem também
+desvia com **308** quando o proxy diz `x-forwarded-proto: http`, mas isso é
+cinto sobre suspensório — o desvio da borda evita a primeira viagem em texto
+puro, que é onde o cookie escaparia.
+
+`Strict-Transport-Security` vai com `max-age=31536000; includeSubDomains` e
+**sem `preload`**: entrar na lista de pré-carga dos navegadores não tem volta
+rápida, e isso se decide com o domínio definitivo na mão.
+
+Detalhes e a dívida do `style-src` estão em `docs/SECURITY.md` (`S-005`).
+
+## 6. `D6` continua aberta, e a medição que ela precisa
 
 | item | medido em 05/09/2026 |
 |---|---|
@@ -113,7 +133,7 @@ A recomendação do `GOAL.md` continua **Fly.io** (Postgres gerenciado, região 
 São Paulo, e o app é PWA — latência conta). A conta já pronta é a do Railway.
 A escolha custa dinheiro e é do dono do projeto.
 
-## 6. Quando `D6` fechar
+## 7. Quando `D6` fechar
 
 1. criar o Postgres gerenciado e pegar o endereço privado;
 2. criar os dois serviços apontando para `apps/api-pai-presente/Dockerfile` e

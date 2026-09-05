@@ -35,7 +35,48 @@ o que a task tocou — service worker, cache, `index.html` e ambiente do build.
 
 | # | Item | Quem decide |
 |---|---|---|
-| S-005 | Cabeçalhos de resposta e CSP sem `unsafe-inline` ainda não estão declarados no servidor de produção — hoje só há o `Bun.serve` de desenvolvimento | task de publicação |
+| — | nada em aberto no momento | — |
+
+### Fechado em 05/09/2026 — `S-005`, cabeçalhos e CSP (`F4.3`)
+
+Medido nas imagens de produção, não presumido:
+
+```
+web  blindagem  -> 6 de 6 cabecalhos
+web  script-src ->  script-src 'self' https://accounts.google.com https://appleid.cdn-apple.com
+api  blindagem  -> 6 de 6 cabecalhos
+```
+
+Os seis: `Content-Security-Policy`, `Strict-Transport-Security`,
+`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e
+`Permissions-Policy`.
+
+A tela e a API têm políticas **diferentes**, de propósito: a API só devolve
+JSON, então a dela é `default-src 'none'; frame-ancestors 'none'` — resposta que
+nunca vira documento não precisa liberar origem nenhuma.
+
+`script-src` **sem `unsafe-inline` e sem `unsafe-eval`**. Isso só foi possível
+porque o `index.html` construído não tem um `<script>` embutido sequer: o
+registro do service worker virou arquivo próprio (`registerSW.js`, decisão
+`TB.10`). Verificado no `dist` gerado, não no arquivo-fonte.
+
+Quem chega em texto puro atrás do proxy leva **308** para `https` — e 308, não
+301, porque o 301 faz cliente antigo trocar POST por GET, e o corpo do login
+sumiria calado. Sem `x-forwarded-proto` não há desvio: aí não existe proxy na
+frente, é a imagem rodando na máquina de quem desenvolve.
+
+#### A dívida que fica escrita: `style-src 'unsafe-inline'`
+
+Medido: **35 usos de `<motion.` em 12 arquivos**. O framer-motion anima
+escrevendo no **atributo** `style` a cada quadro, o Radix posiciona popover do
+mesmo jeito, e o `offline.html` tem um `<style>` embutido. `style-src-attr` sem
+`'unsafe-inline'` mataria os três — tirar isso é trocar de biblioteca de
+animação, que é decisão de produto, não de cabeçalho.
+
+O risco que sobra é pequeno perto do de script: estilo injetado desfigura a
+página, não executa código. Um teste afirma que **existe exatamente uma**
+ocorrência de `'unsafe-inline'` na política inteira, para que ninguém a copie
+para `script-src` sem que o teste reprove.
 
 ---
 

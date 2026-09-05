@@ -145,3 +145,71 @@ describe('cache', () => {
     expect(chooseCacheControl('/sw.js')).toBe('no-cache');
   });
 });
+
+/**
+ * `S-005`: a imagem servia `dist` sem cabecalho de seguranca nenhum. Aqui a
+ * afirmacao e' sobre a RESPOSTA de verdade, com servidor de pe — o teste de
+ * `security-headers.test.js` prova o conteudo da politica, este prova que ela
+ * chega ao navegador.
+ */
+describe('a resposta da tela sai blindada', () => {
+  test('o index carrega CSP, HSTS e os quatro basicos', async () => {
+    const response = await fetch(`${origin}/perfil`);
+
+    expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+    expect(response.headers.get('Strict-Transport-Security')).toContain('max-age=31536000');
+    expect(response.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(response.headers.get('Permissions-Policy')).toContain('camera=()');
+  });
+
+  /** Arquivo com hash tambem: o `nosniff` importa justamente no asset. */
+  test('o asset sai blindado e ainda imutavel', async () => {
+    const response = await fetch(`${origin}/assets/app-abc123.js`);
+
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Cache-Control')).toContain('immutable');
+  });
+
+  test('a saude tambem, porque e a resposta que o provedor le', async () => {
+    expect((await fetch(`${origin}/health`)).headers.get('X-Frame-Options')).toBe('DENY');
+  });
+
+  /**
+   * O repasse NAO e' recarimbado: a API ja manda os cabecalhos dela, e uma CSP
+   * de documento colada em JSON so atrapalha quem for depurar. Se um dia a API
+   * parar de mandar, o defeito e' la — e o teste da API e' que pega.
+   */
+  test('o que veio da API atravessa como a API mandou', async () => {
+    const response = await fetch(`${origin}/v1/me`);
+
+    expect(response.headers.get('Content-Security-Policy')).toBeNull();
+  });
+});
+
+describe('o servidor nao serve a tela em texto puro atras do proxy', () => {
+  test('proxy dizendo http devolve desvio para https', async () => {
+    const response = await fetch(`${origin}/perfil`, {
+      headers: { 'x-forwarded-proto': 'http', 'x-forwarded-host': 'paipresente.app' },
+      redirect: 'manual',
+    });
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get('location')).toBe('https://paipresente.app/perfil');
+  });
+
+  /** O desvio vem ANTES do repasse: chamada de API em texto puro tambem sobe. */
+  test('ate o repasse da API e desviado', async () => {
+    const response = await fetch(`${origin}/v1/me`, {
+      headers: { 'x-forwarded-proto': 'http', 'x-forwarded-host': 'paipresente.app' },
+      redirect: 'manual',
+    });
+
+    expect(response.status).toBe(308);
+  });
+
+  test('sem proxy na frente a imagem serve normalmente', async () => {
+    expect((await fetch(`${origin}/perfil`)).status).toBe(200);
+  });
+});

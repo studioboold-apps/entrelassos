@@ -128,6 +128,9 @@ image-smoke: images up ## prova que as duas imagens sobem, migram e respondem
 	echo "web  /health         -> $$(curl -fsS http://127.0.0.1:$(IMAGE_WEB_PORT)/health)"; \
 	echo "web  /               -> HTTP $$(curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/)"; \
 	echo "web  /v1/me (repasse)-> HTTP $$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:$(IMAGE_WEB_PORT)/v1/me)"; \
+	echo "web  blindagem       -> $$(curl -fsS -o /dev/null -D - http://127.0.0.1:$(IMAGE_WEB_PORT)/ | grep -ciE '^(content-security-policy|strict-transport-security|x-frame-options|x-content-type-options|referrer-policy|permissions-policy):') de 6 cabecalhos"; \
+	echo "web  script-src      -> $$(curl -fsS -o /dev/null -D - http://127.0.0.1:$(IMAGE_WEB_PORT)/ | grep -i '^content-security-policy:' | tr ';' '\n' | grep -i 'script-src')"; \
+	echo "api  blindagem       -> $$(curl -fsS -o /dev/null -D - http://127.0.0.1:$(IMAGE_API_PORT)/health | grep -ciE '^(content-security-policy|strict-transport-security|x-frame-options|x-content-type-options|referrer-policy|permissions-policy):') de 6 cabecalhos"; \
 	docker run -d --rm --name $(PROJECT_NAME)-smoke-doente --network $(IMAGE_NETWORK) \
 		-e DATABASE_URL='postgres://ninguem:ninguem@banco-que-nao-existe:5432/nada' \
 		-e AUTH_JWT_SECRET='$(AUTH_JWT_SECRET)' \

@@ -177,7 +177,10 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
       `docs/DEPLOY.md` com o contrato inteiro. Medido: `flyctl` não está
       instalado; `railway 5.47.1` está, e autenticado. Publicar cria
       infraestrutura cobrada na conta do dono — é decisão dele.
-- [ ] `P4.3` — HTTPS, cabeçalhos e CSP sem `unsafe-inline` (`S-005`)
+- [x] `P4.3` — HTTPS, cabeçalhos e CSP sem `unsafe-inline` (`S-005`)
+      medido nas imagens: 6 de 6 cabeçalhos nas duas, `script-src 'self'` sem
+      `unsafe-inline` nem `unsafe-eval`, e 308 para `https` atrás do proxy. A
+      dívida do `style-src` está escrita em `docs/SECURITY.md`.
 - [ ] `P4.4` — backup criptografado e observabilidade sem PII
 
 ### Fase 5 — entrada

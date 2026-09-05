@@ -35,8 +35,16 @@ export const SHUTDOWN_TIMEOUT_MS = 10_000;
 export const PAGE_SIZE_DEFAULT = 20;
 export const PAGE_SIZE_MAX = 100;
 
-/** Cabecalhos de resposta obrigatorios (security.md §3). */
+/**
+ * Cabecalhos de resposta obrigatorios (security.md §3).
+ *
+ * A CSP aqui e' a mais fechada possivel: esta API so devolve JSON, e resposta
+ * que nunca vira documento nao precisa liberar origem nenhuma. A da TELA e'
+ * outra, e mora no servidor da web.
+ */
 export const SECURITY_HEADERS = {
+  'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'",
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',

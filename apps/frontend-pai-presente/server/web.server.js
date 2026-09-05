@@ -6,6 +6,9 @@
 
 import { join, normalize, resolve, sep } from 'node:path';
 
+import { buildHttpsRedirect } from './https-redirect.js';
+import { decorateWithSecurityHeaders } from './security-headers.js';
+
 /**
  * O `dist` do Vite e' estatico, mas o navegador precisa de UMA origem so.
  *
@@ -106,18 +109,33 @@ export function createWebServer({ port, distDirectory, apiOrigin }) {
     async fetch(request) {
       const { pathname } = new URL(request.url);
 
-      if (pathname === HEALTH_PATH) return Response.json({ data: { status: 'ok' } });
+      /** Antes de qualquer coisa: nada de servir a tela do pai em texto puro. */
+      const redirect = buildHttpsRedirect(request);
+      if (redirect !== undefined) return redirect;
 
+      /**
+       * O repasse sai INTACTO: a API ja carimba os cabecalhos dela, e uma CSP
+       * de documento colada em JSON so confunde quem for depurar. Tudo o que a
+       * propria web produz passa pelo carimbo (`S-005`, security.md §3).
+       */
       if (isApiPath(pathname)) {
         try {
           return await forwardToApi({ request, apiOrigin });
         } catch {
           /** A API fora do ar e' 502 aqui, nao 500: quem falhou foi o de tras. */
-          return new Response(undefined, { status: HTTP_BAD_GATEWAY });
+          return decorateWithSecurityHeaders(new Response(undefined, { status: HTTP_BAD_GATEWAY }));
         }
       }
 
-      return (await serveStatic({ distDirectory, pathname })) ?? serveApplicationShell(distDirectory);
+      if (pathname === HEALTH_PATH) {
+        return decorateWithSecurityHeaders(Response.json({ data: { status: 'ok' } }));
+      }
+
+      const response =
+        (await serveStatic({ distDirectory, pathname })) ??
+        (await serveApplicationShell(distDirectory));
+
+      return decorateWithSecurityHeaders(response);
     },
   });
 }

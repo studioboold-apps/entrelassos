@@ -163,8 +163,9 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
 - [x] `TB.1` — superfície do SDK medida (21 chamadas, 4 famílias) → `ADR-001.md`
 - [x] `TB.2` — ADR-001 aprovado; as cinco decisões fechadas (`ADR-001.md` §6):
       base de dados do zero, PWA, provider de IA por env, Fly.io/Railway, login Google+Apple
-- [x] `TB.3` — monorepo, `envs/`, `docker-compose.yml` e `Makefile`
-      (aceite do `make up` pendente: **falta um runtime de Docker** na máquina)
+- [x] `TB.3` — monorepo, `envs/`, `docker-compose.yml` e `Makefile`;
+      `make up` provado em 05/09/2026 (`pai-presente-dev-postgres Up (healthy)`)
+      — o runtime de Docker que faltava já existe
 - [x] `TB.4` — schema Drizzle das 7 entidades, migration aplicada e revertida
       em banco limpo; sem as três colunas sensíveis, que esperam `TL.1`
 - [x] `TB.5` — as 25 rotas dos 7 recursos, com 56 testes de contrato
@@ -191,8 +192,11 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
       nunca existiu; aviso de ambiente do `web.md` §12 (🚧 na aba e faixa no
       topo, fora de produção); auditoria em `docs/SECURITY.md` — três achados
       corrigidos, dois abertos
-- [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
-- [ ] Executar o `tasks.md` da saída escolhida
+- [x] Executar o `tasks.md` da saída escolhida — `TB.1` a `TB.10` fechados
+
+**Este objetivo terminou.** O que sobrou dele é o §4.3 (os três campos
+sensíveis), que virou `F3.1` do objetivo seguinte:
+`.specs/features/no-ar/GOAL.md` — pôr o produto no ar, com gente usando.
 
 ---
 

@@ -5,6 +5,8 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { INSIGHT_ID_MAX_LENGTH, toInsightId, withStableIds } from './insight-id';
 
@@ -61,5 +63,33 @@ describe('withStableIds', () => {
 
   test('insight repetido no mesmo lote sai uma vez so', () => {
     expect(withStableIds([INSIGHT, { ...INSIGHT }])).toHaveLength(1);
+  });
+});
+
+describe('a identidade do insight tem UMA fonte', () => {
+  /**
+   * Medido: o mesmo conselho ganhava `insight_kbbto2_14` na Home e
+   * `insight_bu7jdh` na Comunidade, porque cada tela chamava um modulo de
+   * identidade diferente. Como o id E a chave da nota, a estrela dada numa tela
+   * nascia apagada na outra, e o mesmo conselho ocupava duas linhas.
+   *
+   * Duas copias de uma regra concordam ate a primeira edicao — e esta ja tinha
+   * divergido em tres pontos: separador, presenca do nome do filho e o corte de
+   * repetido.
+   */
+  test('nao existe um segundo modulo de identidade em lib', () => {
+    const modules = readdirSync(import.meta.dir)
+      .filter((name) => name.startsWith('insight') && name.endsWith('.js') && !name.endsWith('.test.js'));
+
+    expect(modules).toEqual(['insight-id.js']);
+  });
+
+  test('toda tela que batiza insight chama o mesmo modulo', () => {
+    const pagesDir = join(import.meta.dir, '..', 'pages');
+    const offenders = readdirSync(pagesDir)
+      .filter((name) => name.endsWith('.jsx'))
+      .filter((name) => readFileSync(join(pagesDir, name), 'utf8').includes('insight-identity'));
+
+    expect(offenders).toEqual([]);
   });
 });

@@ -8,7 +8,7 @@ import CommunityCreatePost from '@/components/CommunityCreatePost';
 import InsightCard from '@/components/InsightCard';
 import { cn } from '@/lib/utils';
 import { BRAND_LOGO } from '@/lib/brand';
-import { withInsightIds } from '@/lib/insight-identity';
+import { withStableIds } from '@/lib/insight-id';
 import { describeApiFailure } from '@/lib/api-error-message';
 
 /** A API ja devolve o feed do mais novo para o mais antigo. */
@@ -57,16 +57,17 @@ export default function Comunidade() {
    * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
    * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
    *
-   * A identidade vem do TEXTO (`insight-identity`), nunca do relogio: ela e' a
-   * chave da nota em `PUT /v1/insight-ratings/:id`, e id novo a cada geracao
-   * faz a estrela do pai nunca reaparecer.
+   * A identidade vem do TEXTO (`insight-id`, o mesmo modulo da Home), nunca do
+   * relogio: ela e' a
+   * chave da nota em `PUT /v1/insight-ratings/:id`, e id novo a cada geracao —
+   * ou id de outra receita em cada tela — faz a estrela do pai nunca reaparecer.
    *
    * `staleTime: Infinity` porque cada refeitura custa uma chamada de IA — quem
    * pede texto novo e' o botao de atualizar, deliberadamente.
    */
   const insightsQuery = useQuery({
     queryKey: ['insights', activeCategory],
-    queryFn: async () => withInsightIds(await api.ai.insights(activeCategory ?? undefined)),
+    queryFn: async () => withStableIds(await api.ai.insights(activeCategory ?? undefined)),
     enabled: activeTab === 'insights' && children.length > 0 && user !== undefined,
     staleTime: Infinity,
   });

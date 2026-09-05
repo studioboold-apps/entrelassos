@@ -21,8 +21,8 @@ describe('o insight tem identidade estavel', () => {
     expect(SOURCE).not.toContain('Date.now()');
   });
 
-  test('a identidade vem do modulo que tem teste', () => {
-    expect(SOURCE).toContain('withInsightIds');
+  test('a identidade vem do modulo unico, o mesmo da Home', () => {
+    expect(SOURCE).toContain('withStableIds');
   });
 });
 

@@ -43,7 +43,8 @@ export default function InsightCard({
   title, 
   content, 
   category, 
-  childName,
+  /** `toPagePayload` entrega a resposta em `snake_case`; a chave da API nao chega aqui. */
+  child_name,
   rating,
   onRate,
   delay = 0 
@@ -70,8 +71,8 @@ export default function InsightCard({
           <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
             {categoryLabels[category]}
           </span>
-          {childName && (
-            <p className="text-xs text-zinc-600">Para {childName}</p>
+          {child_name && (
+            <p className="text-xs text-zinc-600">Para {child_name}</p>
           )}
         </div>
       </div>

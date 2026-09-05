@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '@/api/client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Brain, Heart, Wallet, Activity, Loader2, RefreshCw, Calendar, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import InsightCard from '@/components/InsightCard';
 import { BRAND_LOGO } from '@/lib/brand';
+import { describeApiFailure } from '@/lib/api-error-message';
+import { withStableIds } from '@/lib/insight-id';
 
 
 const categories = [
@@ -19,10 +21,10 @@ const categories = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState(null);
-  const [insights, setInsights] = useState([]);
-  const [loadingInsights, setLoadingInsights] = useState(true);
-  const [ratings, setRatings] = useState({});
+  const [pendingRatings, setPendingRatings] = useState({});
+  const [rateFailure, setRateFailure] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -39,72 +41,77 @@ export default function Home() {
     queryFn: () => api.entities.InsightRating.list(),
   });
 
+  /**
+   * O prompt saiu do navegador: ele montava a pergunta com a orientacao
+   * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
+   * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
+   *
+   * Cada geracao e uma chamada paga ao provedor, entao o resultado nao expira
+   * sozinho: quem quer outro lote clica em Atualizar.
+   */
+  const insightsQuery = useQuery({
+    queryKey: ['insights', activeCategory],
+    queryFn: async () => withStableIds(await api.ai.insights(activeCategory ?? undefined)),
+    enabled: Boolean(user) && children.length > 0,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+
+  const insights = insightsQuery.data ?? [];
+  const insightsFailure = insightsQuery.isError ? describeApiFailure(insightsQuery.error) : null;
+
   useEffect(() => {
     if (user && !user.onboarding_completed) {
       navigate(createPageUrl('Onboarding'));
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    const ratingsMap = {};
-    savedRatings.forEach(r => {
-      ratingsMap[r.insight_id] = r.rating;
-    });
-    setRatings(ratingsMap);
-  }, [savedRatings]);
+  /** Nota salva e dado de servidor: deriva na renderizacao, nao copia para estado. */
+  const savedRatingByInsightId = useMemo(
+    () => Object.fromEntries(savedRatings.map(({ insight_id: insightId, rating }) => [insightId, rating])),
+    [savedRatings],
+  );
 
-  useEffect(() => {
-    if (children.length > 0 && user) {
-      generateInsights();
-    } else if (user?.onboarding_completed) {
-      setLoadingInsights(false);
-    }
-  }, [children, user]);
+  const ratings = { ...savedRatingByInsightId, ...pendingRatings };
 
-  const generateInsights = async (category = null) => {
-    setLoadingInsights(true);
-    try {
-      /**
-       * O prompt saiu do navegador: ele montava a pergunta com a orientacao
-       * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
-       * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
-       */
-      const generated = await api.ai.insights(category ?? undefined);
+  /** @typedef {{ insight: { id: string, category: string, title: string }, rating: number }} RateVariables */
 
-      setInsights(generated.map((insight, index) => ({
-        ...insight,
-        id: `insight_${Date.now()}_${index}`
-      })));
-    } catch (error) {
-      console.error('Error generating insights:', error);
-    }
-    setLoadingInsights(false);
-  };
-
-  const handleCategoryClick = (categoryId) => {
-    if (activeCategory === categoryId) {
-      setActiveCategory(null);
-      generateInsights();
-    } else {
-      setActiveCategory(categoryId);
-      generateInsights(categoryId);
-    }
-  };
-
-  const handleRate = async (insightId, rating) => {
-    const insight = insights.find(i => i.id === insightId);
-    
-    setRatings(prev => ({ ...prev, [insightId]: rating }));
-    
-    await api.entities.InsightRating.rate({
-      insight_id: insightId,
+  const rateMutation = useMutation({
+    /** @param {RateVariables} variables */
+    mutationFn: ({ insight, rating }) => api.entities.InsightRating.rate({
+      insight_id: insight.id,
       category: insight.category,
       rating: rating,
-      insight_title: insight.title
-    });
+      insight_title: insight.title,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['insightRatings'] });
+    },
+    /** A estrela acende antes da resposta; se a gravacao falhar, ela apaga e o pai fica sabendo. */
+    onError: (error, { insight }) => {
+      setPendingRatings((previous) => {
+        const next = { ...previous };
+        delete next[insight.id];
+        return next;
+      });
+      setRateFailure(describeApiFailure(error));
+    },
+  });
+
+  const handleCategoryClick = (categoryId) => {
+    setActiveCategory(activeCategory === categoryId ? null : categoryId);
   };
 
-  const filteredInsights = activeCategory 
+  const handleRate = (insightId, rating) => {
+    const insight = insights.find(i => i.id === insightId);
+    if (!insight) return;
+
+    setRateFailure(null);
+    setPendingRatings(previous => ({ ...previous, [insightId]: rating }));
+    rateMutation.mutate({ insight, rating });
+  };
+
+  const filteredInsights = activeCategory
     ? insights.filter(i => i.category === activeCategory)
     : insights;
 
@@ -165,12 +172,12 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            onClick={() => generateInsights(activeCategory)}
-            disabled={loadingInsights}
+            onClick={() => insightsQuery.refetch()}
+            disabled={insightsQuery.isFetching}
             className="aspect-square rounded-2xl p-4 flex flex-col items-center justify-center gap-2
               bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all"
           >
-            <RefreshCw className={`w-8 h-8 text-zinc-400 ${loadingInsights ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-8 h-8 text-zinc-400 ${insightsQuery.isFetching ? 'animate-spin' : ''}`} />
             <span className="text-xs text-zinc-500">Atualizar</span>
           </motion.button>
         </div>
@@ -216,15 +223,30 @@ export default function Home() {
           {activeCategory ? categories.find(c => c.id === activeCategory)?.label : 'Todos os Insights'}
         </h2>
 
-        {loadingInsights ? (
+        {rateFailure && (
+          <p role="alert" className="text-sm text-red-400 mb-4">
+            {rateFailure.message}
+          </p>
+        )}
+
+        {insightsQuery.isFetching ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-4" />
             <p className="text-zinc-500">Gerando insights...</p>
           </div>
+        ) : insightsFailure ? (
+          /**
+           * Sem chave de IA a API responde 503 com o motivo escrito. Dizer
+           * "Nenhum insight disponivel" seria trocar uma indisponibilidade
+           * temporaria por uma afirmacao falsa sobre os filhos do pai.
+           */
+          <p role="alert" className="text-center py-16 text-red-400">
+            {insightsFailure.message}
+          </p>
         ) : filteredInsights.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-zinc-500">
-              {children.length === 0 
+              {children.length === 0
                 ? 'Cadastre seus filhos para receber insights'
                 : 'Nenhum insight disponível'
               }

@@ -4,6 +4,16 @@
  * Licenca: proprietaria.
  */
 
+import type { ActivityRow } from '../../Activity/activity.table';
+import type { AuthIdentityRow } from '../../Auth/auth.table';
+import type { ChatMessageRow } from '../../ChatMessage/chat-message.table';
+import type { ChildRow } from '../../Child/child.table';
+import type { CommunityCommentRow } from '../../CommunityComment/community-comment.table';
+import type {
+  CommunityPostLikeRow,
+  CommunityPostRow,
+} from '../../CommunityPost/community-post.table';
+import type { InsightRatingRow } from '../../InsightRating/insight-rating.table';
 import type { UpdateUserBody } from '../user.schema';
 import type { UserRow } from '../user.table';
 
@@ -19,7 +29,46 @@ export type EnsureUserParams = {
   readonly email: string;
 };
 
+/**
+ * O IP vem junto porque a exclusao e a linha de auditoria que a registra caem
+ * ou passam JUNTAS (`security.md` §10). Se ele parasse na rota, a trilha
+ * nasceria com a coluna sempre vazia — foi assim que a auditoria de outros
+ * produtos virou enfeite.
+ */
+export type DeleteUserParams = {
+  readonly userId: string;
+  readonly clientIp: string;
+};
+
+export type ExportUserParams = {
+  readonly userId: string;
+  readonly clientIp: string;
+};
+
+/**
+ * Portabilidade (LGPD art. 18 V) so vale se vier tudo: secao ausente e secao
+ * vazia sao indistinguiveis para quem recebe o arquivo, e o titular nao tem
+ * como saber que faltou. Por isso toda chave existe, mesmo sem linha nenhuma.
+ *
+ * `sessions` fica DE FORA de proposito — e a unica das dez. Ela guarda o hash
+ * do refresh, material de credencial: um arquivo baixado com ele dentro vira
+ * chave de sessao onde quer que o arquivo pare.
+ */
+export type AccountExport = {
+  readonly user: UserRow;
+  readonly authIdentities: readonly AuthIdentityRow[];
+  readonly children: readonly ChildRow[];
+  readonly activities: readonly ActivityRow[];
+  readonly insightRatings: readonly InsightRatingRow[];
+  readonly communityPosts: readonly CommunityPostRow[];
+  readonly communityPostLikes: readonly CommunityPostLikeRow[];
+  readonly communityComments: readonly CommunityCommentRow[];
+  readonly chatMessages: readonly ChatMessageRow[];
+};
+
 export type UserRepository = {
   findById(params: FindUserParams): Promise<UserRow | undefined>;
   update(params: UpdateUserParams): Promise<UserRow | undefined>;
+  deleteById(params: DeleteUserParams): Promise<boolean>;
+  exportAll(params: ExportUserParams): Promise<AccountExport | undefined>;
 };

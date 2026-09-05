@@ -47,3 +47,7 @@ export const SECURITY_HEADERS = {
 export const CORS_ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 export const CORS_ALLOWED_HEADERS = 'Content-Type';
 export const CORS_MAX_AGE_SECONDS = '600';
+
+/** Cabecalhos que o proxy usa para contar o endereco de origem. */
+export const FORWARDED_FOR_HEADER = 'x-forwarded-for';
+export const REAL_IP_HEADER = 'x-real-ip';

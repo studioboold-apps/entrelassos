@@ -18,12 +18,14 @@ import {
 import { applyOverrides, buildIdentity } from '../../testing/row.factory';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { HTTP_METHODS } from '../shared/http/http.constant';
+import { UNKNOWN_CLIENT_IP } from '../shared/shared.constant';
 import { buildUserRoutes } from './user.controller';
+import { ME_EXPORT_PATH, ME_PATH } from './user.constant';
 import { createUserUseCases } from './user.use-case';
 import type { UserRow } from './user.table';
-import type { UserRepository } from './types/user.types';
+import type { AccountExport, DeleteUserParams, UserRepository } from './types/user.types';
 
-const ME_PATH = '/v1/me';
+type RecordedRemoval = { readonly userId: string; readonly clientIp: string };
 
 function buildUserRow(): UserRow {
   return {
@@ -36,7 +38,21 @@ function buildUserRow(): UserRow {
   };
 }
 
-function createFakeUserRepository(rows: UserRow[]): UserRepository {
+function buildAccountExport(row: UserRow): AccountExport {
+  return {
+    user: row,
+    authIdentities: [],
+    children: [],
+    activities: [],
+    insightRatings: [],
+    communityPosts: [],
+    communityPostLikes: [],
+    communityComments: [],
+    chatMessages: [],
+  };
+}
+
+function createFakeUserRepository(rows: UserRow[], removals: RecordedRemoval[]): UserRepository {
   const indexOf = (userId: string): number => rows.findIndex((row) => row.id === userId);
   return {
     findById: async ({ userId }) => rows[indexOf(userId)],
@@ -48,17 +64,32 @@ function createFakeUserRepository(rows: UserRow[]): UserRepository {
       rows[index] = updated;
       return updated;
     },
+    deleteById: async ({ userId, clientIp }: DeleteUserParams) => {
+      const index = indexOf(userId);
+      if (index < 0) return false;
+      rows.splice(index, 1);
+      removals.push({ userId, clientIp });
+      return true;
+    },
+    exportAll: async ({ userId }) => {
+      const row = rows[indexOf(userId)];
+      return row === undefined ? undefined : buildAccountExport(row);
+    },
   };
 }
 
-function buildClient(rows: UserRow[]): TestClient {
-  return createTestClient({ routes: buildUserRoutes(createUserUseCases(createFakeUserRepository(rows))) });
+function buildClient(rows: UserRow[], removals: RecordedRemoval[]): TestClient {
+  return createTestClient({
+    routes: buildUserRoutes(createUserUseCases(createFakeUserRepository(rows, removals))),
+  });
 }
 
 let client: TestClient;
+let removals: RecordedRemoval[];
 
 beforeEach(() => {
-  client = buildClient([buildUserRow()]);
+  removals = [];
+  client = buildClient([buildUserRow()], removals);
 });
 
 describe('GET /v1/me', () => {
@@ -69,7 +100,7 @@ describe('GET /v1/me', () => {
   });
 
   test('sessao apontando para usuario inexistente responde 404', async () => {
-    const orphan = buildClient([{ ...buildUserRow(), ...buildIdentity(MISSING_ID) }]);
+    const orphan = buildClient([{ ...buildUserRow(), ...buildIdentity(MISSING_ID) }], removals);
     const response = await orphan.send({ method: HTTP_METHODS.GET, path: ME_PATH });
     expect(response.status).toBe(404);
     expect(readErrorCode(response)).toBe(ERROR_CODES.user.USER_NOT_FOUND);
@@ -117,5 +148,84 @@ describe('PATCH /v1/me', () => {
       expect(response.status).toBe(400);
       expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
     }
+  });
+});
+
+/**
+ * Art. 18 da LGPD da ao titular ELIMINACAO (inciso VI) e PORTABILIDADE (V), e
+ * este produto guarda dado de crianca. Ate aqui `/v1/me` so tinha `GET` e
+ * `PATCH`: o pai que quisesse sair teria de pedir por e-mail a alguem que
+ * apagasse na mao — o que nao e' direito exercivel, e' favor.
+ */
+describe('DELETE /v1/me', () => {
+  test('apagar responde 204 e a conta deixa de existir', async () => {
+    const removed = await client.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
+    expect(removed.status).toBe(204);
+
+    const after = await client.send({ method: HTTP_METHODS.GET, path: ME_PATH });
+    expect(after.status).toBe(404);
+  });
+
+  test('apagar duas vezes responde 404 na segunda, nao 204 mentindo', async () => {
+    await client.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
+    const again = await client.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
+
+    expect(again.status).toBe(404);
+    expect(readErrorCode(again)).toBe(ERROR_CODES.user.USER_NOT_FOUND);
+  });
+
+  /**
+   * `security.md` §10: a trilha guarda ator, alvo, IP e instante. O IP tem de
+   * ATRAVESSAR a rota ate a escrita — foi por nao atravessar que a auditoria
+   * de outros produtos nasceu com a coluna sempre vazia.
+   */
+  test('o endereco de quem pediu chega ate a escrita', async () => {
+    await client.send({
+      method: HTTP_METHODS.DELETE,
+      path: ME_PATH,
+      headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' },
+    });
+
+    expect(removals).toEqual([{ userId: TEST_USER_ID, clientIp: '203.0.113.7' }]);
+  });
+
+  test('sem cabecalho de proxy, a trilha registra que nao sabe o endereco', async () => {
+    await client.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
+
+    expect(removals[0]?.clientIp).toBe(UNKNOWN_CLIENT_IP);
+  });
+});
+
+describe('GET /v1/me/export', () => {
+  /**
+   * Portabilidade so vale se vier TUDO: uma secao ausente e' indistinguivel de
+   * uma secao vazia para quem recebe o arquivo, e o titular nao tem como saber
+   * que faltou. Por isso a chave existe mesmo sem linha nenhuma.
+   */
+  test('devolve o perfil e todas as secoes, mesmo as vazias', async () => {
+    const response = await client.send({ method: HTTP_METHODS.GET, path: ME_EXPORT_PATH });
+
+    expect(response.status).toBe(200);
+    const payload = readDataRecord(response);
+    expect(payload.user).toMatchObject({ email: TEST_USER.email });
+    for (const section of [
+      'authIdentities',
+      'children',
+      'activities',
+      'insightRatings',
+      'communityPosts',
+      'communityPostLikes',
+      'communityComments',
+      'chatMessages',
+    ]) {
+      expect(Array.isArray(payload[section])).toBe(true);
+    }
+  });
+
+  test('conta ja apagada nao exporta nada', async () => {
+    await client.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
+    const response = await client.send({ method: HTTP_METHODS.GET, path: ME_EXPORT_PATH });
+
+    expect(response.status).toBe(404);
   });
 });

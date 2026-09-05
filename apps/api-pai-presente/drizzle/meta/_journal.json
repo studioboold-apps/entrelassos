@@ -15,6 +15,13 @@
       "when": 1788568687827,
       "tag": "0001_windy_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788622287083,
+      "tag": "0002_colossal_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }

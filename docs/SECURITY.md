@@ -90,3 +90,52 @@ específico e destacado no próprio passo, finalidade escrita, opção de recusa
 perder função, e caminho de eliminação (`DELETE /v1/me`, `F3.2`). Sem os quatro,
 o campo não entra.
 
+
+---
+
+## Decisão de 05/09/2026 — trilha de auditoria e exportação (`F3.2`)
+
+`DELETE /v1/me` e `GET /v1/me/export` existem desde esta task (LGPD art. 18, VI
+e V). Três decisões de segurança ficam trancadas aqui, com o teste que as segura.
+
+### A trilha NÃO referencia `users`
+
+Todas as outras nove tabelas apontam para `users` com `onDelete: cascade` — é
+isso que faz a exclusão limpar tudo de uma vez, sem ordem de exclusão escrita à
+mão. Se `audit_log` fizesse o mesmo, **apagar a conta apagaria junto a prova de
+que ela foi apagada**, que é exatamente o registro que o §10 manda guardar.
+
+O ator entra como `uuid` solto. Trancado por `audit.table.test.ts`, que afirma
+`foreignKeys` vazio: referenciar `users` é o reflexo de quem escreve tabela nova
+neste esquema, e o teste existe para o dia em que alguém o seguir.
+
+Exclusão e trilha caem ou passam na **mesma transação** — senão a auditoria
+mente numa das duas direções.
+
+### O IP vem do cabeçalho, não de `requestIP()`
+
+A decisão D6 põe a API atrás de Fly.io ou Railway. Ali `server.requestIP()`
+devolve o endereço do **proxy**, o mesmo para todo mundo: uma coluna cheia e
+inútil, pior que a ausência porque parece prova. `readClientIp` lê o primeiro da
+cadeia de `x-forwarded-for`, cai em `x-real-ip`, e admite `desconhecido` quando
+não há cabeçalho nenhum.
+
+O cabeçalho é **entrada não confiável**: cortado em 64 caracteres, porque sem
+corte um valor de dez mil derruba o `INSERT` da auditoria — e com ele a exclusão
+inteira, que roda na mesma transação.
+
+Isto não contradiz o §1 (proibido PII em log): o §10 pede IP na trilha de forma
+explícita, e trilha de auditoria não é log de aplicação.
+
+### `sessions` fica de fora da exportação
+
+É a única das dez que não entra. Ela guarda `refreshTokenHash`, material de
+credencial: um arquivo baixado com ele dentro vira chave de sessão onde quer que
+o arquivo pare. O e2e afirma que a string `refreshTokenHash` não aparece no
+JSON exportado.
+
+### Aberto
+
+| # | Item | Por quê |
+|---|---|---|
+| S-006 | Não há retenção definida para `audit_log` | A trilha sobrevive à conta de propósito, mas "para sempre" não é política. Definir prazo antes do go-live (`P4.4`) |

@@ -5,13 +5,12 @@
  */
 
 import { HTTP_METHODS } from '../shared/http/http.constant';
-import { parseJsonBody } from '../shared/http/request.util';
-import { respondWithData } from '../shared/http/response.util';
+import { parseJsonBody, readClientIp } from '../shared/http/request.util';
+import { respondWithData, respondWithNoContent } from '../shared/http/response.util';
 import type { RouteDefinition } from '../shared/http/route.types';
+import { ME_EXPORT_PATH, ME_PATH } from './user.constant';
 import { updateUserBodySchema } from './user.schema';
 import type { UserUseCases } from './user.use-case';
-
-const ME_PATH = '/v1/me';
 
 export function buildUserRoutes(useCases: UserUseCases): readonly RouteDefinition[] {
   return [
@@ -32,6 +31,30 @@ export function buildUserRoutes(useCases: UserUseCases): readonly RouteDefinitio
         const values = await parseJsonBody(request, updateUserBodySchema);
         const user = await useCases.updateMe({ userId: authenticatedUser.userId, values });
         return respondWithData(user);
+      },
+    },
+    {
+      method: HTTP_METHODS.DELETE,
+      path: ME_PATH,
+      summary: 'Apaga a conta e tudo o que ela produziu (LGPD art. 18 VI).',
+      handle: async ({ request, authenticatedUser }) => {
+        await useCases.deleteMe({
+          userId: authenticatedUser.userId,
+          clientIp: readClientIp(request),
+        });
+        return respondWithNoContent();
+      },
+    },
+    {
+      method: HTTP_METHODS.GET,
+      path: ME_EXPORT_PATH,
+      summary: 'Devolve em JSON tudo o que a conta guarda (LGPD art. 18 V).',
+      handle: async ({ request, authenticatedUser }) => {
+        const account = await useCases.exportMe({
+          userId: authenticatedUser.userId,
+          clientIp: readClientIp(request),
+        });
+        return respondWithData(account);
       },
     },
   ];

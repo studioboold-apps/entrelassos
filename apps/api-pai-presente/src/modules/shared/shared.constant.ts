@@ -65,3 +65,13 @@ export const ADULT_AGE_MAX = 120;
 
 /** Teto de texto livre (post, comentario, mensagem de chat). */
 export const FREE_TEXT_MAX_LENGTH = 4000;
+
+/**
+ * A trilha de auditoria admite NAO SABER o endereco. Guardar string vazia
+ * deixaria a coluna parecendo preenchida — pior que a ausencia, porque parece
+ * prova.
+ */
+export const UNKNOWN_CLIENT_IP = 'desconhecido';
+
+/** IPv6 com zona cabe folgado; o corte existe contra cabecalho hostil. */
+export const CLIENT_IP_LENGTH = 64;

@@ -20,7 +20,7 @@ export
 COMPOSE_PROJECT := $(PROJECT_NAME)-$(subst .,-,$(ENV))
 COMPOSE := docker compose --project-name $(COMPOSE_PROJECT)
 
-.PHONY: help compose-project up down logs psql migrate seed install dev dev-web dev-api build test test-e2e typecheck validate clean
+.PHONY: help compose-project up down logs psql generate migrate seed install dev dev-web dev-api build test test-e2e typecheck validate clean
 
 help: ## lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$'  Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -39,6 +39,9 @@ logs: ## acompanha os logs da infra
 
 psql: ## abre o psql no banco do ambiente
 	$(COMPOSE) exec postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+generate: ## gera a migration SQL a partir do schema
+	cd apps/api-pai-presente && bun run db:generate
 
 migrate: ## aplica as migrations no banco do ambiente
 	cd apps/api-pai-presente && bun run db:migrate

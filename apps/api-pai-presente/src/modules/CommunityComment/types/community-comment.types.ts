@@ -7,6 +7,11 @@
 import type { CommunityCommentRow } from '../community-comment.table';
 import type { CreateCommunityCommentBody } from '../community-comment.schema';
 
+/** authorName vem do JOIN com users: o nome nunca e copiado para esta tabela. */
+export type CommunityCommentView = CommunityCommentRow & {
+  readonly authorName: string | null;
+};
+
 export type ListCommunityCommentsParams = {
   readonly postId: string;
   readonly limit: number;
@@ -14,7 +19,7 @@ export type ListCommunityCommentsParams = {
 };
 
 export type ListCommunityCommentsResult = {
-  readonly items: readonly CommunityCommentRow[];
+  readonly items: readonly CommunityCommentView[];
   readonly total: number;
 };
 
@@ -34,6 +39,6 @@ export type PostExistencePort = {
 
 export type CommunityCommentRepository = {
   list(params: ListCommunityCommentsParams): Promise<ListCommunityCommentsResult>;
-  insert(params: CreateCommunityCommentParams): Promise<CommunityCommentRow>;
+  insert(params: CreateCommunityCommentParams): Promise<CommunityCommentView>;
   remove(params: RemoveCommunityCommentParams): Promise<boolean>;
 };

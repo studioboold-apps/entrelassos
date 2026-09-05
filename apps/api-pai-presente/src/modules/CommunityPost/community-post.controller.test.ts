@@ -30,11 +30,13 @@ import type {
 const POSTS_PATH = '/v1/community/posts';
 const FOREIGN_POST_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const CREATED_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const AUTHOR_NAME = 'Autor Teste';
 
 function buildPostView(overrides: RowOverrides<CommunityPostView> = {}): CommunityPostView {
   return applyOverrides({
     ...buildIdentity(KNOWN_ID),
     authorId: TEST_USER_ID,
+    authorName: AUTHOR_NAME,
     content: 'Levei meu filho ao parque hoje.',
     category: 'experiencia',
     likesCount: 0,
@@ -144,6 +146,12 @@ describe('GET /v1/community/posts/:postId', () => {
     const response = await client.send({ method: HTTP_METHODS.GET, path: `${POSTS_PATH}/${KNOWN_ID}` });
     expect(response.status).toBe(200);
     expect(readDataRecord(response).commentsCount).toBe(0);
+  });
+
+  /** O nome do autor vem do JOIN: sem ele o card da comunidade renderiza em branco. */
+  test('o post carrega o nome do autor', async () => {
+    const response = await client.send({ method: HTTP_METHODS.GET, path: `${POSTS_PATH}/${KNOWN_ID}` });
+    expect(readDataRecord(response).authorName).toBe(AUTHOR_NAME);
   });
 
   test('post inexistente responde 404', async () => {

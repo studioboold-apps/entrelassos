@@ -22,9 +22,9 @@ import { ERROR_CODES } from '../shared/errors/codes';
 import { HTTP_METHODS } from '../shared/http/http.constant';
 import { buildCommunityCommentRoutes } from './community-comment.controller';
 import { createCommunityCommentUseCases } from './community-comment.use-case';
-import type { CommunityCommentRow } from './community-comment.table';
 import type {
   CommunityCommentRepository,
+  CommunityCommentView,
   PostExistencePort,
 } from './types/community-comment.types';
 
@@ -32,12 +32,14 @@ const COMMENTS_PATH = '/v1/community/comments';
 const POST_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const FOREIGN_COMMENT_ID = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 const CREATED_ID = '10101010-1010-4010-8010-101010101010';
+const AUTHOR_NAME = 'Autor Teste';
 
-function buildCommentRow(overrides: RowOverrides<CommunityCommentRow> = {}): CommunityCommentRow {
+function buildCommentRow(overrides: RowOverrides<CommunityCommentView> = {}): CommunityCommentView {
   return applyOverrides({
     ...buildIdentity(KNOWN_ID),
     postId: POST_ID,
     authorId: TEST_USER_ID,
+    authorName: AUTHOR_NAME,
     content: 'Passei por isso tambem.',
   }, overrides);
 }
@@ -45,7 +47,7 @@ function buildCommentRow(overrides: RowOverrides<CommunityCommentRow> = {}): Com
 /** So POST_ID existe: comentar em post fantasma tem de morrer no use case. */
 const postExistence: PostExistencePort = { exists: async (postId) => postId === POST_ID };
 
-function createFakeCommentRepository(rows: CommunityCommentRow[]): CommunityCommentRepository {
+function createFakeCommentRepository(rows: CommunityCommentView[]): CommunityCommentRepository {
   return {
     list: async ({ postId, limit, offset }) => {
       const visible = rows.filter((row) => row.postId === postId);

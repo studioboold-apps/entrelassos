@@ -8,6 +8,7 @@ import { and, count, desc, eq, sql, type SQL } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
 import { communityCommentsTable } from '../CommunityComment/community-comment.table';
+import { usersTable } from '../User/user.table';
 import { communityPostLikesTable, communityPostsTable } from './community-post.table';
 import type {
   CommunityPostRepository,
@@ -23,6 +24,7 @@ export function createCommunityPostRepository(database: Database): CommunityPost
   function buildSelection(viewerId: string) {
     return {
       post: communityPostsTable,
+      authorName: usersTable.fullName,
       likesCount: sql<number>`(
         select count(*) from ${communityPostLikesTable}
         where ${communityPostLikesTable.postId} = ${communityPostsTable.id}
@@ -39,21 +41,25 @@ export function createCommunityPostRepository(database: Database): CommunityPost
     } as const;
   }
 
+  const AUTHOR_JOIN = eq(usersTable.id, communityPostsTable.authorId);
+
   type JoinedRow = {
     readonly post: typeof communityPostsTable.$inferSelect;
+    readonly authorName: string | null;
     readonly likesCount: number;
     readonly commentsCount: number;
     readonly hasLiked: boolean;
   };
 
-  function toView({ post, likesCount, commentsCount, hasLiked }: JoinedRow): CommunityPostView {
-    return { ...post, likesCount, commentsCount, hasLiked };
+  function toView({ post, authorName, likesCount, commentsCount, hasLiked }: JoinedRow): CommunityPostView {
+    return { ...post, authorName, likesCount, commentsCount, hasLiked };
   }
 
   async function loadView(postId: string, viewerId: string): Promise<CommunityPostView | undefined> {
     const rows = await database
       .select(buildSelection(viewerId))
       .from(communityPostsTable)
+      .innerJoin(usersTable, AUTHOR_JOIN)
       .where(eq(communityPostsTable.id, postId))
       .limit(1);
     const row = rows[0];
@@ -68,6 +74,7 @@ export function createCommunityPostRepository(database: Database): CommunityPost
         database
           .select(buildSelection(viewerId))
           .from(communityPostsTable)
+          .innerJoin(usersTable, AUTHOR_JOIN)
           .where(where)
           .orderBy(desc(communityPostsTable.createdAt))
           .limit(limit)

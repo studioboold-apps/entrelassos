@@ -6,9 +6,9 @@
 
 import { ERROR_CODES } from '../shared/errors/codes';
 import { ResourceNotFoundError } from '../shared/errors/shared.error';
-import type { CommunityCommentRow } from './community-comment.table';
 import type {
   CommunityCommentRepository,
+  CommunityCommentView,
   CreateCommunityCommentParams,
   ListCommunityCommentsParams,
   ListCommunityCommentsResult,
@@ -18,7 +18,7 @@ import type {
 
 export type CommunityCommentUseCases = {
   list(params: ListCommunityCommentsParams): Promise<ListCommunityCommentsResult>;
-  create(params: CreateCommunityCommentParams): Promise<CommunityCommentRow>;
+  create(params: CreateCommunityCommentParams): Promise<CommunityCommentView>;
   remove(params: RemoveCommunityCommentParams): Promise<void>;
 };
 

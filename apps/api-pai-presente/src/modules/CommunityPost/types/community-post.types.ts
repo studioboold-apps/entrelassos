@@ -15,6 +15,8 @@ import type {
  * as duas verdades concordam ate a primeira curtida perdida (decisao de TB.4).
  */
 export type CommunityPostView = CommunityPostRow & {
+  /** Vem do JOIN com users: a tabela guarda o vinculo, nunca uma copia do nome. */
+  readonly authorName: string | null;
   readonly likesCount: number;
   readonly hasLiked: boolean;
   readonly commentsCount: number;

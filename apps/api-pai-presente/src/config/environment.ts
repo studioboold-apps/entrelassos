@@ -37,6 +37,14 @@ const authShape = {
   AUTH_JWT_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().default(''),
   APPLE_CLIENT_ID: z.string().default(''),
+  /**
+   * Login de desenvolvimento. Explicito por design: ausencia de OAuth NAO pode
+   * ligar isto sozinho, senao a producao mal configurada abriria a porta.
+   */
+  AUTH_DEV_SIGN_IN: z
+    .enum(['0', '1'])
+    .default('0')
+    .transform((value) => value === '1'),
 } as const;
 
 const aiShape = {

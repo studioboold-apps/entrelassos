@@ -6,7 +6,17 @@
 
 import { API_VERSION_PREFIX } from '../shared/http/http.constant';
 
-export const AUTH_PROVIDERS = ['google', 'apple'] as const;
+export const OIDC_AUTH_PROVIDERS = ['google', 'apple'] as const;
+export type OidcAuthProvider = (typeof OIDC_AUTH_PROVIDERS)[number];
+
+/**
+ * Provedor de desenvolvimento. Existe no tipo para a rota de login aceita-lo sem
+ * um schema paralelo; quem decide se ele EXISTE de fato e o registro, que morre
+ * no boot se alguem o ligar em producao.
+ */
+export const DEVELOPMENT_AUTH_PROVIDER = 'dev';
+
+export const AUTH_PROVIDERS = [...OIDC_AUTH_PROVIDERS, DEVELOPMENT_AUTH_PROVIDER] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
 export const AUTH_BASE_PATH = `${API_VERSION_PREFIX}/auth`;

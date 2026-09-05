@@ -27,6 +27,7 @@ const auth = buildAuthModule({
   database,
   jwtSecret: environment.AUTH_JWT_SECRET,
   clientIds: { google: environment.GOOGLE_CLIENT_ID, apple: environment.APPLE_CLIENT_ID },
+  developmentSignIn: { isEnabled: environment.AUTH_DEV_SIGN_IN, isProduction },
   // `Secure` sai de NODE_ENV, nao de uma variavel propria: variavel esquecida
   // no painel nao pode ser o que manda o cookie de sessao viajar em claro.
   isSecureCookie: isProduction,

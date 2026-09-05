@@ -155,8 +155,8 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 ## PRONTO
 
 ### Fase 1 — rodar
-- [ ] `P1.1` — a migration roda sem chave de IA (env por necessidade, não por processo)
-- [ ] `P1.2` — existe caminho de desenvolvimento sem credencial do Google, fechado em produção
+- [x] `P1.1` — a migration roda sem chave de IA (env por necessidade, não por processo)
+- [x] `P1.2` — existe caminho de desenvolvimento sem credencial do Google, fechado em produção
 - [ ] `P1.3` — porta e recursos sem colisão com outro projeto na mesma máquina
 - [ ] `P1.4` — seed pelos use cases: um pai, dois filhos, atividades, posts e conversa
 - [ ] `P1.5` — `make dev` sobe tudo, e um teste de fumaça prova entrar → criar filho → listar

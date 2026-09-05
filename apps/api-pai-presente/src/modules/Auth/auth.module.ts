@@ -10,7 +10,11 @@ import type { PublicRouteDefinition } from '../shared/http/route.types';
 import { buildAuthRoutes } from './auth.controller';
 import { createAuthAccountRepository, createSessionRepository } from './auth.repository';
 import { createAuthUseCases } from './auth.use-case';
-import { createIdentityVerifierRegistry, type ProviderClientIds } from './providers/verifier-registry';
+import {
+  createIdentityVerifierRegistry,
+  type DevelopmentSignInSettings,
+  type ProviderClientIds,
+} from './providers/verifier-registry';
 import { createCookieSessionResolver } from './session.resolver';
 import { createTokenService } from './token.service';
 
@@ -18,6 +22,7 @@ export type BuildAuthModuleParams = {
   readonly database: Database;
   readonly jwtSecret: string;
   readonly clientIds: ProviderClientIds;
+  readonly developmentSignIn: DevelopmentSignInSettings;
   readonly isSecureCookie: boolean;
 };
 
@@ -30,11 +35,12 @@ export function buildAuthModule({
   database,
   jwtSecret,
   clientIds,
+  developmentSignIn,
   isSecureCookie,
 }: BuildAuthModuleParams): AuthModule {
   const tokenService = createTokenService(jwtSecret);
   const useCases = createAuthUseCases({
-    verifiers: createIdentityVerifierRegistry(clientIds),
+    verifiers: createIdentityVerifierRegistry({ clientIds, developmentSignIn }),
     accounts: createAuthAccountRepository(database),
     sessions: createSessionRepository(database),
     tokenService,

@@ -162,7 +162,7 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 - [x] `P1.5` — `make dev` sobe tudo, e um teste de fumaça prova entrar → criar filho → listar
 
 ### Fase 2 — as telas
-- [ ] `P2.1` a `P2.7` — as sete telas exercitadas com dado real, defeito com teste antes do conserto
+- [x] `P2.1` a `P2.7` — as sete telas exercitadas com dado real, defeito com teste antes do conserto
 
 ### Fase 3 — LGPD
 - [ ] `P3.1` — `TL.1` aplicado (depende da decisão)

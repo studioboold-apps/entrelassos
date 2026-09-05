@@ -14,7 +14,11 @@ import { describe, expect, test } from 'bun:test';
  * processo da API, e o defeito nao esta no codigo dela — esta no arquivo de
  * ambiente. Nao e import entre apps; e um teste lendo configuracao do repo.
  */
-const ENVIRONMENTS_DIRECTORY = join(import.meta.dir, '../../../../envs');
+const REPOSITORY_ROOT = join(import.meta.dir, '../../../..');
+const ENVIRONMENTS_DIRECTORY = join(REPOSITORY_ROOT, 'envs');
+
+/** Regra do proprio docker: minuscula, digito, hifen e sublinhado — ponto NAO. */
+const DOCKER_PROJECT_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 const ENVIRONMENT_NAMES = ['dev', 'test', 'test.e2e'] as const;
 
 /** Porta padrao do servico: e a que TODO outro projeto da maquina tambem quer. */
@@ -87,5 +91,21 @@ describe('a porta mora num lugar so', () => {
       expect(value).toContain(`\${${portVariable}}`);
       expect(value).not.toMatch(/:\d+/);
     }
+  });
+});
+
+describe('nome do projeto no docker', () => {
+  /**
+   * Pergunta ao `make` em vez de refazer a conta: refazendo, o teste passaria a
+   * medir a MINHA copia da regra, e `make up ENV=test.e2e` continuaria morrendo
+   * com "invalid project name" — que foi exatamente o que aconteceu.
+   */
+  test.each([...ENVIRONMENT_NAMES])('env.%s vira nome que o docker aceita', (name: EnvironmentName) => {
+    const printed = Bun.spawnSync({
+      cmd: ['make', 'compose-project', `ENV=${name}`],
+      cwd: REPOSITORY_ROOT,
+    });
+
+    expect(printed.stdout.toString().trim()).toMatch(DOCKER_PROJECT_PATTERN);
   });
 });

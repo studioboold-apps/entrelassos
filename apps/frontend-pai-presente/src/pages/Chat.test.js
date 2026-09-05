@@ -1,0 +1,60 @@
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
+import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+/**
+ * A tela nao e importada: puxar a pagina traria React, o roteador e o markdown
+ * para dentro do teste. O que se afirma aqui e a LIGACAO — que o Chat encaminha
+ * a recusa a quem ja tem regra e teste proprios.
+ */
+const SOURCE = readFileSync(join(import.meta.dir, 'Chat.jsx'), 'utf8');
+
+describe('a recusa da IA nao vira fala do mentor', () => {
+  /**
+   * Medido: sem chave, `POST /v1/chat` responde 503 `AI_NOT_CONFIGURED` com o
+   * motivo escrito. A tela trocava isso por uma frase fixa e a punha na conversa
+   * como se o mentor tivesse falado — perde o motivo E poe palavra na boca dele.
+   */
+  test('nenhuma resposta fabricada entra na conversa', () => {
+    expect(SOURCE).not.toContain('FAILURE_REPLY');
+  });
+
+  test('a falha vira frase pelo tradutor unico', () => {
+    expect(SOURCE).toContain('describeApiFailure');
+  });
+
+  test('a falha aparece como aviso, fora da conversa', () => {
+    expect(SOURCE).toContain('role="alert"');
+  });
+});
+
+describe('a mensagem do pai nao some calada', () => {
+  /**
+   * `remember` engolia a falha num log do navegador. A mensagem ficava na tela
+   * e nao no banco: ao voltar para a tela, ela tinha sumido, sem nada dito.
+   */
+  test('a gravacao que falha nao morre no console', () => {
+    expect(SOURCE).not.toContain('console.error');
+  });
+});
+
+describe('a conversa e dado de servidor', () => {
+  test('nao ha lista paralela de mensagens em useState', () => {
+    expect(SOURCE).not.toContain('setSessionMessages');
+  });
+
+  test('o "pensando" sai da propria mutation, nao de um booleano a mao', () => {
+    expect(SOURCE).not.toContain('setIsLoading');
+  });
+
+  /** Gravou, a verdade passa a ser a do banco: sem invalidar, a tela e uma copia que envelhece. */
+  test('depois de gravar, a tela recarrega o historico', () => {
+    expect(SOURCE).toContain('invalidateQueries');
+  });
+});

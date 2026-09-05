@@ -45,12 +45,15 @@ export class NoChildrenRegisteredError extends DomainError {
  * 503 e nao 500: falta um RECURSO (a chave do provedor), e o mesmo trato do
  * login sem provedor configurado. Derrubar o boot por causa disso levaria filho,
  * atividade e boletim junto — coisas que nao geram texto nenhum.
+ *
+ * A frase nao nomeia um recurso: a mesma classe atende insight, sugestao,
+ * boletim e chat, e quem pergunta no chat nao pediu sugestao nenhuma.
  */
 export class LlmNotConfiguredError extends DomainError {
   constructor(provider: string) {
     super({
       code: ERROR_CODES.ai.NOT_CONFIGURED,
-      message: `Sugestoes por IA indisponiveis: o provedor ${provider} esta sem chave.`,
+      message: `Recursos de IA indisponiveis: o provedor ${provider} esta sem chave.`,
       statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
     });
   }

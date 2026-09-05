@@ -6,9 +6,9 @@
 
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
 
-import { environment } from '../config/environment';
+import { readDatabaseEnvironment } from '../config/environment';
 import { createDatabaseClient } from './client';
 
-await migrate(createDatabaseClient(environment.DATABASE_URL), {
+await migrate(createDatabaseClient(readDatabaseEnvironment().DATABASE_URL), {
   migrationsFolder: './drizzle',
 });

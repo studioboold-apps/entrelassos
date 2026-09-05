@@ -4,7 +4,7 @@
  * Licenca: proprietaria.
  */
 
-import { environment } from './config/environment';
+import { readEnvironment } from './config/environment';
 import { createDatabaseClient } from './database/client';
 import { buildApplicationRoutes } from './app';
 import { buildAuthModule } from './modules/Auth/auth.module';
@@ -18,6 +18,7 @@ import { respondWithData } from './modules/shared/http/response.util';
 import { createRouter } from './modules/shared/http/router';
 import { createLogger } from './modules/shared/logger/logger';
 
+const environment = readEnvironment();
 const logger = createLogger('boot');
 const database = createDatabaseClient(environment.DATABASE_URL);
 

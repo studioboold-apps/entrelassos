@@ -13,7 +13,22 @@ import { join } from 'node:path';
  * roteador. O que se afirma aqui e' a LIGACAO — que o boletim encaminha conta e
  * falha a quem ja tem regra e teste proprios.
  */
-const SOURCE = readFileSync(join(import.meta.dir, 'Boletim.jsx'), 'utf8');
+const PAGE = readFileSync(join(import.meta.dir, 'Boletim.jsx'), 'utf8');
+const HOOK = readFileSync(join(import.meta.dir, 'Boletim.hook.js'), 'utf8');
+
+/**
+ * Os cartoes, os graficos e o relatorio sairam da pagina para caber no teto de
+ * 200 linhas. Se a leitura ficasse so no `.jsx`, uma afirmacao passaria a valer
+ * porque a linha SUMIU, nao porque a regra sobreviveu — o mesmo verde falso que
+ * a migracao de tela para hook produz.
+ */
+const COMPONENTS = ['BoletimQuickStats', 'BoletimCharts', 'BoletimReportCard', 'BoletimQuickAccess']
+  .map((name) => readFileSync(join(import.meta.dir, '..', 'components', `${name}.jsx`), 'utf8'))
+  .join('\n');
+
+const SCORE = readFileSync(join(import.meta.dir, '..', 'lib', 'boletim-score.js'), 'utf8');
+
+const SOURCE = `${PAGE}\n${HOOK}\n${COMPONENTS}\n${SCORE}`;
 
 describe('a conta do mes tem uma fonte so', () => {
   /**
@@ -57,5 +72,35 @@ describe('o boletim e chamada de servidor, nao estado de tela', () => {
 
   test('o relatorio recebido nao vira estado a mao', () => {
     expect(SOURCE).not.toContain('setReport');
+  });
+});
+
+describe('a tela desenha, o hook decide (web.md §4)', () => {
+  test('a pagina nao guarda estado nem chama a API', () => {
+    expect(PAGE).not.toContain('useState');
+    expect(PAGE).not.toContain('api.');
+  });
+
+  test('a decisao mora no hook do lado', () => {
+    expect(PAGE).toContain('useBoletim()');
+    expect(HOOK).toContain('useMutation');
+  });
+});
+
+describe('a faixa da nota tem uma fonte so (code-standart.md §16)', () => {
+  /**
+   * Cor e palavra da nota moravam em duas escadas soltas dentro do JSX, com o
+   * texto cravado em portugues. Continuam duas escadas — os degraus sao mesmo
+   * diferentes —, mas agora lado a lado e com o rotulo em chave de traducao.
+   */
+  test('a escada mora no modulo, nao na tela', () => {
+    expect(SCORE).toContain('scoreColorClass');
+    expect(SCORE).toContain('scoreLabelKey');
+    expect(PAGE).not.toContain('text-emerald-400\'');
+  });
+
+  test('a palavra da nota e chave de traducao, nao portugues cravado', () => {
+    expect(SCORE).toContain('boletim.score.excellent');
+    expect(SCORE).not.toContain('Excelente');
   });
 });

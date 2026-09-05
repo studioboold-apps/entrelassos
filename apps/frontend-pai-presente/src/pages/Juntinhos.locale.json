@@ -1,0 +1,39 @@
+{
+  "sectionLabel": "Juntinhos",
+  "title": "Momentos Especiais",
+  "subtitle": "Planeje atividades com seus filhos",
+  "weekDays": {
+    "sunday": "D",
+    "monday": "S",
+    "tuesday": "T",
+    "wednesday": "Q",
+    "thursday": "Q",
+    "friday": "S",
+    "saturday": "S"
+  },
+  "previousMonth": "Mês anterior",
+  "nextMonth": "Próximo mês",
+  "suggest": "Sugerir",
+  "newActivity": "Nova Atividade",
+  "activityCount": "{count} atividade(s)",
+  "emptyTitle": "Nenhuma atividade planejada",
+  "emptyBody": "Adicione ou peça sugestões",
+  "form": {
+    "titleLabel": "Título",
+    "titlePlaceholder": "Ex: Passeio no parque",
+    "descriptionLabel": "Descrição",
+    "descriptionPlaceholder": "Detalhes da atividade...",
+    "dateLabel": "Data",
+    "timeLabel": "Horário",
+    "childLabel": "Filho",
+    "childPlaceholder": "Selecione...",
+    "categoryLabel": "Categoria",
+    "saving": "Salvando...",
+    "submit": "Criar Atividade"
+  },
+  "suggestions": {
+    "title": "Sugestões",
+    "forChild": "Para: {child}",
+    "accept": "Adicionar ao calendário"
+  }
+}

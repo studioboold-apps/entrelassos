@@ -1,3 +1,9 @@
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, User, CheckCircle, Tent, BookOpen, Dumbbell, Palette, TreePine, ChefHat, Gamepad2, School, GraduationCap, Wrench } from 'lucide-react';
@@ -5,6 +11,7 @@ import { format, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toLocalDate } from '@/lib/calendar-date';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import RatingButton from '@/components/ui/RatingButton';
 
@@ -35,6 +42,7 @@ export default function ActivityCard({
    * E a comparacao e DIA contra DIA: contra o instante de agora, a atividade
    * marcada para hoje a tarde vira passada logo depois da meia-noite.
    */
+  const { t } = useTranslation();
   const activityDay = toLocalDate(activity.date);
   const isPast = activityDay.getTime() < startOfDay(new Date()).getTime();
   const config = categoryConfig[activity.category] || categoryConfig.aventura;
@@ -53,19 +61,19 @@ export default function ActivityCard({
     >
       <div className="flex items-start gap-3">
         <div className={cn("p-2.5 rounded-xl bg-zinc-900/50", config.color)}>
-          <Icon className="w-6 h-6" />
+          <Icon aria-hidden="true" className="w-6 h-6" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             {activity.is_suggested && (
               <span className="text-[10px] px-2 py-0.5 bg-blue-400/20 text-blue-400 rounded-full font-medium">
-                Sugestão
+                {t('activityCard.suggested')}
               </span>
             )}
             {activity.completed && (
               <span className="text-[10px] px-2 py-0.5 bg-emerald-400/20 text-emerald-400 rounded-full font-medium flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Realizada
+                <CheckCircle aria-hidden="true" className="w-3 h-3" /> {t('activityCard.completed')}
               </span>
             )}
           </div>
@@ -82,18 +90,18 @@ export default function ActivityCard({
 
           <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
             <span className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar aria-hidden="true" className="w-3.5 h-3.5" />
               {format(activityDay, "d 'de' MMM", { locale: ptBR })}
             </span>
             {activity.time && (
               <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
+                <Clock aria-hidden="true" className="w-3.5 h-3.5" />
                 {activity.time}
               </span>
             )}
             {activity.child_name && (
               <span className="flex items-center gap-1">
-                <User className="w-3.5 h-3.5" />
+                <User aria-hidden="true" className="w-3.5 h-3.5" />
                 {activity.child_name}
               </span>
             )}
@@ -109,8 +117,8 @@ export default function ActivityCard({
             onClick={() => onComplete(activity)}
             className="text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10 bg-transparent"
           >
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Marcar como realizada
+            <CheckCircle aria-hidden="true" className="w-4 h-4 mr-1" />
+            {t('activityCard.markCompleted')}
           </Button>
         ) : (
           <div />

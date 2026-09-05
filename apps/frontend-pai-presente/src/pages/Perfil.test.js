@@ -13,7 +13,20 @@ import { join } from 'node:path';
  * roteador. O que se afirma aqui e a LIGACAO — que o perfil encaminha o corpo
  * da requisicao, a media e a falha a quem ja tem regra e teste proprios.
  */
-const SOURCE = readFileSync(join(import.meta.dir, 'Perfil.jsx'), 'utf8');
+const PAGE = readFileSync(join(import.meta.dir, 'Perfil.jsx'), 'utf8');
+const HOOK = readFileSync(join(import.meta.dir, 'Perfil.hook.js'), 'utf8');
+
+/**
+ * Os dialogos e a secao de filhos sairam da pagina para caber no teto de 200
+ * linhas. Se a leitura ficasse so no `.jsx`, uma afirmacao passaria a valer
+ * porque a linha SUMIU, nao porque a regra sobreviveu — o mesmo verde falso que
+ * a migracao de tela para hook produz.
+ */
+const COMPONENTS = ['ChildFields', 'ChildEditDialog', 'ChildDeleteDialog', 'ProfileEditDialog', 'PerfilChildrenSection']
+  .map((name) => readFileSync(join(import.meta.dir, '..', 'components', `${name}.jsx`), 'utf8'))
+  .join('\n');
+
+const SOURCE = `${PAGE}\n${HOOK}\n${COMPONENTS}`;
 
 describe('a tela nao oferece campo que a base nao tem', () => {
   /**
@@ -91,5 +104,17 @@ describe('apagar filho pergunta antes', () => {
    */
   test('apagar passa por confirmacao', () => {
     expect(SOURCE).toContain('AlertDialog');
+  });
+});
+
+describe('a tela desenha, o hook decide (web.md §4)', () => {
+  test('a pagina nao guarda estado nem chama a API', () => {
+    expect(PAGE).not.toContain('useState');
+    expect(PAGE).not.toContain('api.');
+  });
+
+  test('a decisao mora no hook do lado', () => {
+    expect(PAGE).toContain('usePerfil()');
+    expect(HOOK).toContain('useMutation');
   });
 });

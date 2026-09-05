@@ -197,7 +197,12 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 - [ ] `P5.1` — credenciais reais de `D7`, login provado por uma pessoa
 
 ### Fase 6 — dívida
-- [ ] `P6.1` — o que a Fase 2 tocou sai nos padrões; o resto vira lista datada
+- [x] `P6.1` — o que a Fase 2 tocou sai nos padrões; o resto vira lista datada
+      **Medido em 05/09/2026:** `*.hook.js` 0 → 9; `*.locale.json` 0 → 13; textos
+      cravados no JSX das páginas 47 → 0; páginas acima de 200 linhas 4 → 0 (a maior
+      era 520, agora 181). O que não foi tocado está em `docs/DEBITO.md` com data e
+      tamanho: 5 componentes, 21 textos. Suíte 384 → 419 passando, 0 falhando;
+      `tsc` da API limpo; `typecheck` do front 182 → 175 erros.
 
 ---
 

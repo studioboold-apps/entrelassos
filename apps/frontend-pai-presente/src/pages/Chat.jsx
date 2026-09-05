@@ -1,128 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/api/client';
-import { useAuth } from '@/lib/AuthContext';
-import { toConversationId, toScreenMessages } from '@/lib/chat-history';
-import { describeApiFailure } from '@/lib/api-error-message';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Bot, User, Loader2, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { BRAND_LOGO } from '@/lib/brand';
-
-
-const CHAT_HISTORY_QUERY_KEY = 'chat-messages';
-
-const suggestedQuestions = [
-  "Como aplicar reforço positivo?",
-  "Lidar com birras de forma construtiva",
-  "Falar sobre dinheiro com crianças",
-  "Atividades em família no fim de semana"
-];
+import { useTranslation } from '@/lib/i18n';
+import { MESSAGE_ROLES, SUGGESTED_QUESTION_KEYS, useChat } from './Chat.hook';
 
 export default function Chat() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const conversationId = toConversationId(user.id);
-  const [input, setInput] = useState('');
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-
-  const historyQuery = useQuery({
-    queryKey: [CHAT_HISTORY_QUERY_KEY, conversationId],
-    queryFn: async () =>
-      toScreenMessages(await api.entities.ChatMessage.listByConversation(conversationId)),
-  });
-
-  const history = historyQuery.data ?? [];
-
-  const sendMutation = useMutation({
-    /**
-     * A pergunta e' gravada ANTES da chamada paga. Sem chave de IA a resposta e'
-     * 503, e gravar so' no fim faria a pergunta do pai sumir junto com a falha:
-     * ele veria a propria frase desaparecer da tela sem explicacao.
-     *
-     * Quem sao os filhos e qual a orientacao do pai nao viajam daqui: a API ja
-     * conhece o pai autenticado e monta o contexto do lado dela (`security.md`
-     * §1). A tela manda a pergunta, so.
-     *
-     * `POST /v1/chat` responde e NAO grava: as duas pontas da conversa sao
-     * escritas aqui, na ordem em que foram ditas.
-     *
-     * @param {string} text
-     */
-    mutationFn: async (text) => {
-      await api.entities.ChatMessage.create({ conversationId, role: 'user', content: text });
-
-      const reply = await api.ai.chat(text);
-
-      await api.entities.ChatMessage.create({
-        conversationId,
-        role: 'assistant',
-        content: reply,
-      });
-    },
-    /**
-     * `onSettled` e nao `onSuccess`: mesmo quando a IA recusa, a pergunta ja
-     * esta gravada, e e' o historico do servidor que a traz de volta a tela.
-     */
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [CHAT_HISTORY_QUERY_KEY, conversationId] });
-      inputRef.current?.focus();
-    },
-  });
-
-  /**
-   * Enquanto a chamada corre, a pergunta ainda nao voltou do servidor. Ela sai
-   * da propria mutation, e nao de uma lista paralela em `useState` (`web.md` §5):
-   * duas listas da mesma conversa divergem na primeira recarga.
-   */
-  const pendingMessages = sendMutation.isPending
-    ? [{ role: 'user', content: sendMutation.variables }]
-    : [];
-
-  const messages = [...history, ...pendingMessages];
-
-  /**
-   * A recusa e' AVISO, nao fala do mentor. Enquanto ela virava uma mensagem de
-   * assistente com texto fixo, o motivo escrito pela API se perdia — e o app
-   * punha palavra na boca de quem nunca respondeu.
-   */
-  const sendFailure = sendMutation.isError ? describeApiFailure(sendMutation.error) : null;
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  /**
-   * `messages` e' derivado, entao e' um array novo a cada render: depender dele
-   * mandaria a tela rolar sem parar. Quem manda rolar e' a conversa ter crescido.
-   */
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]);
-
-  const sendMessage = (text) => {
-    if (!text.trim() || sendMutation.isPending) return;
-
-    setInput('');
-    sendMutation.mutate(text);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    sendMessage(input);
-  };
+  const { t } = useTranslation();
+  const {
+    question,
+    messages,
+    sendFailure,
+    isSending,
+    canSend,
+    messagesEndRef,
+    inputRef,
+    handleQuestionChange,
+    handleSubmit,
+    sendQuestion,
+  } = useChat();
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950">
       {/* Header */}
       <div className="bg-zinc-900/80 backdrop-blur-lg border-b border-zinc-800 px-4 py-4 flex items-center gap-3">
-        <img src={BRAND_LOGO} alt="Entre Nós" className="w-10 h-10 rounded-xl" />
+        <img src={BRAND_LOGO} alt={t('chat.brandLogoAlt')} className="w-10 h-10 rounded-xl" />
         <div>
-          <h1 className="font-medium text-white">Mentor Entre Nós</h1>
-          <p className="text-xs text-zinc-500">Tire suas dúvidas sobre parentalidade</p>
+          <h1 className="font-medium text-white">{t('chat.title')}</h1>
+          <p className="text-xs text-zinc-500">{t('chat.subtitle')}</p>
         </div>
       </div>
 
@@ -131,27 +39,25 @@ export default function Chat() {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4">
-              <Lightbulb className="w-8 h-8 text-emerald-400" />
+              <Lightbulb aria-hidden="true" className="w-8 h-8 text-emerald-400" />
             </div>
-            <h2 className="text-lg font-medium text-white mb-2">
-              Como posso ajudar?
-            </h2>
-            <p className="text-zinc-500 text-sm mb-6 max-w-xs">
-              Estou aqui para orientá-lo sobre comunicação positiva e criação consciente.
-            </p>
-            
+            <h2 className="text-lg font-medium text-white mb-2">{t('chat.emptyTitle')}</h2>
+            <p className="text-zinc-500 text-sm mb-6 max-w-xs">{t('chat.emptyBody')}</p>
+
             <div className="space-y-2 w-full max-w-sm">
-              <p className="text-xs text-zinc-600 uppercase tracking-wide">Sugestões</p>
-              {suggestedQuestions.map((question, index) => (
+              <p className="text-xs text-zinc-600 uppercase tracking-wide">
+                {t('chat.suggestionsLabel')}
+              </p>
+              {SUGGESTED_QUESTION_KEYS.map((questionKey, index) => (
                 <motion.button
-                  key={index}
+                  key={questionKey}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  onClick={() => sendMessage(question)}
+                  onClick={() => sendQuestion(t(questionKey))}
                   className="w-full text-left p-3 bg-zinc-900 rounded-xl border border-zinc-800 text-sm text-zinc-300 hover:bg-zinc-800 hover:border-zinc-700 transition-all"
                 >
-                  {question}
+                  {t(questionKey)}
                 </motion.button>
               ))}
             </div>
@@ -164,22 +70,25 @@ export default function Chat() {
                   key={index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex gap-3 ${message.role === MESSAGE_ROLES.USER ? 'justify-end' : 'justify-start'}`}
                 >
-                  {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-blue-400" />
+                  {message.role === MESSAGE_ROLES.ASSISTANT && (
+                    <div
+                      aria-label={t('chat.assistantAvatarLabel')}
+                      className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center"
+                    >
+                      <Bot aria-hidden="true" className="w-4 h-4 text-blue-400" />
                     </div>
                   )}
-                  
+
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      message.role === 'user'
+                      message.role === MESSAGE_ROLES.USER
                         ? 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white'
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-200'
                     }`}
                   >
-                    {message.role === 'user' ? (
+                    {message.role === MESSAGE_ROLES.USER ? (
                       <p className="text-sm">{message.content}</p>
                     ) : (
                       <ReactMarkdown className="text-sm prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
@@ -188,30 +97,33 @@ export default function Chat() {
                     )}
                   </div>
 
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center">
-                      <User className="w-4 h-4 text-zinc-400" />
+                  {message.role === MESSAGE_ROLES.USER && (
+                    <div
+                      aria-label={t('chat.userAvatarLabel')}
+                      className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center"
+                    >
+                      <User aria-hidden="true" className="w-4 h-4 text-zinc-400" />
                     </div>
                   )}
                 </motion.div>
               ))}
             </AnimatePresence>
 
-            {sendMutation.isPending && (
+            {isSending && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex gap-3"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-blue-400" />
+                  <Bot aria-hidden="true" className="w-4 h-4 text-blue-400" />
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
-                  <Loader2 className="w-5 h-5 text-zinc-500 animate-spin" />
+                  <Loader2 aria-hidden="true" className="w-5 h-5 text-zinc-500 animate-spin" />
                 </div>
               </motion.div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -228,19 +140,20 @@ export default function Chat() {
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Digite sua dúvida..."
+            value={question}
+            onChange={handleQuestionChange}
+            placeholder={t('chat.inputPlaceholder')}
             className="flex-1 h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-            disabled={sendMutation.isPending}
+            disabled={isSending}
           />
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             size="icon"
+            aria-label={t('chat.send')}
             className="h-12 w-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
-            disabled={!input.trim() || sendMutation.isPending}
+            disabled={!canSend}
           >
-            <Send className="w-5 h-5" />
+            <Send aria-hidden="true" className="w-5 h-5" />
           </Button>
         </form>
       </div>

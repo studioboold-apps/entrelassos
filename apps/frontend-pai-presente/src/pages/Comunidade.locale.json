@@ -1,0 +1,11 @@
+{
+  "sectionLabel": "Comunidade",
+  "title": "Pais Presentes",
+  "subtitle": "Compartilhe, aprenda e cresça junto com outros pais",
+  "tabs": {
+    "feed": "Feed",
+    "insights": "Insights"
+  },
+  "emptyFeedTitle": "Seja o primeiro a postar!",
+  "emptyFeedBody": "Compartilhe uma experiência, dica ou conquista"
+}

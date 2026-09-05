@@ -78,8 +78,14 @@ describe('a identidade do insight tem UMA fonte', () => {
    * repetido.
    */
   test('nao existe um segundo modulo de identidade em lib', () => {
+    const MINTING_MARKERS = ['IDENTIFIER_PREFIX', 'toInsightId', 'withStableIds'];
+
     const modules = readdirSync(import.meta.dir)
-      .filter((name) => name.startsWith('insight') && name.endsWith('.js') && !name.endsWith('.test.js'));
+      .filter((name) => name.endsWith('.js') && !name.endsWith('.test.js'))
+      .filter((name) => {
+        const source = readFileSync(join(import.meta.dir, name), 'utf8');
+        return MINTING_MARKERS.some((marker) => source.includes(marker));
+      });
 
     expect(modules).toEqual(['insight-id.js']);
   });

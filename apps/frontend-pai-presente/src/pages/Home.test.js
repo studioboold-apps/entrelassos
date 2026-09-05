@@ -12,8 +12,14 @@ import { join } from 'node:path';
  * A tela nao e importada: puxar a pagina traria React, Tailwind e todo o
  * roteador para dentro do teste. O que se afirma aqui e a LIGACAO — que a Home
  * chama quem ja tem regra e teste proprios.
+ *
+ * Os DOIS arquivos entram na varredura. Lendo so o `.jsx`, tirar a decisao da
+ * pagina para o hook apagaria as afirmacoes antigas sem nada ficar vermelho:
+ * o teste continuaria verde porque a linha sumiu, nao porque a regra sobrevive.
  */
-const SOURCE = readFileSync(join(import.meta.dir, 'Home.jsx'), 'utf8');
+const PAGE = readFileSync(join(import.meta.dir, 'Home.jsx'), 'utf8');
+const HOOK = readFileSync(join(import.meta.dir, 'Home.hook.js'), 'utf8');
+const SOURCE = `${PAGE}\n${HOOK}`;
 
 describe('a nota que o pai da no insight', () => {
   test('a identidade do insight nao vem do relogio', () => {
@@ -47,5 +53,17 @@ describe('a recusa da API chega ao pai', () => {
 describe('dado de servidor nao passa por useEffect', () => {
   test('as notas salvas sao derivadas na renderizacao', () => {
     expect(SOURCE).not.toContain('setRatings');
+  });
+});
+
+describe('a tela desenha, o hook decide (web.md §4)', () => {
+  test('a pagina nao guarda estado nem chama a API', () => {
+    expect(PAGE).not.toContain('useState');
+    expect(PAGE).not.toContain('api.');
+  });
+
+  test('a decisao mora no hook do lado', () => {
+    expect(PAGE).toContain('useHome()');
+    expect(HOOK).toContain('useMutation');
   });
 });

@@ -1,0 +1,44 @@
+{
+  "fallbackName": "Pai",
+  "fallbackInitial": "P",
+  "emptyValue": "-",
+  "stats": {
+    "children": "Filhos",
+    "activities": "Atividades",
+    "average": "Média",
+    "noAverage": "—"
+  },
+  "profileSection": {
+    "title": "Meu Perfil",
+    "edit": "Editar perfil",
+    "age": "Idade",
+    "ageValue": "{age} anos",
+    "maritalStatus": "Estado Civil"
+  },
+  "childrenSection": {
+    "title": "Meus Filhos",
+    "add": "Adicionar",
+    "empty": "Nenhum filho cadastrado",
+    "edit": "Editar filho",
+    "delete": "Apagar filho"
+  },
+  "logout": "Sair da conta",
+  "editProfile": {
+    "title": "Editar Perfil",
+    "ageLabel": "Idade",
+    "maritalStatusLabel": "Estado Civil",
+    "maritalStatusPlaceholder": "Selecione..."
+  },
+  "childDialog": {
+    "editTitle": "Editar Filho",
+    "addTitle": "Adicionar Filho"
+  },
+  "deleteDialog": {
+    "title": "Apagar {child}?",
+    "body": "O cadastro e tudo o que você preencheu sobre ele serão apagados. Não dá para desfazer.",
+    "cancel": "Cancelar",
+    "confirm": "Apagar"
+  },
+  "saving": "Salvando...",
+  "save": "Salvar"
+}

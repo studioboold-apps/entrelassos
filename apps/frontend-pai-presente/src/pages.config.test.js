@@ -65,7 +65,15 @@ describe('pages.config.js', () => {
   });
 
   test('a Home manda para o assistente quem ainda nao terminou o cadastro', () => {
-    const home = readFileSync(join(SOURCE_DIRECTORY, 'pages', 'Home.jsx'), 'utf8');
+    /**
+     * PAGINA MAIS HOOK: o desvio saiu do `.jsx` quando a Home virou tela
+     * declarativa. Lendo so o `.jsx`, esta afirmacao passaria a valer porque a
+     * linha SUMIU — verde por ausencia, que e' o pior tipo de verde.
+     */
+    const home = ['Home.jsx', 'Home.hook.js']
+      .map((name) => readFileSync(join(SOURCE_DIRECTORY, 'pages', name), 'utf8'))
+      .join('\n');
+
     expect(home).toContain('!user.onboarding_completed');
     expect(home).toContain("createPageUrl('Onboarding')");
   });

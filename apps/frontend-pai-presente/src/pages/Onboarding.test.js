@@ -14,7 +14,10 @@ import { describe, expect, test } from 'bun:test';
  * O teste le o TEXTO da tela: nao ha harness de DOM neste app, e a pergunta aqui
  * nao e como o React pinta — e se a recusa da API chega a algum lugar visivel.
  */
-const SOURCE = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Onboarding.jsx'), 'utf8');
+const HERE = dirname(fileURLToPath(import.meta.url));
+const PAGE = readFileSync(join(HERE, 'Onboarding.jsx'), 'utf8');
+const HOOK = readFileSync(join(HERE, 'Onboarding.hook.js'), 'utf8');
+const SOURCE = `${PAGE}\n${HOOK}`;
 
 describe('Onboarding.jsx', () => {
   /**
@@ -62,5 +65,17 @@ describe('a tela nao coleta dado sensivel que ninguem guarda', () => {
   test('o corpo do PATCH sai do modulo unico', () => {
     expect(SOURCE).toContain('toProfileUpdate');
     expect(SOURCE).not.toContain("parseInt(userData.age)");
+  });
+});
+
+describe('a tela desenha, o hook decide (web.md §4)', () => {
+  test('a pagina nao guarda estado nem chama a API', () => {
+    expect(PAGE).not.toContain('useState');
+    expect(PAGE).not.toContain('api.');
+  });
+
+  test('a decisao mora no hook do lado', () => {
+    expect(PAGE).toContain('useOnboarding()');
+    expect(HOOK).toContain('toProfileUpdate');
   });
 });

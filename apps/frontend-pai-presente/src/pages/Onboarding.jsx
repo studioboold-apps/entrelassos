@@ -1,341 +1,136 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/api/client';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
+import React from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, User } from 'lucide-react';
+
+import OnboardingChildrenStep from '@/components/OnboardingChildrenStep';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, ArrowLeft, Plus, X, User, Baby } from 'lucide-react';
 import { BRAND_LOGO } from '@/lib/brand';
-import { describeApiFailure } from '@/lib/api-error-message';
-import { toProfileUpdate } from '@/lib/profile-form';
+import { useTranslation } from '@/lib/i18n';
+import { MARITAL_STATUS_OPTIONS } from '@/lib/profile-options';
+import { cn } from '@/lib/utils';
 
+import { ONBOARDING_STEPS, useOnboarding } from './Onboarding.hook';
 
-const steps = [
-  { id: 'welcome', title: 'Bem-vindo' },
-  { id: 'about', title: 'Sobre você' },
-  { id: 'preferences', title: 'Preferências' },
-  { id: 'children', title: 'Seus filhos' },
-];
+const FIELD_CLASS = 'h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600';
+const STEP_MOTION = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
 
 export default function Onboarding() {
-  const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState({ age: '', marital_status: '' });
-  const [children, setChildren] = useState([]);
-  const [saveFailure, setSaveFailure] = useState(null);
-  const [newChild, setNewChild] = useState({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const addChild = () => {
-    if (newChild.name && newChild.age && newChild.gender) {
-      setChildren([...children, { ...newChild, age: parseInt(newChild.age) }]);
-      setNewChild({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
-    }
-  };
-
-  const removeChild = (index) => {
-    setChildren(children.filter((_, i) => i !== index));
-  };
-
-  const handleComplete = async () => {
-    setLoading(true);
-    setSaveFailure(null);
-    try {
-      /**
-       * Idade em branco virava `NaN` e depois `null` no corpo, e a API recusava
-       * a conclusao INTEIRA do onboarding — os filhos nem chegavam a ser
-       * criados. O corpo se monta no mesmo modulo que o Perfil usa.
-       */
-      await api.auth.updateMe({ ...toProfileUpdate(userData), onboarding_completed: true });
-
-      for (const child of children) {
-        await api.entities.Child.create(child);
-      }
-
-      navigate(createPageUrl('Home'));
-    } catch (error) {
-      /**
-       * Antes daqui so saia `console.error`: o botao voltava de "Salvando..." e
-       * nada acontecia. O pai nao tem console — para ele o aplicativo apenas nao
-       * salvava. A recusa da API ja nomeia os campos; agora ela chega na tela.
-       */
-      setSaveFailure(describeApiFailure(error));
-    }
-    setLoading(false);
-  };
-
-  const renderStep = () => {
-    switch (steps[currentStep].id) {
-      case 'welcome':
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="text-center"
-          >
-            <img src={BRAND_LOGO} alt="Entre Nós" className="w-28 h-28 mx-auto mb-8 rounded-3xl" />
-            <h1 className="text-3xl font-light text-white mb-4">
-              Entre Nós
-            </h1>
-            <p className="text-zinc-400 text-lg mb-2">
-              Bem-vindo à jornada de ser um pai presente e consciente.
-            </p>
-            <p className="text-zinc-500 text-sm">
-              Vamos personalizar sua experiência para ajudá-lo na missão de educar seus filhos com propósito.
-            </p>
-          </motion.div>
-        );
-
-      case 'about':
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-                <User className="w-8 h-8 text-zinc-400" />
-              </div>
-              <h2 className="text-2xl font-light text-white">Sobre você</h2>
-              <p className="text-zinc-500 mt-2 text-sm">Conte-nos um pouco sobre você</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="age" className="text-zinc-400">Sua idade</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  placeholder="Ex: 35"
-                  value={userData.age}
-                  onChange={(e) => setUserData({ ...userData, age: e.target.value })}
-                  className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-              </div>
-            </div>
-          </motion.div>
-        );
-
-      case 'preferences':
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-light text-white">Suas preferências</h2>
-              <p className="text-zinc-500 mt-2 text-sm">Só o que o aplicativo realmente guarda</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label className="text-zinc-400">Estado Civil</Label>
-                <Select
-                  value={userData.marital_status}
-                  onValueChange={(v) => setUserData({ ...userData, marital_status: v })}
-                >
-                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
-                    <SelectItem value="solteiro">Solteiro</SelectItem>
-                    <SelectItem value="casado">Casado</SelectItem>
-                    <SelectItem value="divorciado">Divorciado</SelectItem>
-                    <SelectItem value="viuvo">Viúvo</SelectItem>
-                    <SelectItem value="uniao_estavel">União Estável</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </motion.div>
-        );
-
-      case 'children':
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center">
-                <Baby className="w-8 h-8 text-emerald-400" />
-              </div>
-              <h2 className="text-2xl font-light text-white">Seus filhos</h2>
-              <p className="text-zinc-500 mt-2 text-sm">Cadastre seus filhos para insights personalizados</p>
-            </div>
-
-            {children.length > 0 && (
-              <div className="space-y-2 mb-6">
-                {children.map((child, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-zinc-900 rounded-xl border border-zinc-800"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-emerald-400 font-medium">
-                        {child.name[0]}
-                      </div>
-                      <div>
-                        <p className="font-medium text-white">{child.name}</p>
-                        <p className="text-sm text-zinc-500">
-                          {child.age} anos • {child.gender === 'masculino' ? 'Menino' : child.gender === 'feminino' ? 'Menina' : 'Outro'}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removeChild(index)}
-                      className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="p-4 border-2 border-dashed border-zinc-800 rounded-xl space-y-4">
-              <p className="text-sm font-medium text-zinc-500">Adicionar filho</p>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <Input
-                    placeholder="Nome"
-                    value={newChild.name}
-                    onChange={(e) => setNewChild({ ...newChild, name: e.target.value })}
-                    className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                  />
-                </div>
-                <Input
-                  type="number"
-                  placeholder="Idade"
-                  value={newChild.age}
-                  onChange={(e) => setNewChild({ ...newChild, age: e.target.value })}
-                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-                <Select
-                  value={newChild.gender}
-                  onValueChange={(v) => setNewChild({ ...newChild, gender: v })}
-                >
-                  <SelectTrigger className="h-11 bg-zinc-900 border-zinc-800 text-white">
-                    <SelectValue placeholder="Sexo" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="feminino">Feminino</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  placeholder="Hobby favorito"
-                  value={newChild.favorite_hobby}
-                  onChange={(e) => setNewChild({ ...newChild, favorite_hobby: e.target.value })}
-                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-                <Input
-                  placeholder="Cor favorita"
-                  value={newChild.favorite_color}
-                  onChange={(e) => setNewChild({ ...newChild, favorite_color: e.target.value })}
-                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-                <Input
-                  placeholder="Comida favorita"
-                  value={newChild.favorite_food}
-                  onChange={(e) => setNewChild({ ...newChild, favorite_food: e.target.value })}
-                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-                <Input
-                  placeholder="Filme favorito"
-                  value={newChild.favorite_movie_genre}
-                  onChange={(e) => setNewChild({ ...newChild, favorite_movie_genre: e.target.value })}
-                  className="h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                />
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-                onClick={addChild}
-                disabled={!newChild.name || !newChild.age || !newChild.gender}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar
-              </Button>
-            </div>
-          </motion.div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const canProceed = () => {
-    switch (steps[currentStep].id) {
-      case 'welcome':
-        return true;
-      case 'about':
-        return userData.age;
-      case 'preferences':
-        return true;
-      case 'children':
-        return children.length > 0;
-      default:
-        return false;
-    }
-  };
+  const { t } = useTranslation();
+  const onboarding = useOnboarding();
+  const {
+    stepId,
+    stepNumber,
+    stepCount,
+    currentStep,
+    isLastStep,
+    isSaving,
+    userData,
+    saveFailure,
+    canProceed,
+    handleNext,
+    handleBack,
+    handleUserFieldChange,
+    handleComplete,
+  } = onboarding;
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
-      {/* Progress */}
       <div className="px-6 pt-8">
         <div className="flex gap-2">
-          {steps.map((step, index) => (
+          {ONBOARDING_STEPS.map((step, index) => (
             <div
-              key={step.id}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                index <= currentStep ? 'bg-blue-400' : 'bg-zinc-800'
-              }`}
+              key={step}
+              className={cn('h-1 flex-1 rounded-full transition-colors', index <= currentStep ? 'bg-blue-400' : 'bg-zinc-800')}
             />
           ))}
         </div>
         <p className="text-xs text-zinc-600 mt-2 text-center">
-          Passo {currentStep + 1} de {steps.length}
+          {t('onboarding.progress', { current: stepNumber, total: stepCount })}
         </p>
       </div>
 
-      {/* Content */}
       <div className="flex-1 px-6 py-8">
         <AnimatePresence mode="wait">
-          {renderStep()}
+          {stepId === 'welcome' && (
+            <motion.div {...STEP_MOTION} className="text-center">
+              <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-28 h-28 mx-auto mb-8 rounded-3xl" />
+              <h1 className="text-3xl font-light text-white mb-4">{t('common.brandName')}</h1>
+              <p className="text-zinc-400 text-lg mb-2">{t('onboarding.welcome.lead')}</p>
+              <p className="text-zinc-500 text-sm">{t('onboarding.welcome.body')}</p>
+            </motion.div>
+          )}
+
+          {stepId === 'about' && (
+            <motion.div {...STEP_MOTION} className="space-y-6">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
+                  <User aria-hidden="true" className="w-8 h-8 text-zinc-400" />
+                </div>
+                <h2 className="text-2xl font-light text-white">{t('onboarding.about.title')}</h2>
+                <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.about.subtitle')}</p>
+              </div>
+
+              <div>
+                <Label htmlFor="age" className="text-zinc-400">{t('onboarding.about.ageLabel')}</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  placeholder={t('onboarding.about.agePlaceholder')}
+                  value={userData.age}
+                  onChange={(event) => handleUserFieldChange('age', event.target.value)}
+                  className={cn(FIELD_CLASS, 'mt-1.5 h-12')}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {stepId === 'preferences' && (
+            <motion.div {...STEP_MOTION} className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-light text-white">{t('onboarding.preferences.title')}</h2>
+                <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.preferences.subtitle')}</p>
+              </div>
+
+              <div>
+                <Label className="text-zinc-400">{t('onboarding.preferences.maritalStatusLabel')}</Label>
+                <Select
+                  value={userData.marital_status}
+                  onValueChange={(value) => handleUserFieldChange('marital_status', value)}
+                >
+                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
+                    <SelectValue placeholder={t('onboarding.preferences.maritalStatusPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800">
+                    {MARITAL_STATUS_OPTIONS.map(({ value, labelKey }) => (
+                      <SelectItem key={value} value={value}>{t(labelKey)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </motion.div>
+          )}
+
+          {stepId === 'children' && (
+            <motion.div {...STEP_MOTION} className="space-y-6">
+              <OnboardingChildrenStep onboarding={onboarding} />
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
-      {/* Navigation */}
       <div className="px-6 pb-8 space-y-3">
         {saveFailure && (
           <p role="alert" className="text-sm text-red-400 text-center">
@@ -343,33 +138,29 @@ export default function Onboarding() {
           </p>
         )}
 
-        {currentStep === steps.length - 1 ? (
+        {isLastStep ? (
           <Button
             className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"
             onClick={handleComplete}
-            disabled={loading || !canProceed()}
+            disabled={isSaving || !canProceed}
           >
-            {loading ? 'Salvando...' : 'Começar minha jornada'}
+            {isSaving ? t('onboarding.saving') : t('onboarding.finish')}
           </Button>
         ) : (
           <Button
             className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"
             onClick={handleNext}
-            disabled={!canProceed()}
+            disabled={!canProceed}
           >
-            Continuar
-            <ArrowRight className="w-5 h-5 ml-2" />
+            {t('onboarding.continue')}
+            <ArrowRight aria-hidden="true" className="w-5 h-5 ml-2" />
           </Button>
         )}
 
         {currentStep > 0 && (
-          <Button
-            variant="ghost"
-            className="w-full text-zinc-500 hover:text-zinc-300"
-            onClick={handleBack}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
+          <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300" onClick={handleBack}>
+            <ArrowLeft aria-hidden="true" className="w-4 h-4 mr-2" />
+            {t('onboarding.back')}
           </Button>
         )}
       </div>

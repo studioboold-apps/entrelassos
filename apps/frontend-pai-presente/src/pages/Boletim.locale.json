@@ -1,0 +1,44 @@
+{
+  "sectionLabel": "Boletim",
+  "title": "Meu Desempenho",
+  "subtitle": "Acompanhe sua evolução como pai",
+  "previousMonth": "Mês anterior",
+  "currentMonth": "Mês atual",
+  "completedInMonth": "{count} atividades realizadas",
+  "stats": {
+    "activities": "Atividades",
+    "averageRating": "Avaliação Média",
+    "noRating": "sem avaliação",
+    "insightsRead": "Insights Lidos",
+    "completionRate": "Taxa Conclusão"
+  },
+  "charts": {
+    "engagement": "Engajamento por Área",
+    "ratingSeries": "Avaliação",
+    "activitiesByType": "Atividades por Tipo"
+  },
+  "generate": "Gerar Boletim do Mês",
+  "generating": "Gerando Boletim...",
+  "report": {
+    "overallScore": "Nota Geral",
+    "strengths": "Pontos Fortes",
+    "improvements": "Áreas para Desenvolver",
+    "nextGoal": "Meta para o Próximo Mês"
+  },
+  "score": {
+    "excellent": "Excelente",
+    "veryGood": "Muito Bom",
+    "good": "Bom",
+    "fair": "Regular",
+    "needsWork": "Precisa Melhorar"
+  },
+  "emptyTitle": "Sem dados neste mês",
+  "emptyBody": "Realize atividades e leia insights para gerar seu boletim",
+  "quickAccess": {
+    "title": "Acesso Rápido",
+    "juntinhos": "Juntinhos",
+    "juntinhosHint": "Planeje atividades",
+    "chat": "Tire Dúvidas",
+    "chatHint": "Chat de apoio"
+  }
+}

@@ -1,7 +1,15 @@
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Heart, Wallet, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
+import { findInsightCategory } from '@/lib/insight-categories';
 import RatingButton from '@/components/ui/RatingButton';
 
 const categoryConfig = {
@@ -31,13 +39,6 @@ const categoryConfig = {
   }
 };
 
-const categoryLabels = {
-  comportamento: 'Comportamento',
-  sexualidade: 'Sexualidade',
-  financeira: 'Financeira',
-  saude: 'Saúde'
-};
-
 export default function InsightCard({ 
   id,
   title, 
@@ -49,8 +50,11 @@ export default function InsightCard({
   onRate,
   delay = 0 
 }) {
+  const { t } = useTranslation();
   const config = categoryConfig[category] || categoryConfig.comportamento;
   const Icon = config.icon;
+  /** O rotulo sai do mesmo lugar que a Home e a Comunidade usam (§16). */
+  const categoryLabelKey = findInsightCategory(category)?.labelKey;
 
   return (
     <motion.div
@@ -65,14 +69,14 @@ export default function InsightCard({
     >
       <div className="flex items-start gap-3 mb-3">
         <div className={cn("p-2 rounded-xl bg-zinc-900/50", config.iconColor)}>
-          <Icon className="w-5 h-5" />
+          <Icon aria-hidden="true" className="w-5 h-5" />
         </div>
         <div className="flex-1">
           <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
-            {categoryLabels[category]}
+            {categoryLabelKey && t(categoryLabelKey)}
           </span>
           {child_name && (
-            <p className="text-xs text-zinc-600">Para {child_name}</p>
+            <p className="text-xs text-zinc-600">{t('insightCard.forChild', { child: child_name })}</p>
           )}
         </div>
       </div>

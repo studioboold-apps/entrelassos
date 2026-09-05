@@ -1,0 +1,18 @@
+{
+  "brandLogoAlt": "Entre Nós",
+  "title": "Mentor Entre Nós",
+  "subtitle": "Tire suas dúvidas sobre parentalidade",
+  "emptyTitle": "Como posso ajudar?",
+  "emptyBody": "Estou aqui para orientá-lo sobre comunicação positiva e criação consciente.",
+  "suggestionsLabel": "Sugestões",
+  "suggestions": {
+    "positiveReinforcement": "Como aplicar reforço positivo?",
+    "tantrums": "Lidar com birras de forma construtiva",
+    "money": "Falar sobre dinheiro com crianças",
+    "weekend": "Atividades em família no fim de semana"
+  },
+  "inputPlaceholder": "Digite sua dúvida...",
+  "send": "Enviar pergunta",
+  "assistantAvatarLabel": "Mentor",
+  "userAvatarLabel": "Você"
+}

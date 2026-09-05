@@ -1,191 +1,112 @@
-import React, { useState, useEffect, useMemo } from 'react';
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
+import React from 'react';
 import { motion } from 'framer-motion';
-import { api } from '@/api/client';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Brain, Heart, Wallet, Activity, Loader2, RefreshCw, Calendar, HelpCircle } from 'lucide-react';
+import { Calendar, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
 import InsightCard from '@/components/InsightCard';
 import { BRAND_LOGO } from '@/lib/brand';
-import { describeApiFailure } from '@/lib/api-error-message';
-import { withStableIds } from '@/lib/insight-id';
+import { useTranslation } from '@/lib/i18n';
+import { INSIGHT_CATEGORIES, findInsightCategory } from '@/lib/insight-categories';
+import { cn } from '@/lib/utils';
+import { createPageUrl } from '@/utils';
 
+import { useHome } from './Home.hook';
 
-const categories = [
-  { id: 'comportamento', label: 'Comportamento', icon: Brain, color: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30' },
-  { id: 'sexualidade', label: 'Sexualidade', icon: Heart, color: 'from-emerald-400/20 to-teal-400/20 border-emerald-400/30' },
-  { id: 'financeira', label: 'Financeira', icon: Wallet, color: 'from-blue-400/20 to-sky-400/20 border-blue-400/30' },
-  { id: 'saude', label: 'Saúde', icon: Activity, color: 'from-teal-400/20 to-emerald-400/20 border-teal-400/30' },
-];
+const GREETING_NAME_SLOT = '{name}';
 
 export default function Home() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [pendingRatings, setPendingRatings] = useState({});
-  const [rateFailure, setRateFailure] = useState(null);
-
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => api.auth.me(),
-  });
-
-  const { data: children = [] } = useQuery({
-    queryKey: ['children'],
-    queryFn: () => api.entities.Child.list(),
-  });
-
-  const { data: savedRatings = [] } = useQuery({
-    queryKey: ['insightRatings'],
-    queryFn: () => api.entities.InsightRating.list(),
-  });
+  const { t } = useTranslation();
+  const {
+    activeCategory,
+    filteredInsights,
+    ratings,
+    rateFailure,
+    insightsFailure,
+    isLoadingInsights,
+    hasChildren,
+    firstName,
+    handleCategoryClick,
+    handleRate,
+    handleRefresh,
+  } = useHome();
 
   /**
-   * O prompt saiu do navegador: ele montava a pergunta com a orientacao
-   * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
-   * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
-   *
-   * Cada geracao e uma chamada paga ao provedor, entao o resultado nao expira
-   * sozinho: quem quer outro lote clica em Atualizar.
+   * O nome sai em negrito no meio da saudacao. Partir a frase pelo proprio
+   * marcador mantem a ordem nas maos de quem traduz — em alemao o vocativo nao
+   * fica onde ficou aqui — sem exigir duas chaves ("Ola," e o resto), que e' o
+   * jeito classico de entregar ao tradutor meia frase sem contexto.
    */
-  const insightsQuery = useQuery({
-    queryKey: ['insights', activeCategory],
-    queryFn: async () => withStableIds(await api.ai.insights(activeCategory ?? undefined)),
-    enabled: Boolean(user) && children.length > 0,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-  });
-
-  const insights = insightsQuery.data ?? [];
-  const insightsFailure = insightsQuery.isError ? describeApiFailure(insightsQuery.error) : null;
-
-  useEffect(() => {
-    if (user && !user.onboarding_completed) {
-      navigate(createPageUrl('Onboarding'));
-    }
-  }, [user, navigate]);
-
-  /** Nota salva e dado de servidor: deriva na renderizacao, nao copia para estado. */
-  const savedRatingByInsightId = useMemo(
-    () => Object.fromEntries(savedRatings.map(({ insight_id: insightId, rating }) => [insightId, rating])),
-    [savedRatings],
-  );
-
-  const ratings = { ...savedRatingByInsightId, ...pendingRatings };
-
-  /** @typedef {{ insight: { id: string, category: string, title: string }, rating: number }} RateVariables */
-
-  const rateMutation = useMutation({
-    /** @param {RateVariables} variables */
-    mutationFn: ({ insight, rating }) => api.entities.InsightRating.rate({
-      insight_id: insight.id,
-      category: insight.category,
-      rating: rating,
-      insight_title: insight.title,
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['insightRatings'] });
-    },
-    /** A estrela acende antes da resposta; se a gravacao falhar, ela apaga e o pai fica sabendo. */
-    onError: (error, { insight }) => {
-      setPendingRatings((previous) => {
-        const next = { ...previous };
-        delete next[insight.id];
-        return next;
-      });
-      setRateFailure(describeApiFailure(error));
-    },
-  });
-
-  const handleCategoryClick = (categoryId) => {
-    setActiveCategory(activeCategory === categoryId ? null : categoryId);
-  };
-
-  const handleRate = (insightId, rating) => {
-    const insight = insights.find(i => i.id === insightId);
-    if (!insight) return;
-
-    setRateFailure(null);
-    setPendingRatings(previous => ({ ...previous, [insightId]: rating }));
-    rateMutation.mutate({ insight, rating });
-  };
-
-  const filteredInsights = activeCategory
-    ? insights.filter(i => i.category === activeCategory)
-    : insights;
-
-  const firstName = user?.full_name?.split(' ')[0] || 'Pai';
+  const [greetingBefore, greetingAfter] = t('home.greeting').split(GREETING_NAME_SLOT);
+  const displayName = firstName ?? t('home.fallbackFirstName');
 
   return (
     <div className="min-h-screen bg-zinc-950 pb-24">
-      {/* Header */}
       <div className="px-6 pt-10 pb-6">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-4">
-            <img src={BRAND_LOGO} alt="Entre Nós" className="w-12 h-12 rounded-xl" />
-            <span className="text-blue-400 font-medium">Entre Nós</span>
+            <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
+            <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
           </div>
           <h1 className="text-2xl font-light text-white">
-            Olá, <span className="font-medium">{firstName}</span>
+            {greetingBefore}
+            <span className="font-medium">{displayName}</span>
+            {greetingAfter}
           </h1>
-          <p className="text-zinc-500 mt-1 text-sm">
-            Insights personalizados para sua jornada
-          </p>
+          <p className="text-zinc-500 mt-1 text-sm">{t('home.subtitle')}</p>
         </motion.div>
       </div>
 
-      {/* Category Grid - 3 columns */}
       <div className="px-6 mb-8">
         <div className="grid grid-cols-3 gap-3">
-          {categories.map((cat, index) => {
-            const isActive = activeCategory === cat.id;
+          {INSIGHT_CATEGORIES.map((category, index) => {
+            const isActive = activeCategory === category.id;
             return (
               <motion.button
-                key={cat.id}
+                key={category.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
-                onClick={() => handleCategoryClick(cat.id)}
-                className={`
-                  aspect-square rounded-2xl p-4 flex flex-col items-center justify-center gap-2
-                  border transition-all duration-300
-                  ${isActive 
-                    ? `bg-gradient-to-br ${cat.color} border-blue-400/50` 
-                    : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                  }
-                `}
+                onClick={() => handleCategoryClick(category.id)}
+                className={cn(
+                  'aspect-square rounded-2xl p-4 flex flex-col items-center justify-center gap-2 border transition-all duration-300',
+                  isActive
+                    ? `bg-gradient-to-br ${category.gradient} border-blue-400/50`
+                    : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700',
+                )}
               >
-                <cat.icon className={`w-8 h-8 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
-                <span className={`text-xs text-center leading-tight ${isActive ? 'text-white' : 'text-zinc-500'}`}>
-                  {cat.label}
+                <category.icon
+                  aria-hidden="true"
+                  className={cn('w-8 h-8', isActive ? 'text-emerald-400' : 'text-zinc-400')}
+                />
+                <span className={cn('text-xs text-center leading-tight', isActive ? 'text-white' : 'text-zinc-500')}>
+                  {t(category.labelKey)}
                 </span>
               </motion.button>
             );
           })}
-          
-          {/* Refresh button */}
+
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            onClick={() => insightsQuery.refetch()}
-            disabled={insightsQuery.isFetching}
-            className="aspect-square rounded-2xl p-4 flex flex-col items-center justify-center gap-2
-              bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all"
+            onClick={handleRefresh}
+            disabled={isLoadingInsights}
+            className="aspect-square rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all"
           >
-            <RefreshCw className={`w-8 h-8 text-zinc-400 ${insightsQuery.isFetching ? 'animate-spin' : ''}`} />
-            <span className="text-xs text-zinc-500">Atualizar</span>
+            <RefreshCw aria-hidden="true" className={cn('w-8 h-8 text-zinc-400', isLoadingInsights && 'animate-spin')} />
+            <span className="text-xs text-zinc-500">{t('insights.refresh')}</span>
           </motion.button>
         </div>
       </div>
 
-      {/* Quick Access Section */}
       <div className="px-6 mb-8">
-        <h3 className="text-white font-medium mb-4">Acesso Rápido</h3>
+        <h3 className="text-white font-medium mb-4">{t('home.quickAccess')}</h3>
         <div className="grid grid-cols-2 gap-3">
           <Link to={createPageUrl('Juntinhos')}>
             <motion.div
@@ -194,13 +115,13 @@ export default function Home() {
               className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-2xl p-4 flex flex-col items-center gap-2"
             >
               <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-400" />
+                <Calendar aria-hidden="true" className="w-6 h-6 text-blue-400" />
               </div>
-              <span className="text-white text-sm font-medium">Juntinhos</span>
-              <span className="text-zinc-500 text-xs text-center">Planeje atividades</span>
+              <span className="text-white text-sm font-medium">{t('home.shortcuts.juntinhos.title')}</span>
+              <span className="text-zinc-500 text-xs text-center">{t('home.shortcuts.juntinhos.subtitle')}</span>
             </motion.div>
           </Link>
-          
+
           <Link to={createPageUrl('Chat')}>
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -208,19 +129,18 @@ export default function Home() {
               className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col items-center gap-2"
             >
               <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                <HelpCircle className="w-6 h-6 text-emerald-400" />
+                <HelpCircle aria-hidden="true" className="w-6 h-6 text-emerald-400" />
               </div>
-              <span className="text-white text-sm font-medium">Tire Dúvidas</span>
-              <span className="text-zinc-500 text-xs text-center">Chat de apoio</span>
+              <span className="text-white text-sm font-medium">{t('home.shortcuts.chat.title')}</span>
+              <span className="text-zinc-500 text-xs text-center">{t('home.shortcuts.chat.subtitle')}</span>
             </motion.div>
           </Link>
         </div>
       </div>
 
-      {/* Insights */}
       <div className="px-6">
         <h2 className="text-sm font-medium text-zinc-400 mb-4 uppercase tracking-wider">
-          {activeCategory ? categories.find(c => c.id === activeCategory)?.label : 'Todos os Insights'}
+          {activeCategory ? t(findInsightCategory(activeCategory)?.labelKey) : t('insights.all')}
         </h2>
 
         {rateFailure && (
@@ -229,28 +149,18 @@ export default function Home() {
           </p>
         )}
 
-        {insightsQuery.isFetching ? (
+        {isLoadingInsights ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-4" />
-            <p className="text-zinc-500">Gerando insights...</p>
+            <Loader2 aria-hidden="true" className="w-8 h-8 text-blue-400 animate-spin mb-4" />
+            <p className="text-zinc-500">{t('insights.generating')}</p>
           </div>
         ) : insightsFailure ? (
-          /**
-           * Sem chave de IA a API responde 503 com o motivo escrito. Dizer
-           * "Nenhum insight disponivel" seria trocar uma indisponibilidade
-           * temporaria por uma afirmacao falsa sobre os filhos do pai.
-           */
           <p role="alert" className="text-center py-16 text-red-400">
             {insightsFailure.message}
           </p>
         ) : filteredInsights.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-zinc-500">
-              {children.length === 0
-                ? 'Cadastre seus filhos para receber insights'
-                : 'Nenhum insight disponível'
-              }
-            </p>
+            <p className="text-zinc-500">{hasChildren ? t('insights.empty') : t('insights.needsChildren')}</p>
           </div>
         ) : (
           <div className="space-y-4">

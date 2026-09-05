@@ -1,310 +1,73 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '@/api/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
-  Calendar as CalendarIcon, 
-  Sparkles,
-  Loader2,
-  Heart,
-  Tent,
-  BookOpen,
-  Dumbbell,
-  Palette,
-  TreePine,
-  ChefHat,
-  Gamepad2,
-  School,
-  GraduationCap,
-  Wrench
-} from 'lucide-react';
+/**
+ * Pai Presente — frontend
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
+import React from 'react';
+import { Calendar as CalendarIcon, Loader2, Plus, Sparkles } from 'lucide-react';
+
 import ActivityCard from '@/components/ActivityCard';
+import ActivitySuggestionsDialog from '@/components/ActivitySuggestionsDialog';
+import JuntinhosCalendar from '@/components/JuntinhosCalendar';
+import NewActivityDialog from '@/components/NewActivityDialog';
+import { Button } from '@/components/ui/button';
 import { BRAND_LOGO } from '@/lib/brand';
-import { toMonthKey } from '@/lib/month';
-import { toCalendarDate, toLocalDate } from '@/lib/calendar-date';
-import { describeApiFailure } from '@/lib/api-error-message';
+import { useTranslation } from '@/lib/i18n';
 
-
-const categories = [
-  { id: 'aventura', label: 'Aventura', icon: Tent },
-  { id: 'educativa', label: 'Educativa', icon: BookOpen },
-  { id: 'esportiva', label: 'Esportiva', icon: Dumbbell },
-  { id: 'criativa', label: 'Criativa', icon: Palette },
-  { id: 'natureza', label: 'Natureza', icon: TreePine },
-  { id: 'culinaria', label: 'Culinária', icon: ChefHat },
-  { id: 'jogos', label: 'Jogos', icon: Gamepad2 },
-  { id: 'escolar', label: 'Escolar', icon: School },
-  { id: 'cursos', label: 'Cursos', icon: GraduationCap },
-  { id: 'oficinas', label: 'Oficinas', icon: Wrench },
-];
+import { useJuntinhos } from './Juntinhos.hook';
 
 export default function Juntinhos() {
-  const queryClient = useQueryClient();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showNewActivity, setShowNewActivity] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  const [newActivity, setNewActivity] = useState({
-    title: '',
-    description: '',
-    date: toCalendarDate(new Date()),
-    time: '',
-    child_id: '',
-    category: ''
-  });
-
-  const { data: children = [] } = useQuery({
-    queryKey: ['children'],
-    queryFn: () => api.entities.Child.list(),
-  });
-
-  const { data: activities = [] } = useQuery({
-    queryKey: ['activities'],
-    queryFn: () => api.entities.Activity.list(),
-  });
-
-  const createActivityMutation = useMutation({
-    mutationFn: (data) => api.entities.Activity.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
-      setShowNewActivity(false);
-      setShowSuggestions(false);
-      resetForm();
-    },
-  });
-
-  const updateActivityMutation = useMutation({
-    mutationFn: ({ id, data }) => api.entities.Activity.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
-    },
-  });
-
-  /**
-   * A sugestao vem da IA: e dado de servidor, e dado de servidor nao mora em
-   * `useState` (`web.md` §5). Enquanto morava, a falha ia so para o console do
-   * navegador e o botao simplesmente voltava de "Sugerir" — sem chave de IA a
-   * API responde 503 com o motivo escrito, e ninguem lia.
-   */
-  const suggestionsMutation = useMutation({
-    /**
-     * A estacao do ano, a idade dos filhos e o mes montavam o prompt aqui
-     * dentro. Quem conhece os filhos e a API; a tela so diz de que mes quer
-     * sugestao.
-     *
-     * @param {string} month
-     */
-    mutationFn: (month) => api.ai.activitySuggestions(month),
-    onSuccess: () => {
-      setShowSuggestions(true);
-    },
-  });
-
-  const suggestions = suggestionsMutation.data ?? [];
-  const suggestionsFailure = suggestionsMutation.isError ? describeApiFailure(suggestionsMutation.error) : null;
-  const createFailure = createActivityMutation.isError ? describeApiFailure(createActivityMutation.error) : null;
-  const updateFailure = updateActivityMutation.isError ? describeApiFailure(updateActivityMutation.error) : null;
-
-  /** Fora dos dialogos so cabe um aviso; o mais recente e o que a pessoa acabou de provocar. */
-  const screenFailure = suggestionsFailure ?? updateFailure ?? createFailure;
-
-  const resetForm = () => {
-    setNewActivity({
-      title: '',
-      description: '',
-      date: toCalendarDate(selectedDate),
-      time: '',
-      child_id: '',
-      category: ''
-    });
-  };
-
-  /**
-   * A API recusa o corpo inteiro quando um campo opcional chega vazio: `''` nao
-   * e "sem valor", e valor invalido. O formulario nasce com tudo vazio, entao o
-   * que nao foi preenchido nao vai.
-   */
-  const buildActivityPayload = ({ title, description, date, time, child_id, category }) => ({
-    title,
-    date,
-    ...(description ? { description } : {}),
-    ...(time ? { time } : {}),
-    ...(child_id ? { child_id } : {}),
-    ...(category ? { category } : {}),
-  });
-
-  const handleCreateActivity = () => {
-    createActivityMutation.mutate({ ...buildActivityPayload(newActivity), is_suggested: false });
-  };
-
-  /** So o campo que muda: devolver a atividade inteira reenvia `id` e `child_name`, que a API nao aceita escrever. */
-  const handleComplete = (activity) => {
-    updateActivityMutation.mutate({ id: activity.id, data: { completed: true } });
-  };
-
-  const handleRate = (activityId, rating) => {
-    updateActivityMutation.mutate({ id: activityId, data: { rating } });
-  };
-
-  const generateSuggestions = () => {
-    if (children.length === 0) return;
-    suggestionsMutation.mutate(toMonthKey(currentMonth));
-  };
-
-  /** O dialogo so fecha quando a gravacao volta: fechar antes esconderia a recusa. */
-  const acceptSuggestion = (suggestion) => {
-    /** A atividade se vincula por id; o nome que a IA devolveu so serve para achar o filho. */
-    const child = children.find(c => c.name === suggestion.child_name) ?? children[0];
-    createActivityMutation.mutate({
-      title: suggestion.title,
-      description: suggestion.description,
-      category: suggestion.category,
-      date: toCalendarDate(selectedDate),
-      ...(child ? { child_id: child.id } : {}),
-      is_suggested: true,
-    });
-  };
-
-  const days = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth)
-  });
-
-  /**
-   * `new Date('2026-09-10')` e meia-noite em Greenwich, nao aqui: a oeste dela o
-   * dia recua um, e a atividade do dia 10 aparecia sob o dia 9 — com o pontinho
-   * do calendario junto. `toLocalDate` le o dia como DIA.
-   */
-  const activitiesForSelectedDate = activities.filter(activity =>
-    isSameDay(toLocalDate(activity.date), selectedDate)
-  );
-
-  const daysWithActivities = activities.map(activity => toLocalDate(activity.date));
-
-  const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-  const firstDayOfMonth = startOfMonth(currentMonth).getDay();
+  const { t } = useTranslation();
+  const juntinhos = useJuntinhos();
+  const {
+    selectedDateLabel,
+    activitiesForSelectedDate,
+    screenFailure,
+    isGeneratingSuggestions,
+    canSuggest,
+    handleComplete,
+    handleRate,
+    handleGenerateSuggestions,
+    handleOpenNewActivity,
+  } = juntinhos;
 
   return (
     <div className="min-h-screen bg-zinc-950 pb-24">
-      {/* Header */}
       <div className="px-6 pt-10 pb-6">
         <div className="flex items-center gap-3 mb-4">
-          <img src={BRAND_LOGO} alt="Entre Nós" className="w-12 h-12 rounded-xl" />
-          <span className="text-emerald-400 font-medium">Juntinhos</span>
+          <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
+          <span className="text-emerald-400 font-medium">{t('juntinhos.sectionLabel')}</span>
         </div>
-        <h1 className="text-2xl font-light text-white">
-          Momentos Especiais
-        </h1>
-        <p className="text-zinc-500 text-sm mt-1">
-          Planeje atividades com seus filhos
-        </p>
+        <h1 className="text-2xl font-light text-white">{t('juntinhos.title')}</h1>
+        <p className="text-zinc-500 text-sm mt-1">{t('juntinhos.subtitle')}</p>
       </div>
 
-      {/* Calendar */}
       <div className="px-4 mb-6">
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4">
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-              className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5 text-zinc-400" />
-            </button>
-            <h2 className="font-medium text-white capitalize">
-              {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-            </h2>
-            <button
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-5 h-5 text-zinc-400" />
-            </button>
-          </div>
-
-          {/* Week Days */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {weekDays.map((day, i) => (
-              <div key={i} className="text-center text-xs text-zinc-600 py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {Array(firstDayOfMonth).fill(null).map((_, i) => (
-              <div key={`empty-${i}`} />
-            ))}
-            {days.map(day => {
-              const hasActivity = daysWithActivities.some(d => isSameDay(d, day));
-              const isSelected = isSameDay(day, selectedDate);
-              const isToday = isSameDay(day, new Date());
-
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={`
-                    relative aspect-square rounded-xl text-sm font-medium transition-all
-                    ${isSelected 
-                      ? 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white' 
-                      : isToday 
-                        ? 'bg-zinc-800 text-blue-400'
-                        : 'hover:bg-zinc-800 text-zinc-400'
-                    }
-                  `}
-                >
-                  {format(day, 'd')}
-                  {hasActivity && !isSelected && (
-                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-400" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <JuntinhosCalendar juntinhos={juntinhos} />
       </div>
 
-      {/* Actions */}
       <div className="px-4 mb-6">
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={generateSuggestions}
-            disabled={suggestionsMutation.isPending || children.length === 0}
+            onClick={handleGenerateSuggestions}
+            disabled={isGeneratingSuggestions || !canSuggest}
             className="flex-1 h-12 bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
           >
-            {suggestionsMutation.isPending ? (
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            {isGeneratingSuggestions ? (
+              <Loader2 aria-hidden="true" className="w-5 h-5 mr-2 animate-spin" />
             ) : (
-              <Sparkles className="w-5 h-5 mr-2 text-blue-400" />
+              <Sparkles aria-hidden="true" className="w-5 h-5 mr-2 text-blue-400" />
             )}
-            Sugerir
+            {t('juntinhos.suggest')}
           </Button>
           <Button
-            onClick={() => {
-              /** Sem isto o dialogo reabre com o aviso da tentativa anterior, que ja passou. */
-              createActivityMutation.reset();
-              setNewActivity(prev => ({ ...prev, date: toCalendarDate(selectedDate) }));
-              setShowNewActivity(true);
-            }}
+            onClick={handleOpenNewActivity}
             className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
           >
-            <Plus className="w-5 h-5 mr-2" />
-            Nova Atividade
+            <Plus aria-hidden="true" className="w-5 h-5 mr-2" />
+            {t('juntinhos.newActivity')}
           </Button>
         </div>
 
@@ -315,26 +78,21 @@ export default function Juntinhos() {
         )}
       </div>
 
-      {/* Selected Date Activities */}
       <div className="px-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-medium text-white">
-              {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
-            </h3>
+            <h3 className="font-medium text-white">{selectedDateLabel}</h3>
             <p className="text-sm text-zinc-500">
-              {activitiesForSelectedDate.length} atividade(s)
+              {t('juntinhos.activityCount', { count: activitiesForSelectedDate.length })}
             </p>
           </div>
         </div>
 
         {activitiesForSelectedDate.length === 0 ? (
           <div className="text-center py-12 bg-zinc-900 rounded-2xl border border-dashed border-zinc-800">
-            <CalendarIcon className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-            <p className="text-zinc-500">Nenhuma atividade planejada</p>
-            <p className="text-sm text-zinc-600 mt-1">
-              Adicione ou peça sugestões
-            </p>
+            <CalendarIcon aria-hidden="true" className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
+            <p className="text-zinc-500">{t('juntinhos.emptyTitle')}</p>
+            <p className="text-sm text-zinc-600 mt-1">{t('juntinhos.emptyBody')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -351,155 +109,8 @@ export default function Juntinhos() {
         )}
       </div>
 
-      {/* New Activity Dialog */}
-      <Dialog open={showNewActivity} onOpenChange={setShowNewActivity}>
-        <DialogContent className="max-w-md bg-zinc-900 border-zinc-800">
-          <DialogHeader>
-            <DialogTitle className="text-white">Nova Atividade</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label className="text-zinc-400">Título</Label>
-              <Input
-                value={newActivity.title}
-                onChange={(e) => setNewActivity(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: Passeio no parque"
-                className="mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
-              />
-            </div>
-
-            <div>
-              <Label className="text-zinc-400">Descrição</Label>
-              <Textarea
-                value={newActivity.description}
-                onChange={(e) => setNewActivity(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Detalhes da atividade..."
-                className="mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-zinc-400">Data</Label>
-                <Input
-                  type="date"
-                  value={newActivity.date}
-                  onChange={(e) => setNewActivity(prev => ({ ...prev, date: e.target.value }))}
-                  className="mt-1.5 bg-zinc-800 border-zinc-700 text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-zinc-400">Horário</Label>
-                <Input
-                  type="time"
-                  value={newActivity.time}
-                  onChange={(e) => setNewActivity(prev => ({ ...prev, time: e.target.value }))}
-                  className="mt-1.5 bg-zinc-800 border-zinc-700 text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-zinc-400">Filho</Label>
-              <Select
-                value={newActivity.child_id}
-                onValueChange={(v) => setNewActivity(prev => ({ ...prev, child_id: v }))}
-              >
-                <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-white">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-800 border-zinc-700">
-                  {children.map(child => (
-                    <SelectItem key={child.id} value={child.id}>
-                      {child.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-zinc-400">Categoria</Label>
-              <div className="grid grid-cols-4 gap-2 mt-2">
-                {categories.map(cat => {
-                  const Icon = cat.icon;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setNewActivity(prev => ({ ...prev, category: cat.id }))}
-                      className={`p-3 rounded-xl flex flex-col items-center gap-1 transition-all ${
-                        newActivity.category === cat.id
-                          ? 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white'
-                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[10px]">{cat.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {createFailure && (
-              <p role="alert" className="text-sm text-red-400">
-                {createFailure.message}
-              </p>
-            )}
-
-            <Button
-              className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
-              onClick={handleCreateActivity}
-              disabled={!newActivity.title || createActivityMutation.isPending}
-            >
-              {createActivityMutation.isPending ? 'Salvando...' : 'Criar Atividade'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Suggestions Dialog */}
-      <Dialog open={showSuggestions} onOpenChange={setShowSuggestions}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto bg-zinc-900 border-zinc-800">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <Sparkles className="w-5 h-5 text-blue-400" />
-              Sugestões
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-3">
-            {createFailure && (
-              <p role="alert" className="text-sm text-red-400">
-                {createFailure.message}
-              </p>
-            )}
-            {suggestions.map((suggestion, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-4 bg-zinc-800 rounded-xl border border-zinc-700"
-              >
-                <h4 className="font-medium text-white">{suggestion.title}</h4>
-                <p className="text-sm text-zinc-400 mt-1">{suggestion.description}</p>
-                {suggestion.child_name && (
-                  <p className="text-xs text-zinc-500 mt-2">Para: {suggestion.child_name}</p>
-                )}
-                <Button
-                  size="sm"
-                  className="w-full mt-3 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
-                  onClick={() => acceptSuggestion(suggestion)}
-                >
-                  Adicionar ao calendário
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewActivityDialog juntinhos={juntinhos} />
+      <ActivitySuggestionsDialog juntinhos={juntinhos} />
     </div>
   );
 }

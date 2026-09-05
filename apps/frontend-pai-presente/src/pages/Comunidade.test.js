@@ -13,7 +13,9 @@ import { join } from 'node:path';
  * roteador. O que se afirma aqui e' a LIGACAO — que a comunidade encaminha
  * identidade, chamada e falha a quem ja tem regra e teste proprios.
  */
-const SOURCE = readFileSync(join(import.meta.dir, 'Comunidade.jsx'), 'utf8');
+const PAGE = readFileSync(join(import.meta.dir, 'Comunidade.jsx'), 'utf8');
+const HOOK = readFileSync(join(import.meta.dir, 'Comunidade.hook.js'), 'utf8');
+const SOURCE = `${PAGE}\n${HOOK}`;
 
 describe('o insight tem identidade estavel', () => {
   /** O relogio como id fazia a nota do pai nunca reaparecer. */
@@ -69,5 +71,17 @@ describe('quem chama a API e o TanStack, nao estado de tela', () => {
   test('avaliar e mutation, e invalida a lista de notas', () => {
     expect(SOURCE).toContain('useMutation');
     expect(SOURCE).toContain('invalidateQueries');
+  });
+});
+
+describe('a tela desenha, o hook decide (web.md §4)', () => {
+  test('a pagina nao guarda estado nem chama a API', () => {
+    expect(PAGE).not.toContain('useState');
+    expect(PAGE).not.toContain('api.');
+  });
+
+  test('a decisao mora no hook do lado', () => {
+    expect(PAGE).toContain('useComunidade()');
+    expect(HOOK).toContain('useMutation');
   });
 });

@@ -12,8 +12,27 @@ import { join } from 'node:path';
  * A tela nao e importada: puxar a pagina traria React, o roteador e o markdown
  * para dentro do teste. O que se afirma aqui e a LIGACAO — que o Chat encaminha
  * a recusa a quem ja tem regra e teste proprios.
+ *
+ * Os DOIS arquivos entram: `web.md` §4 separou desenho de decisao, e a
+ * propriedade afirmada aqui e' da tela inteira. Lendo so' o `.jsx`, extrair a
+ * logica para o hook apagaria as afirmacoes sem que nada ficasse vermelho — o
+ * teste passaria por nao ter mais onde olhar.
  */
-const SOURCE = readFileSync(join(import.meta.dir, 'Chat.jsx'), 'utf8');
+const PAGE = readFileSync(join(import.meta.dir, 'Chat.jsx'), 'utf8');
+const HOOK = readFileSync(join(import.meta.dir, 'Chat.hook.js'), 'utf8');
+const SOURCE = `${PAGE}\n${HOOK}`;
+
+describe('a tela desenha, o hook decide (web.md §4)', () => {
+  test('a pagina nao guarda estado nem chama a API', () => {
+    expect(PAGE).not.toContain('useState');
+    expect(PAGE).not.toContain('api.');
+  });
+
+  test('a decisao mora no hook do lado', () => {
+    expect(PAGE).toContain('useChat()');
+    expect(HOOK).toContain('useMutation');
+  });
+});
 
 describe('a recusa da IA nao vira fala do mentor', () => {
   /**

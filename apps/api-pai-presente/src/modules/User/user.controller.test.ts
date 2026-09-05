@@ -96,4 +96,26 @@ describe('PATCH /v1/me', () => {
     expect(response.status).toBe(400);
     expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
   });
+
+  /**
+   * `TL.1`: orientacao sexual, religiosa e politica sao dado sensivel (LGPD
+   * art. 11) e nao existem na base nova. O prompt de IA, unico consumidor que
+   * elas tinham na Base44, deixou de as pedir.
+   *
+   * A tela ja parou de perguntar, mas tela se reescreve; a fronteira e' que
+   * decide. Sem este teste, uma coluna de volta passaria despercebida — foi
+   * exatamente assim que o Perfil ficou um mes oferecendo tres campos que o
+   * cliente descartava antes de enviar.
+   */
+  test('campo de orientacao no corpo responde 400: dado sensivel nao entra', async () => {
+    for (const field of ['sexualOrientation', 'religiousOrientation', 'politicalOrientation']) {
+      const response = await client.send({
+        method: HTTP_METHODS.PATCH,
+        path: ME_PATH,
+        body: { [field]: 'qualquer' },
+      });
+      expect(response.status).toBe(400);
+      expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
+    }
+  });
 });

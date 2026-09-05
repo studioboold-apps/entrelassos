@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowRight, ArrowLeft, Plus, X, User, Baby } from 'lucide-react';
 import { BRAND_LOGO } from '@/lib/brand';
 import { describeApiFailure } from '@/lib/api-error-message';
+import { toProfileUpdate } from '@/lib/profile-form';
 
 
 const steps = [
@@ -23,13 +24,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState({
-    age: '',
-    sexual_orientation: '',
-    religious_orientation: '',
-    political_orientation: '',
-    marital_status: ''
-  });
+  const [userData, setUserData] = useState({ age: '', marital_status: '' });
   const [children, setChildren] = useState([]);
   const [saveFailure, setSaveFailure] = useState(null);
   const [newChild, setNewChild] = useState({ name: '', age: '', gender: '', favorite_hobby: '', favorite_color: '', favorite_food: '', favorite_movie_genre: '' });
@@ -61,11 +56,12 @@ export default function Onboarding() {
     setLoading(true);
     setSaveFailure(null);
     try {
-      await api.auth.updateMe({
-        ...userData,
-        age: parseInt(userData.age),
-        onboarding_completed: true
-      });
+      /**
+       * Idade em branco virava `NaN` e depois `null` no corpo, e a API recusava
+       * a conclusao INTEIRA do onboarding — os filhos nem chegavam a ser
+       * criados. O corpo se monta no mesmo modulo que o Perfil usa.
+       */
+      await api.auth.updateMe({ ...toProfileUpdate(userData), onboarding_completed: true });
 
       for (const child of children) {
         await api.entities.Child.create(child);
@@ -148,66 +144,10 @@ export default function Onboarding() {
           >
             <div className="text-center mb-8">
               <h2 className="text-2xl font-light text-white">Suas preferências</h2>
-              <p className="text-zinc-500 mt-2 text-sm">Isso nos ajuda a personalizar os insights</p>
+              <p className="text-zinc-500 mt-2 text-sm">Só o que o aplicativo realmente guarda</p>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label className="text-zinc-400">Orientação Sexual</Label>
-                <Select
-                  value={userData.sexual_orientation}
-                  onValueChange={(v) => setUserData({ ...userData, sexual_orientation: v })}
-                >
-                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
-                    <SelectItem value="heterossexual">Heterossexual</SelectItem>
-                    <SelectItem value="homossexual">Homossexual</SelectItem>
-                    <SelectItem value="bissexual">Bissexual</SelectItem>
-                    <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-zinc-400">Orientação Religiosa</Label>
-                <Select
-                  value={userData.religious_orientation}
-                  onValueChange={(v) => setUserData({ ...userData, religious_orientation: v })}
-                >
-                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
-                    <SelectItem value="catolico">Católico</SelectItem>
-                    <SelectItem value="evangelico">Evangélico</SelectItem>
-                    <SelectItem value="espirita">Espírita</SelectItem>
-                    <SelectItem value="ateu">Ateu/Agnóstico</SelectItem>
-                    <SelectItem value="outra">Outra</SelectItem>
-                    <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-zinc-400">Orientação Política</Label>
-                <Select
-                  value={userData.political_orientation}
-                  onValueChange={(v) => setUserData({ ...userData, political_orientation: v })}
-                >
-                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
-                    <SelectItem value="direita">Direita</SelectItem>
-                    <SelectItem value="centro">Centro</SelectItem>
-                    <SelectItem value="esquerda">Esquerda</SelectItem>
-                    <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div>
                 <Label className="text-zinc-400">Estado Civil</Label>
                 <Select

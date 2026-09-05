@@ -33,3 +33,34 @@ describe('Onboarding.jsx', () => {
     expect(SOURCE).toContain('setSaveFailure(null)');
   });
 });
+
+/**
+ * `TL.1` — os tres campos de orientacao (sexual, religiosa, politica).
+ *
+ * Medido contra a API viva: `PATCH /v1/me` com qualquer um deles responde
+ * `400 VALIDATION_FAILED — Unrecognized key`, e `GET /v1/me` devolve so
+ * `email, fullName, age, maritalStatus, onboardingCompleted`. Nao existe coluna
+ * para eles em lugar nenhum da base nova, e o prompt de IA — o unico consumidor
+ * que eles tinham na Base44 — deixou de os pedir.
+ *
+ * Continuar perguntando e' pior que nao ter o campo: o pai declara religiao e
+ * posicao politica, o cliente descarta antes de enviar, e ele fica achando que
+ * o aplicativo guarda isso.
+ */
+describe('a tela nao coleta dado sensivel que ninguem guarda', () => {
+  test('o passo de preferencias nao pergunta orientacao', () => {
+    expect(SOURCE).not.toContain('sexual_orientation');
+    expect(SOURCE).not.toContain('religious_orientation');
+    expect(SOURCE).not.toContain('political_orientation');
+  });
+
+  /**
+   * Mesmo defeito do Perfil, e o mesmo conserto: idade em branco virava
+   * `parseInt('')` -> `NaN` -> `null` no corpo, e a API recusava a conclusao
+   * INTEIRA do onboarding. O corpo do `PATCH` se monta num lugar so.
+   */
+  test('o corpo do PATCH sai do modulo unico', () => {
+    expect(SOURCE).toContain('toProfileUpdate');
+    expect(SOURCE).not.toContain("parseInt(userData.age)");
+  });
+});

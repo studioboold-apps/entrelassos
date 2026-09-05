@@ -35,5 +35,58 @@ o que a task tocou — service worker, cache, `index.html` e ambiente do build.
 
 | # | Item | Quem decide |
 |---|---|---|
-| S-004 | **Três campos sensíveis obrigatórios** (`sexual_orientation`, `religious_orientation`, `political_orientation`) herdados da Base44. `sexual_orientation` não tem **nenhum** consumidor; os outros dois existem só para alimentar o prompt de IA — que é exatamente o uso que exige consentimento específico (LGPD art. 11) | usuário — `TL.1` |
 | S-005 | Cabeçalhos de resposta e CSP sem `unsafe-inline` ainda não estão declarados no servidor de produção — hoje só há o `Bun.serve` de desenvolvimento | task de publicação |
+
+---
+
+## Decisão de 05/09/2026 — os três campos sensíveis (`TL.1`, fecha S-004)
+
+**Os três saem. Nenhum deles existe na base nova, e nenhum volta sem passar por
+consentimento específico.**
+
+### Base legal
+
+`sexual_orientation`, `religious_orientation` e `political_orientation` são dado
+pessoal **sensível** pela LGPD art. 5º, II. Guardá-los exigiria consentimento
+**específico e destacado** (art. 11, I) — não serve o aceite genérico de termos
+—, e o produto guarda junto o cadastro de **crianças**, o que sobe o custo de um
+vazamento de "constrangedor" para "irreparável".
+
+### O que eles compravam, medido
+
+| Campo | Consumidor na Base44 | Consumidor hoje |
+|---|---|---|
+| `sexual_orientation` | **nenhum** | nenhum |
+| `religious_orientation` | prompt de IA | nenhum — `ai.prompt.ts` não o pede |
+| `political_orientation` | prompt de IA | nenhum — `ai.prompt.ts` não o pede |
+
+O primeiro saiu de graça: ninguém o lia. Os outros dois melhoravam o texto do
+mentor de um jeito que não paga o passivo de guardar religião e posição política
+de quem tem filho pequeno.
+
+### Onde a decisão está trancada
+
+| Camada | Trava |
+|---|---|
+| Banco | as colunas **nunca existiram** no schema novo (`user.table.ts`) — não há migration de remoção a fazer |
+| API | `PATCH /v1/me` é `.strict()`; teste em `user.controller.test.ts` afirma **400 `VALIDATION_FAILED`** para os três nomes |
+| IA | `ai.prompt.ts` monta o prompt no servidor sem eles; o comentário na linha 20 registra por quê |
+| Cliente | `pickProfileFields` não os transporta; testes de `Perfil.jsx` e `Onboarding.jsx` afirmam que as telas **não os pedem** |
+
+### O defeito que isso conserta
+
+O `Onboarding` continuava perguntando os três e **descartando a resposta antes de
+enviar**. O pai declarava religião e posição política, o passo fechava sem
+reclamar, e ele ficava achando que o aplicativo guardava aquilo. Pior que não ter
+o campo: é pedir dado sensível e mentir sobre o destino dele.
+
+O subtítulo do passo dizia *"Isso nos ajuda a personalizar os insights"* — falso
+desde que o prompt deixou de recebê-los.
+
+### Se algum dia voltar
+
+Reintroduzir qualquer um deles exige, **antes** da coluna: consentimento
+específico e destacado no próprio passo, finalidade escrita, opção de recusar sem
+perder função, e caminho de eliminação (`DELETE /v1/me`, `F3.2`). Sem os quatro,
+o campo não entra.
+

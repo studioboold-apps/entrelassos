@@ -1,12 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/api/client';
+import { useAuth } from '@/lib/AuthContext';
+import { toConversationId, toScreenMessages } from '@/lib/chat-history';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Bot, User, Loader2, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { BRAND_LOGO } from '@/lib/brand';
 
+
+const CHAT_HISTORY_QUERY_KEY = 'chat-messages';
+
+const FAILURE_REPLY =
+  'Desculpe, tive um problema ao processar sua mensagem. Por favor, tente novamente.';
 
 const suggestedQuestions = [
   "Como aplicar reforço positivo?",
@@ -16,45 +24,81 @@ const suggestedQuestions = [
 ];
 
 export default function Chat() {
-  const [messages, setMessages] = useState([]);
+  const { user } = useAuth();
+  const conversationId = toConversationId(user.id);
+  /**
+   * O que foi dito NESTA sessao fica aqui e o resto vem do banco. Copiar o
+   * historico para dentro de um `useState` exigiria um `useEffect` de
+   * sincronizacao, e ele repetiria a conversa toda vez que a consulta
+   * revalidasse.
+   */
+  const [sessionMessages, setSessionMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  const { data: history = [] } = useQuery({
+    queryKey: [CHAT_HISTORY_QUERY_KEY, conversationId],
+    queryFn: async () =>
+      toScreenMessages(await api.entities.ChatMessage.listByConversation(conversationId)),
+  });
+
+  const messages = [...history, ...sessionMessages];
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  /**
+   * `messages` e' derivado, entao e' um array novo a cada render: depender dele
+   * mandaria a tela rolar sem parar. Quem manda rolar e' a conversa ter crescido.
+   */
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages.length]);
+
+  /**
+   * Guardar e' o que faz a conversa sobreviver a fechar o app, mas falhar em
+   * guardar nao pode apagar da tela o que o pai acabou de ler: o erro fica no
+   * console e a mensagem continua ali.
+   */
+  const remember = async (message) => {
+    try {
+      await api.entities.ChatMessage.create({ conversationId, ...message });
+    } catch (error) {
+      console.error('Nao foi possivel guardar a mensagem:', error);
+    }
+  };
 
   const sendMessage = async (text) => {
     if (!text.trim() || isLoading) return;
 
     const userMessage = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMessage]);
+    setSessionMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
+      await remember(userMessage);
+
       /**
        * Quem sao os filhos e qual a orientacao do pai nao viajam mais daqui: a
        * API ja conhece o pai autenticado e monta o contexto do lado dela
        * (`security.md` §1). A tela manda a pergunta, so.
+       *
+       * `POST /v1/chat` responde e NAO grava: as duas pontas da conversa sao
+       * escritas aqui, na ordem em que foram ditas.
        */
       const response = await api.ai.chat(text);
 
       const assistantMessage = { role: 'assistant', content: response };
-      setMessages(prev => [...prev, assistantMessage]);
+      setSessionMessages(prev => [...prev, assistantMessage]);
+      await remember(assistantMessage);
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage = { 
-        role: 'assistant', 
-        content: 'Desculpe, tive um problema ao processar sua mensagem. Por favor, tente novamente.' 
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      /** Recado de falha nao e' conversa: nao vai para o historico. */
+      setSessionMessages(prev => [...prev, { role: 'assistant', content: FAILURE_REPLY }]);
     }
 
     setIsLoading(false);

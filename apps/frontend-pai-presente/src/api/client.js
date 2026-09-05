@@ -15,6 +15,7 @@ const PATHS = Object.freeze({
   insightRatings: '/v1/insight-ratings',
   posts: '/v1/community/posts',
   comments: '/v1/community/comments',
+  chatMessages: '/v1/chat/messages',
 });
 
 /** O teto de `perPage` da API; pedir mais devolve 100 do mesmo jeito. */
@@ -113,6 +114,15 @@ const CommunityComment = Object.freeze({
   delete: (commentId) => request(HTTP_METHODS.DELETE, `${PATHS.comments}/${commentId}`),
 });
 
+/**
+ * `POST /v1/chat` gera a resposta e NAO grava (`ai.use-case.ts`): guardar a
+ * conversa e' escrita explicita, dos dois lados, por aqui.
+ */
+const ChatMessage = Object.freeze({
+  listByConversation: (conversationId) => listAll(PATHS.chatMessages, { query: { conversationId } }),
+  create: (values) => request(HTTP_METHODS.POST, PATHS.chatMessages, { body: values }),
+});
+
 const auth = Object.freeze({
   me: () => request(HTTP_METHODS.GET, PATHS.me),
   updateMe: (values) =>
@@ -126,5 +136,12 @@ const auth = Object.freeze({
 export const api = Object.freeze({
   auth,
   ai,
-  entities: Object.freeze({ Child, Activity, InsightRating, CommunityPost, CommunityComment }),
+  entities: Object.freeze({
+    Child,
+    Activity,
+    InsightRating,
+    CommunityPost,
+    CommunityComment,
+    ChatMessage,
+  }),
 });

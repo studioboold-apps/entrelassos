@@ -1,5 +1,6 @@
 import Boletim from './pages/Boletim';
 import Chat from './pages/Chat';
+import Comunidade from './pages/Comunidade';
 import Home from './pages/Home';
 import Juntinhos from './pages/Juntinhos';
 import Onboarding from './pages/Onboarding';
@@ -10,6 +11,7 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "Boletim": Boletim,
     "Chat": Chat,
+    "Comunidade": Comunidade,
     "Home": Home,
     "Juntinhos": Juntinhos,
     "Onboarding": Onboarding,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, ArrowLeft, Plus, X, User, Baby } from 'lucide-react';
+import { BRAND_LOGO } from '@/lib/brand';
 
-const BRAND_LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69693b3d8c5d3c2fd0c67ca4/bdaa51aa4_ChatGPTImage15_01_202616_47_55.png";
 
 const steps = [
   { id: 'welcome', title: 'Bem-vindo' },
@@ -58,14 +58,14 @@ export default function Onboarding() {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      await base44.auth.updateMe({
+      await api.auth.updateMe({
         ...userData,
         age: parseInt(userData.age),
         onboarding_completed: true
       });
 
       for (const child of children) {
-        await base44.entities.Child.create(child);
+        await api.entities.Child.create(child);
       }
 
       navigate(createPageUrl('Home'));

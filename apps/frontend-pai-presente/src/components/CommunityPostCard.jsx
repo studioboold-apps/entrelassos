@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, MessageCircle, Send, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,50 +16,44 @@ const categoryConfig = {
   conquista: { label: 'Conquista', color: 'text-purple-400 bg-purple-400/10' },
 };
 
-export default function CommunityPostCard({ post, currentUser, delay = 0 }) {
+export default function CommunityPostCard({ post, delay = 0 }) {
   const queryClient = useQueryClient();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
 
   const { data: comments = [] } = useQuery({
     queryKey: ['comments', post.id],
-    queryFn: () => base44.entities.CommunityComment.filter({ post_id: post.id }),
+    queryFn: () => api.entities.CommunityComment.listByPost(post.id),
     enabled: showComments,
   });
 
+  /**
+   * Curtir e uma chamada so. Antes a tela lia `liked_by`, recalculava a lista e
+   * mandava o total junto — dois pais curtindo ao mesmo tempo se sobrescreviam,
+   * e a contagem ficava um a menos para sempre. Quem conta agora e o banco.
+   */
   const likeMutation = useMutation({
-    mutationFn: () => {
-      const liked = post.liked_by?.includes(currentUser?.id);
-      const newLikedBy = liked
-        ? post.liked_by.filter(id => id !== currentUser.id)
-        : [...(post.liked_by || []), currentUser.id];
-      return base44.entities.CommunityPost.update(post.id, {
-        likes_count: newLikedBy.length,
-        liked_by: newLikedBy,
-      });
-    },
+    mutationFn: () =>
+      post.has_liked
+        ? api.entities.CommunityPost.unlike(post.id)
+        : api.entities.CommunityPost.like(post.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['posts'] }),
   });
 
   const commentMutation = useMutation({
-    mutationFn: (data) => base44.entities.CommunityComment.create(data),
+    mutationFn: (data) => api.entities.CommunityComment.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', post.id] });
       setCommentText('');
     },
   });
 
-  const hasLiked = post.liked_by?.includes(currentUser?.id);
   const catConfig = categoryConfig[post.category] || categoryConfig.experiencia;
 
   const handleComment = () => {
     if (!commentText.trim()) return;
-    commentMutation.mutate({
-      post_id: post.id,
-      content: commentText,
-      author_name: currentUser?.full_name || 'Pai',
-      author_id: currentUser?.id,
-    });
+    /** Quem escreveu sai do token, nao do corpo: o cliente nao assina em nome de outro. */
+    commentMutation.mutate({ post_id: post.id, content: commentText });
   };
 
   return (
@@ -93,10 +87,10 @@ export default function CommunityPostCard({ post, currentUser, delay = 0 }) {
           onClick={() => likeMutation.mutate()}
           className={cn(
             "flex items-center gap-1.5 text-sm transition-colors",
-            hasLiked ? "text-red-400" : "text-zinc-500 hover:text-zinc-300"
+            post.has_liked ? "text-red-400" : "text-zinc-500 hover:text-zinc-300"
           )}
         >
-          <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
+          <Heart className={cn("w-4 h-4", post.has_liked && "fill-current")} />
           <span>{post.likes_count || 0}</span>
         </button>
         <button

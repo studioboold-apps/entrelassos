@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,13 +14,13 @@ const categories = [
   { id: 'conquista', label: 'Conquista' },
 ];
 
-export default function CommunityCreatePost({ user }) {
+export default function CommunityCreatePost() {
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('experiencia');
 
   const createPostMutation = useMutation({
-    mutationFn: (data) => base44.entities.CommunityPost.create(data),
+    mutationFn: (data) => api.entities.CommunityPost.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       setContent('');
@@ -30,14 +30,12 @@ export default function CommunityCreatePost({ user }) {
 
   const handleSubmit = () => {
     if (!content.trim()) return;
-    createPostMutation.mutate({
-      content,
-      author_name: user?.full_name || 'Pai',
-      author_id: user?.id,
-      category,
-      likes_count: 0,
-      liked_by: [],
-    });
+    /**
+    * So o que e do post. Autor sai do token e a contagem de curtidas sai do
+    * banco; mandar os dois daqui era deixar o cliente assinar em nome de outro
+    * e estrear com o placar que quisesse.
+    */
+    createPostMutation.mutate({ content, category });
   };
 
   return (

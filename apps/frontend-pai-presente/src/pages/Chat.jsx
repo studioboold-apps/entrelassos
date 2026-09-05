@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { api } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Bot, User, Loader2, Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { BRAND_LOGO } from '@/lib/brand';
 
-const BRAND_LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69693b3d8c5d3c2fd0c67ca4/bdaa51aa4_ChatGPTImage15_01_202616_47_55.png";
 
 const suggestedQuestions = [
   "Como aplicar reforço positivo?",
@@ -22,16 +21,6 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
-
-  const { data: children = [] } = useQuery({
-    queryKey: ['children'],
-    queryFn: () => base44.entities.Child.list(),
-  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,29 +39,12 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      const childrenContext = children.length > 0 
-        ? `Filhos do usuário: ${children.map(c => `${c.name} (${c.age} anos, ${c.gender})`).join(', ')}.`
-        : '';
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Você é um assistente especializado em parentalidade positiva e comunicação entre pais e filhos.
-Seu nome é "Mentor Entre Nós".
-
-Contexto do usuário:
-${childrenContext}
-Orientação religiosa: ${user?.religious_orientation || 'não informada'}
-
-IMPORTANTE:
-- Seja empático e acolhedor
-- Dê respostas práticas e acionáveis
-- Use linguagem simples e direta
-- Considere a idade dos filhos nas recomendações
-- Foque em comunicação positiva, reforço positivo e disciplina construtiva
-- Se for sobre punições, oriente sobre alternativas baseadas em consequências naturais
-- Responda em português brasileiro
-
-Pergunta do pai: ${text}`,
-      });
+      /**
+       * Quem sao os filhos e qual a orientacao do pai nao viajam mais daqui: a
+       * API ja conhece o pai autenticado e monta o contexto do lado dela
+       * (`security.md` §1). A tela manda a pergunta, so.
+       */
+      const response = await api.ai.chat(text);
 
       const assistantMessage = { role: 'assistant', content: response };
       setMessages(prev => [...prev, assistantMessage]);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,8 +30,9 @@ import {
   Wrench
 } from 'lucide-react';
 import ActivityCard from '@/components/ActivityCard';
+import { BRAND_LOGO } from '@/lib/brand';
+import { toMonthKey } from '@/lib/month';
 
-const BRAND_LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69693b3d8c5d3c2fd0c67ca4/bdaa51aa4_ChatGPTImage15_01_202616_47_55.png";
 
 const categories = [
   { id: 'aventura', label: 'Aventura', icon: Tent },
@@ -61,22 +62,21 @@ export default function Juntinhos() {
     date: format(new Date(), 'yyyy-MM-dd'),
     time: '',
     child_id: '',
-    child_name: '',
     category: ''
   });
 
   const { data: children = [] } = useQuery({
     queryKey: ['children'],
-    queryFn: () => base44.entities.Child.list(),
+    queryFn: () => api.entities.Child.list(),
   });
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => base44.entities.Activity.list(),
+    queryFn: () => api.entities.Activity.list(),
   });
 
   const createActivityMutation = useMutation({
-    mutationFn: (data) => base44.entities.Activity.create(data),
+    mutationFn: (data) => api.entities.Activity.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] });
       setShowNewActivity(false);
@@ -85,7 +85,7 @@ export default function Juntinhos() {
   });
 
   const updateActivityMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Activity.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.Activity.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] });
     },
@@ -98,34 +98,35 @@ export default function Juntinhos() {
       date: format(selectedDate, 'yyyy-MM-dd'),
       time: '',
       child_id: '',
-      child_name: '',
       category: ''
     });
   };
 
+  /**
+   * A API recusa o corpo inteiro quando um campo opcional chega vazio: `''` nao
+   * e "sem valor", e valor invalido. O formulario nasce com tudo vazio, entao o
+   * que nao foi preenchido nao vai.
+   */
+  const buildActivityPayload = ({ title, description, date, time, child_id, category }) => ({
+    title,
+    date,
+    ...(description ? { description } : {}),
+    ...(time ? { time } : {}),
+    ...(child_id ? { child_id } : {}),
+    ...(category ? { category } : {}),
+  });
+
   const handleCreateActivity = () => {
-    const child = children.find(c => c.id === newActivity.child_id);
-    createActivityMutation.mutate({
-      ...newActivity,
-      child_name: child?.name || '',
-      is_suggested: false,
-      completed: false
-    });
+    createActivityMutation.mutate({ ...buildActivityPayload(newActivity), is_suggested: false });
   };
 
+  /** So o campo que muda: devolver a atividade inteira reenvia `id` e `child_name`, que a API nao aceita escrever. */
   const handleComplete = (activity) => {
-    updateActivityMutation.mutate({
-      id: activity.id,
-      data: { ...activity, completed: true }
-    });
+    updateActivityMutation.mutate({ id: activity.id, data: { completed: true } });
   };
 
   const handleRate = (activityId, rating) => {
-    const activity = activities.find(a => a.id === activityId);
-    updateActivityMutation.mutate({
-      id: activityId,
-      data: { ...activity, rating }
-    });
+    updateActivityMutation.mutate({ id: activityId, data: { rating } });
   };
 
   const generateSuggestions = async () => {
@@ -133,43 +134,14 @@ export default function Juntinhos() {
     
     setLoadingSuggestions(true);
     try {
-      const currentSeason = getCurrentSeason();
-      const childrenInfo = children.map(c => `${c.name} (${c.age} anos)`).join(', ');
+      /**
+       * A estacao do ano, a idade dos filhos e o mes montavam o prompt aqui
+       * dentro. Quem conhece os filhos e a API; a tela so diz de que mes quer
+       * sugestao.
+       */
+      const suggestions = await api.ai.activitySuggestions(toMonthKey(currentMonth));
 
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sugira 4 atividades criativas para um pai fazer com seus filhos.
-
-Filhos: ${childrenInfo}
-Estação do ano atual: ${currentSeason}
-Mês: ${format(currentMonth, 'MMMM', { locale: ptBR })}
-
-Considere:
-- Atividades apropriadas para a estação (${currentSeason})
-- Idade das crianças
-- Mix de atividades indoor e outdoor
-- Atividades que fortaleçam o vínculo pai-filho
-
-Para cada sugestão, especifique a categoria: aventura, educativa, esportiva, criativa, natureza, culinaria, jogos, escolar (eventos escolares como reuniões, provas, festivais), cursos (cursos extracurriculares como idiomas, música, robótica) ou oficinas (oficinas e workshops como arte, marcenaria, cozinha experimental)`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            suggestions: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  category: { type: "string" },
-                  child_name: { type: "string" }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      setSuggestions(response.suggestions);
+      setSuggestions(suggestions);
       setShowSuggestions(true);
     } catch (error) {
       console.error('Error generating suggestions:', error);
@@ -177,23 +149,16 @@ Para cada sugestão, especifique a categoria: aventura, educativa, esportiva, cr
     setLoadingSuggestions(false);
   };
 
-  const getCurrentSeason = () => {
-    const month = currentMonth.getMonth();
-    if (month >= 2 && month <= 4) return 'outono';
-    if (month >= 5 && month <= 7) return 'inverno';
-    if (month >= 8 && month <= 10) return 'primavera';
-    return 'verão';
-  };
-
   const acceptSuggestion = (suggestion) => {
+    /** A atividade se vincula por id; o nome que a IA devolveu so serve para achar o filho. */
+    const child = children.find(c => c.name === suggestion.child_name) ?? children[0];
     createActivityMutation.mutate({
       title: suggestion.title,
       description: suggestion.description,
       category: suggestion.category,
       date: format(selectedDate, 'yyyy-MM-dd'),
-      child_name: suggestion.child_name || children[0]?.name || '',
+      ...(child ? { child_id: child.id } : {}),
       is_suggested: true,
-      completed: false
     });
     setShowSuggestions(false);
   };

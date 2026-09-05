@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
 import { useQuery } from '@tanstack/react-query';
 import { Brain, Heart, Wallet, Activity, Loader2, RefreshCw, Users, Sparkles } from 'lucide-react';
 import CommunityPostCard from '@/components/CommunityPostCard';
 import CommunityCreatePost from '@/components/CommunityCreatePost';
 import InsightCard from '@/components/InsightCard';
 import { cn } from '@/lib/utils';
+import { BRAND_LOGO } from '@/lib/brand';
 
-const BRAND_LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69693b3d8c5d3c2fd0c67ca4/bdaa51aa4_ChatGPTImage15_01_202616_47_55.png";
+/** A API ja devolve o feed do mais novo para o mais antigo. */
+const FEED_PAGE_SIZE = 50;
+
 
 const insightCategories = [
   { id: 'comportamento', label: 'Comportamento', icon: Brain, color: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30' },
@@ -26,22 +29,22 @@ export default function Comunidade() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => api.auth.me(),
   });
 
   const { data: children = [] } = useQuery({
     queryKey: ['children'],
-    queryFn: () => base44.entities.Child.list(),
+    queryFn: () => api.entities.Child.list(),
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['posts'],
-    queryFn: () => base44.entities.CommunityPost.list('-created_date', 50),
+    queryFn: () => api.entities.CommunityPost.list(FEED_PAGE_SIZE),
   });
 
   const { data: savedRatings = [] } = useQuery({
     queryKey: ['insightRatings'],
-    queryFn: () => base44.entities.InsightRating.list(),
+    queryFn: () => api.entities.InsightRating.list(),
   });
 
   useEffect(() => {
@@ -59,49 +62,14 @@ export default function Comunidade() {
   const generateInsights = async (category = null) => {
     setLoadingInsights(true);
     try {
-      const childrenInfo = children.map(c => `${c.name} (${c.age} anos, ${c.gender})`).join(', ');
-      const categoryFilter = category
-        ? `Gere apenas 2 insights para a categoria: ${category}`
-        : `Gere exatamente 1 insight para cada categoria: comportamento, sexualidade, financeira, saude`;
+      /**
+       * O prompt saiu do navegador: ele montava a pergunta com a orientacao
+       * religiosa e politica do pai, e dado sensivel nao trafega na aba de rede
+       * (`security.md` §1). Agora a API monta e a tela so pede o resultado.
+       */
+      const generated = await api.ai.insights(category ?? undefined);
 
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Você é um especialista em educação parental e desenvolvimento infantil.
-Gere insights práticos e personalizados para um pai com os seguintes filhos: ${childrenInfo}.
-
-Preferências do pai:
-- Orientação religiosa: ${user.religious_orientation || 'não informada'}
-- Orientação política: ${user.political_orientation || 'não informada'}
-
-${categoryFilter}
-
-Categorias:
-1. comportamento - Dicas sobre educação comportamental, disciplina positiva, comunicação
-2. sexualidade - Como conversar sobre corpo, relacionamentos de forma apropriada para a idade
-3. financeira - Educação financeira adaptada à idade das crianças
-4. saude - Atividades para vida saudável e prevenção de obesidade infantil
-
-Seja prático, específico e adapte para a idade de cada criança mencionada.`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            insights: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  id: { type: "string" },
-                  title: { type: "string" },
-                  content: { type: "string" },
-                  category: { type: "string", enum: ["comportamento", "sexualidade", "financeira", "saude"] },
-                  child_name: { type: "string" }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      setInsights(response.insights.map((insight, index) => ({
+      setInsights(generated.map((insight, index) => ({
         ...insight,
         id: `insight_${Date.now()}_${index}`
       })));
@@ -124,7 +92,7 @@ Seja prático, específico e adapte para a idade de cada criança mencionada.`,
   const handleRate = async (insightId, rating) => {
     const insight = insights.find(i => i.id === insightId);
     setRatings(prev => ({ ...prev, [insightId]: rating }));
-    await base44.entities.InsightRating.create({
+    await api.entities.InsightRating.rate({
       insight_id: insightId,
       category: insight.category,
       rating: rating,
@@ -189,7 +157,7 @@ Seja prático, específico e adapte para a idade de cada criança mencionada.`,
           animate={{ opacity: 1 }}
           className="px-4 space-y-4"
         >
-          <CommunityCreatePost user={user} />
+          <CommunityCreatePost />
 
           {posts.length === 0 ? (
             <div className="text-center py-12 bg-zinc-900 rounded-2xl border border-dashed border-zinc-800">
@@ -204,7 +172,6 @@ Seja prático, específico e adapte para a idade de cada criança mencionada.`,
               <CommunityPostCard
                 key={post.id}
                 post={post}
-                currentUser={user}
                 delay={index * 0.05}
               />
             ))

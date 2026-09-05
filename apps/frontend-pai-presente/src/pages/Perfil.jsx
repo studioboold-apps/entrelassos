@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,11 +16,12 @@ import {
   Trash2, 
   LogOut
 } from 'lucide-react';
+import { BRAND_LOGO } from '@/lib/brand';
 
-const BRAND_LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69693b3d8c5d3c2fd0c67ca4/bdaa51aa4_ChatGPTImage15_01_202616_47_55.png";
 
 export default function Perfil() {
   const queryClient = useQueryClient();
+  const { logout } = useAuth();
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [editingChild, setEditingChild] = useState(null);
@@ -27,22 +29,22 @@ export default function Perfil() {
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => api.auth.me(),
   });
 
   const { data: children = [] } = useQuery({
     queryKey: ['children'],
-    queryFn: () => base44.entities.Child.list(),
+    queryFn: () => api.entities.Child.list(),
   });
 
   const { data: ratings = [] } = useQuery({
     queryKey: ['insightRatings'],
-    queryFn: () => base44.entities.InsightRating.list(),
+    queryFn: () => api.entities.InsightRating.list(),
   });
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => base44.entities.Activity.list(),
+    queryFn: () => api.entities.Activity.list(),
   });
 
   const [profileForm, setProfileForm] = useState({
@@ -66,7 +68,7 @@ export default function Perfil() {
   }, [user]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
+    mutationFn: (data) => api.auth.updateMe(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       setShowEditProfile(false);
@@ -74,7 +76,7 @@ export default function Perfil() {
   });
 
   const createChildMutation = useMutation({
-    mutationFn: (data) => base44.entities.Child.create(data),
+    mutationFn: (data) => api.entities.Child.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] });
       setShowAddChild(false);
@@ -83,7 +85,7 @@ export default function Perfil() {
   });
 
   const updateChildMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Child.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.Child.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] });
       setEditingChild(null);
@@ -92,7 +94,7 @@ export default function Perfil() {
   });
 
   const deleteChildMutation = useMutation({
-    mutationFn: (id) => base44.entities.Child.delete(id),
+    mutationFn: (id) => api.entities.Child.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] });
     },
@@ -127,8 +129,12 @@ export default function Perfil() {
     setEditingChild(child);
   };
 
+  /**
+   * Sair passa pelo contexto: chamar a API direto derruba o cookie e deixa o
+   * `user` em memoria, e a tela continua mostrando o pai que acabou de sair.
+   */
   const handleLogout = () => {
-    base44.auth.logout();
+    logout();
   };
 
   const totalInsightsRated = ratings.length;

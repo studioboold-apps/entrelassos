@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
+import { api } from '@/api/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -39,8 +39,9 @@ import {
   Tooltip,
   Cell
 } from 'recharts';
+import { BRAND_LOGO } from '@/lib/brand';
+import { toMonthKey } from '@/lib/month';
 
-const BRAND_LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69693b3d8c5d3c2fd0c67ca4/bdaa51aa4_ChatGPTImage15_01_202616_47_55.png";
 
 const categoryLabels = {
   comportamento: 'Comportamento',
@@ -69,22 +70,17 @@ export default function Boletim() {
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => base44.entities.Activity.list(),
+    queryFn: () => api.entities.Activity.list(),
   });
 
   const { data: insightRatings = [] } = useQuery({
     queryKey: ['insightRatings'],
-    queryFn: () => base44.entities.InsightRating.list(),
-  });
-
-  const { data: children = [] } = useQuery({
-    queryKey: ['children'],
-    queryFn: () => base44.entities.Child.list(),
+    queryFn: () => api.entities.InsightRating.list(),
   });
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => api.auth.me(),
   });
 
   // Filtrar dados do mês selecionado
@@ -147,70 +143,14 @@ export default function Boletim() {
   const generateReport = async () => {
     setLoadingReport(true);
     try {
-      const childrenNames = children.map(c => c.name).join(', ');
-      
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Você é um especialista em parentalidade positiva. Analise o desempenho mensal de um pai e gere um boletim construtivo.
+      /**
+       * As contas do boletim saem do SERVIDOR. Aqui elas so alimentam os
+       * graficos; mandar `completionRate` pronto no prompt, como a Base44
+       * fazia, deixava o proprio cliente escolher a nota que ia receber.
+       */
+      const generated = await api.ai.report(toMonthKey(currentMonth));
 
-Dados do mês de ${format(currentMonth, 'MMMM yyyy', { locale: ptBR })}:
-
-FILHOS: ${childrenNames || 'Não informado'}
-
-ATIVIDADES:
-- Total planejadas: ${stats.totalActivities}
-- Realizadas: ${stats.completedActivities}
-- Taxa de conclusão: ${stats.completionRate}%
-- Avaliação média das atividades: ${stats.avgActivityRating}/5
-
-INSIGHTS EDUCACIONAIS:
-- Insights lidos e avaliados: ${stats.totalInsightsRead}
-- Avaliação média dos insights: ${stats.avgInsightRating}/5
-
-CATEGORIAS DE INSIGHTS MAIS ENGAJADAS:
-${insightsByCategory.filter(c => c.value > 0).map(c => `- ${c.category}: ${c.value.toFixed(1)}/5`).join('\n')}
-
-TIPOS DE ATIVIDADES REALIZADAS:
-${activitiesByCategory.map(c => `- ${c.name}: ${c.quantidade} atividade(s)`).join('\n')}
-
-Com base nesses dados, gere um boletim mensal com:
-1. Uma nota geral de 0 a 10
-2. 3 pontos fortes (coisas que o pai fez bem)
-3. 3 pontos de melhoria (áreas para desenvolver, sem ser crítico)
-4. Uma mensagem motivacional personalizada
-5. Uma meta sugerida para o próximo mês
-
-Seja construtivo, positivo e encorajador.`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            nota_geral: { type: "number" },
-            pontos_fortes: { 
-              type: "array", 
-              items: { 
-                type: "object",
-                properties: {
-                  titulo: { type: "string" },
-                  descricao: { type: "string" }
-                }
-              }
-            },
-            pontos_melhoria: { 
-              type: "array", 
-              items: { 
-                type: "object",
-                properties: {
-                  titulo: { type: "string" },
-                  descricao: { type: "string" }
-                }
-              }
-            },
-            mensagem_motivacional: { type: "string" },
-            meta_proximo_mes: { type: "string" }
-          }
-        }
-      });
-
-      setReport(response);
+      setReport(generated);
     } catch (error) {
       console.error('Error generating report:', error);
     }

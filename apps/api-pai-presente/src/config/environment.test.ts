@@ -17,6 +17,13 @@ import {
 
 const DATABASE_ONLY = { DATABASE_URL: 'postgres://user:pass@localhost:5432/db' };
 
+/** O minimo que o servidor precisa para subir — de proposito, SEM chave de IA. */
+const BOOT_WITHOUT_AI_KEY = {
+  ...DATABASE_ONLY,
+  AUTH_JWT_SECRET: 'segredo_local_de_teste_com_mais_de_32',
+  LLM_PROVIDER: 'anthropic',
+};
+
 describe('fatias de ambiente', () => {
   /**
    * O defeito medido em 05/09/2026: `bun run db:migrate` morria com
@@ -28,8 +35,19 @@ describe('fatias de ambiente', () => {
     );
   });
 
-  test('quem gera texto continua exigindo a chave', () => {
+  test('quem gera texto continua exigindo o PROVEDOR', () => {
     expect(() => readAiEnvironment(DATABASE_ONLY)).toThrow();
+  });
+
+  /**
+   * Defeito medido em 05/09/2026: `make dev` subia a web e NAO a API —
+   * `ZodError: LLM_API_KEY` no boot, porque `envs/env.dev` deixa a chave para o
+   * `env.dev.local` que ninguem tem ainda. Chave de IA ausente e falta de um
+   * RECURSO, nao configuracao invalida: quem pedir texto recebe 503 legivel
+   * (mesmo trato do login sem provedor), e o resto do produto continua de pe.
+   */
+  test('o boot sobrevive sem chave de IA', () => {
+    expect(readEnvironment(BOOT_WITHOUT_AI_KEY).LLM_API_KEY).toBe('');
   });
 
   test('o boot do servidor exige tudo de uma vez', () => {

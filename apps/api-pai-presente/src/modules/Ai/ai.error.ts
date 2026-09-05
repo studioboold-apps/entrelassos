@@ -6,6 +6,7 @@
 
 import { DomainError } from '../shared/errors/app.error';
 import { ERROR_CODES } from '../shared/errors/codes';
+import { HTTP_STATUS } from '../shared/http/http.constant';
 
 /** 502 e nao 500: quem falhou foi o terceiro, e o cliente pode tentar de novo. */
 export class LlmProviderFailedError extends DomainError {
@@ -36,6 +37,21 @@ export class NoChildrenRegisteredError extends DomainError {
       code: ERROR_CODES.ai.NO_CHILDREN,
       message: 'Cadastre ao menos um filho antes de pedir sugestoes.',
       statusCode: 422,
+    });
+  }
+}
+
+/**
+ * 503 e nao 500: falta um RECURSO (a chave do provedor), e o mesmo trato do
+ * login sem provedor configurado. Derrubar o boot por causa disso levaria filho,
+ * atividade e boletim junto — coisas que nao geram texto nenhum.
+ */
+export class LlmNotConfiguredError extends DomainError {
+  constructor(provider: string) {
+    super({
+      code: ERROR_CODES.ai.NOT_CONFIGURED,
+      message: `Sugestoes por IA indisponiveis: o provedor ${provider} esta sem chave.`,
+      statusCode: HTTP_STATUS.SERVICE_UNAVAILABLE,
     });
   }
 }

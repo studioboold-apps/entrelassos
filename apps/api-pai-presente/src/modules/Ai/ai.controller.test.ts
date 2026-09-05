@@ -13,7 +13,7 @@ import {
   type TestClient,
 } from '../../testing/http-test.util';
 import { ERROR_CODES } from '../shared/errors/codes';
-import { HTTP_METHODS } from '../shared/http/http.constant';
+import { HTTP_METHODS, HTTP_STATUS } from '../shared/http/http.constant';
 import { createRateLimiter, type RateLimitPolicy } from '../shared/http/rate-limit';
 import {
   ACTIVITY_SUGGESTIONS_PATH,
@@ -23,6 +23,7 @@ import {
   REPORT_PATH,
 } from './ai.constant';
 import { buildAiRoutes } from './ai.controller';
+import { createLlmProvider } from './providers/provider.factory';
 import { createAiUseCases } from './ai.use-case';
 import type {
   ActivityDigestRow,
@@ -219,5 +220,40 @@ describe('rotas de IA', () => {
       (await client.send({ method: HTTP_METHODS.POST, path: CHAT_PATH, body: { message: 'oi' } }))
         .status,
     ).toBe(429);
+  });
+});
+
+/**
+ * `F2.4` cobra a tela de chat provando o ERRO legivel quando nao ha chave de IA.
+ * Isso so existe se o produto SUBIR sem ela — e foi o que faltava: em 05/09/2026
+ * `make dev` levantou a web e matou a API com `ZodError: LLM_API_KEY`.
+ */
+describe('IA sem chave configurada', () => {
+  function createUnconfiguredClient(): TestClient {
+    const useCases = createAiUseCases({
+      provider: createLlmProvider({ providerName: 'anthropic', apiKey: '', model: '' }),
+      children: { listByUser: async () => [CHILD] },
+      activities: { listMonth: async () => [] },
+      insights: { listMonth: async () => [] },
+    });
+    return createTestClient({
+      routes: buildAiRoutes({ useCases, rateLimiter: createRateLimiter(AI_RATE_LIMIT) }),
+    });
+  }
+
+  test.each([
+    [CHAT_PATH, { message: 'oi' }],
+    [INSIGHTS_PATH, {}],
+    [ACTIVITY_SUGGESTIONS_PATH, {}],
+    [REPORT_PATH, { month: MONTH }],
+  ])('%s responde 503 com codigo estavel', async (path, body) => {
+    const response = await createUnconfiguredClient().send({
+      method: HTTP_METHODS.POST,
+      path,
+      body,
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.ai.NOT_CONFIGURED);
   });
 });

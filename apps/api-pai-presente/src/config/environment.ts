@@ -53,8 +53,12 @@ const aiShape = {
    * dinheiro na conta errada, e o erro so apareceria na primeira pergunta.
    */
   LLM_PROVIDER: z.enum(LLM_PROVIDERS),
-  /** Chave do provedor. So no servidor — nunca com prefixo `VITE_`. */
-  LLM_API_KEY: z.string().min(1),
+  /**
+   * Chave do provedor. So no servidor — nunca com prefixo `VITE_`. Vazia e
+   * ESTADO valido: quem pedir texto recebe 503 legivel (`LlmNotConfiguredError`),
+   * e o resto do produto sobe. Exigir aqui matava a API inteira no boot.
+   */
+  LLM_API_KEY: z.string().default(''),
   /** Vazio usa o modelo padrao do provedor (`DEFAULT_MODELS`). */
   LLM_MODEL: z.string().default(''),
 } as const;

@@ -39,6 +39,7 @@ export type RespondWithErrorParams = {
   readonly message: string;
   readonly statusCode: number;
   readonly details: readonly FieldErrorDetail[];
+  readonly extraHeaders?: Readonly<Record<string, string>>;
 };
 
 export function respondWithError({
@@ -46,9 +47,12 @@ export function respondWithError({
   message,
   statusCode,
   details,
+  extraHeaders = {},
 }: RespondWithErrorParams): Response {
   const error = details.length > 0 ? { code, message, details } : { code, message };
-  return new Response(JSON.stringify({ error }), { status: statusCode, headers: buildHeaders() });
+  const headers = buildHeaders();
+  for (const [name, value] of Object.entries(extraHeaders)) headers.set(name, value);
+  return new Response(JSON.stringify({ error }), { status: statusCode, headers });
 }
 
 /**

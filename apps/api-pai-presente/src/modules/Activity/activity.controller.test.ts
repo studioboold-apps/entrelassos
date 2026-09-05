@@ -64,6 +64,10 @@ function createFakeActivityRepository(rows: ActivityView[]): ActivityRepository 
       return { items: owned.slice(offset, offset + limit), total: owned.length };
     },
     findById: async ({ activityId, userId }) => rows[indexOf(activityId, userId)],
+    listMonthDigest: async ({ userId, month }) =>
+      rows
+        .filter((row) => row.userId === userId && row.activityDate.startsWith(month))
+        .map(({ category, isCompleted, rating }) => ({ category, isCompleted, rating })),
     insert: async (row) => {
       const created = buildActivityView({
         ...buildIdentity(CREATED_ID),

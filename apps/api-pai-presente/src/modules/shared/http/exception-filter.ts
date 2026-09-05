@@ -29,6 +29,7 @@ export function handleUncaughtError({ error, method, path }: HandleUncaughtError
       message: error.message,
       statusCode: error.statusCode,
       details: error.details,
+      extraHeaders: error.responseHeaders,
     });
   }
 

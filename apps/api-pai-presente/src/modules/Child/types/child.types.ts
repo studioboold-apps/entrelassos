@@ -34,10 +34,18 @@ export type CreateChildParams = {
   readonly values: CreateChildBody;
 };
 
+/** O que o prompt precisa saber de um filho — nem hobby, nem cor, nem data. */
+export type ChildContextRow = {
+  readonly name: string;
+  readonly age: number;
+  readonly gender: string;
+};
+
 export type ChildRepository = {
   list(params: ListChildrenParams): Promise<ListChildrenResult>;
   findById(params: FindChildParams): Promise<ChildRow | undefined>;
   insert(row: NewChildRow): Promise<ChildRow>;
   update(params: UpdateChildParams): Promise<ChildRow | undefined>;
   remove(params: FindChildParams): Promise<boolean>;
+  listContext(userId: string): Promise<readonly ChildContextRow[]>;
 };

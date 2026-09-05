@@ -48,6 +48,18 @@ export class ForbiddenOriginError extends AppError {
   }
 }
 
+/** `Retry-After` e obrigatorio no 429 (apis.md § Rate Limiting). */
+export class TooManyRequestsError extends AppError {
+  constructor(retryAfterSeconds: number) {
+    super({
+      code: ERROR_CODES.shared.TOO_MANY_REQUESTS,
+      message: 'Limite de requisicoes excedido.',
+      statusCode: 429,
+      responseHeaders: { 'Retry-After': String(retryAfterSeconds) },
+    });
+  }
+}
+
 export class ResourceNotFoundError extends DomainError {
   constructor(code: string, message: string) {
     super({ code, message, statusCode: 404 });

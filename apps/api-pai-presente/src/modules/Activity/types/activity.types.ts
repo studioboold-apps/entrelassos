@@ -46,10 +46,24 @@ export type ChildOwnershipPort = {
   isOwnedByUser(params: { readonly childId: string; readonly userId: string }): Promise<boolean>;
 };
 
+export type ActivityMonthDigestParams = {
+  readonly userId: string;
+  /** `YYYY-MM`. */
+  readonly month: string;
+};
+
+/** So o que o boletim conta — nem titulo nem descricao saem do banco a toa. */
+export type ActivityMonthDigestRow = {
+  readonly category: string | null;
+  readonly isCompleted: boolean;
+  readonly rating: number | null;
+};
+
 export type ActivityRepository = {
   list(params: ListActivitiesParams): Promise<ListActivitiesResult>;
   findById(params: FindActivityParams): Promise<ActivityView | undefined>;
   insert(row: NewActivityRow): Promise<ActivityView>;
   update(params: UpdateActivityParams): Promise<ActivityView | undefined>;
   remove(params: FindActivityParams): Promise<boolean>;
+  listMonthDigest(params: ActivityMonthDigestParams): Promise<readonly ActivityMonthDigestRow[]>;
 };

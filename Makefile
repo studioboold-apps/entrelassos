@@ -46,10 +46,10 @@ build: ## build de producao
 	cd apps/frontend-pai-presente && bun run build
 
 typecheck: ## checagem de tipos
-	@echo "TB.5 — ainda nao ha TypeScript para checar"
+	cd apps/api-pai-presente && bun run typecheck
 
 test: ## testes
-	@echo "TB.5 — ainda nao ha testes"
+	cd apps/api-pai-presente && bun test
 
 validate: typecheck test ## portao de qualidade
 

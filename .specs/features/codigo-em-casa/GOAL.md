@@ -173,6 +173,10 @@ ar hoje, e nenhuma das três saídas a resolve sozinha.
       `HttpOnly`+`SameSite` (`Secure` fora de dev), refresh rotativo com revogação
       em cadeia no reuso; 17 testes novos, e o de aceite falha se o token
       aparecer no corpo ou na URL
+- [x] `TB.7` — os 4 endpoints de IA (`/v1/insights`, `/v1/activity-suggestions`,
+      `/v1/report`, `/v1/chat`), saída estruturada pelo mesmo Zod que valida a
+      resposta; teto de 30 chamadas/hora **por usuário** compartilhado pelas
+      quatro; 11 testes novos, e o de aceite varre o frontend atrás da chave
 - [ ] §4.3 — decidir o que fazer com os três campos sensíveis obrigatórios
 - [ ] Executar o `tasks.md` da saída escolhida
 

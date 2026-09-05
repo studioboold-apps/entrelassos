@@ -54,6 +54,10 @@ function createFakeChildRepository(rows: ChildRow[]): ChildRepository {
       return { items: owned.slice(offset, offset + limit), total: owned.length };
     },
     findById: async ({ childId, userId }) => rows[indexOf(childId, userId)],
+    listContext: async (userId) =>
+      rows
+        .filter((row) => row.userId === userId)
+        .map(({ name, age, gender }) => ({ name, age, gender })),
     insert: async (row) => {
       const created = buildChildRow({
         ...buildIdentity(CREATED_ID),

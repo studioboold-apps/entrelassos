@@ -24,7 +24,21 @@ export type PutInsightRatingParams = {
   readonly values: PutInsightRatingBody;
 };
 
+export type InsightRatingMonthDigestParams = {
+  readonly userId: string;
+  /** `YYYY-MM`. */
+  readonly month: string;
+};
+
+export type InsightRatingMonthDigestRow = {
+  readonly category: string;
+  readonly rating: number;
+};
+
 export type InsightRatingRepository = {
   list(params: ListInsightRatingsParams): Promise<ListInsightRatingsResult>;
   upsert(params: PutInsightRatingParams): Promise<InsightRatingRow>;
+  listMonthDigest(
+    params: InsightRatingMonthDigestParams,
+  ): Promise<readonly InsightRatingMonthDigestRow[]>;
 };

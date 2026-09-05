@@ -46,6 +46,10 @@ function createFakeInsightRatingRepository(rows: InsightRatingRow[]): InsightRat
       const owned = rows.filter((row) => row.userId === userId);
       return { items: owned.slice(offset, offset + limit), total: owned.length };
     },
+    listMonthDigest: async ({ userId, month }) =>
+      rows
+        .filter((row) => row.userId === userId && row.createdAt.toISOString().startsWith(month))
+        .map(({ category, rating }) => ({ category, rating })),
     upsert: async ({ userId, insightId, values }) => {
       const index = rows.findIndex((row) => row.userId === userId && row.insightId === insightId);
       const current = rows[index];

@@ -10,7 +10,10 @@ import type { Database } from '../../database/client';
 import { childrenTable } from '../Child/child.table';
 import { activitiesTable, type NewActivityRow } from './activity.table';
 import type { ListActivitiesQuery } from './activity.schema';
+import { buildMonthRange } from '../shared/date.util';
 import type {
+  ActivityMonthDigestParams,
+  ActivityMonthDigestRow,
   ActivityRepository,
   ActivityView,
   FindActivityParams,
@@ -86,6 +89,27 @@ export function createActivityRepository(database: Database): ActivityRepository
         .returning({ id: activitiesTable.id });
       if (updated.length === 0) return undefined;
       return loadView(activityId, userId);
+    },
+
+    async listMonthDigest({
+      userId,
+      month,
+    }: ActivityMonthDigestParams): Promise<readonly ActivityMonthDigestRow[]> {
+      const { firstDay, lastDay } = buildMonthRange(month);
+      return database
+        .select({
+          category: activitiesTable.category,
+          isCompleted: activitiesTable.isCompleted,
+          rating: activitiesTable.rating,
+        })
+        .from(activitiesTable)
+        .where(
+          and(
+            eq(activitiesTable.userId, userId),
+            gte(activitiesTable.activityDate, firstDay),
+            lte(activitiesTable.activityDate, lastDay),
+          ),
+        );
     },
 
     async remove({ activityId, userId }: FindActivityParams): Promise<boolean> {

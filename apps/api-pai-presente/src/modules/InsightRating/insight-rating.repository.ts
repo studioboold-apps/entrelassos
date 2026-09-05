@@ -4,11 +4,14 @@
  * Licenca: proprietaria.
  */
 
-import { count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lt } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
 import { insightRatingsTable, type InsightRatingRow } from './insight-rating.table';
+import { buildMonthInstantRange } from '../shared/date.util';
 import type {
+  InsightRatingMonthDigestParams,
+  InsightRatingMonthDigestRow,
   InsightRatingRepository,
   ListInsightRatingsParams,
   ListInsightRatingsResult,
@@ -30,6 +33,23 @@ export function createInsightRatingRepository(database: Database): InsightRating
         database.select({ value: count() }).from(insightRatingsTable).where(where),
       ]);
       return { items, total: totals[0]?.value ?? 0 };
+    },
+
+    async listMonthDigest({
+      userId,
+      month,
+    }: InsightRatingMonthDigestParams): Promise<readonly InsightRatingMonthDigestRow[]> {
+      const { start, endExclusive } = buildMonthInstantRange(month);
+      return database
+        .select({ category: insightRatingsTable.category, rating: insightRatingsTable.rating })
+        .from(insightRatingsTable)
+        .where(
+          and(
+            eq(insightRatingsTable.userId, userId),
+            gte(insightRatingsTable.createdAt, start),
+            lt(insightRatingsTable.createdAt, endExclusive),
+          ),
+        );
     },
 
     /** Reavaliar ATUALIZA; a unique (user, insight) e quem garante isso. */

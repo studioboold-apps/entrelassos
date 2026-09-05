@@ -9,6 +9,7 @@ import { and, count, desc, eq } from 'drizzle-orm';
 import type { Database } from '../../database/client';
 import { childrenTable, type ChildRow, type NewChildRow } from './child.table';
 import type {
+  ChildContextRow,
   ChildRepository,
   FindChildParams,
   ListChildrenParams,
@@ -55,6 +56,14 @@ export function createChildRepository(database: Database): ChildRepository {
         .where(scopeToUser(childId, userId))
         .returning();
       return rows[0];
+    },
+
+    async listContext(userId: string): Promise<readonly ChildContextRow[]> {
+      return database
+        .select({ name: childrenTable.name, age: childrenTable.age, gender: childrenTable.gender })
+        .from(childrenTable)
+        .where(eq(childrenTable.userId, userId))
+        .orderBy(desc(childrenTable.createdAt));
     },
 
     async remove({ childId, userId }: FindChildParams): Promise<boolean> {

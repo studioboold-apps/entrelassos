@@ -1,0 +1,223 @@
+/**
+ * Pai Presente — API
+ * Copyright (c) 2026. Todos os direitos reservados.
+ * Licenca: proprietaria.
+ */
+
+import { describe, expect, test } from 'bun:test';
+
+import {
+  createTestClient,
+  readDataRecord,
+  readErrorCode,
+  type TestClient,
+} from '../../testing/http-test.util';
+import { ERROR_CODES } from '../shared/errors/codes';
+import { HTTP_METHODS } from '../shared/http/http.constant';
+import { createRateLimiter, type RateLimitPolicy } from '../shared/http/rate-limit';
+import {
+  ACTIVITY_SUGGESTIONS_PATH,
+  AI_RATE_LIMIT,
+  CHAT_PATH,
+  INSIGHTS_PATH,
+  REPORT_PATH,
+} from './ai.constant';
+import { buildAiRoutes } from './ai.controller';
+import { createAiUseCases } from './ai.use-case';
+import type {
+  ActivityDigestRow,
+  ChildContext,
+  InsightDigestRow,
+  LlmProvider,
+  LlmStructuredRequest,
+  LlmTextRequest,
+} from './types/ai.types';
+
+const CHILD: ChildContext = { name: 'Bento', age: 7, gender: 'masculino' };
+const MONTH = '2026-08';
+
+type FakeProvider = LlmProvider & { readonly prompts: string[] };
+
+function createFakeProvider(structured: unknown, text = 'Uma resposta do mentor.'): FakeProvider {
+  const prompts: string[] = [];
+  return {
+    name: 'anthropic',
+    prompts,
+    async generateText({ userPrompt }: LlmTextRequest): Promise<string> {
+      prompts.push(userPrompt);
+      return text;
+    },
+    async generateStructured({ userPrompt }: LlmStructuredRequest): Promise<unknown> {
+      prompts.push(userPrompt);
+      return structured;
+    },
+  };
+}
+
+type HarnessParams = {
+  readonly provider: FakeProvider;
+  readonly children?: readonly ChildContext[];
+  readonly activities?: readonly ActivityDigestRow[];
+  readonly insights?: readonly InsightDigestRow[];
+  readonly policy?: RateLimitPolicy;
+};
+
+function createHarness({
+  provider,
+  children = [CHILD],
+  activities = [],
+  insights = [],
+  policy = AI_RATE_LIMIT,
+}: HarnessParams): TestClient {
+  const useCases = createAiUseCases({
+    provider,
+    children: { listByUser: async () => children },
+    activities: { listMonth: async () => activities },
+    insights: { listMonth: async () => insights },
+  });
+  return createTestClient({
+    routes: buildAiRoutes({ useCases, rateLimiter: createRateLimiter(policy) }),
+  });
+}
+
+function buildInsightsPayload(): unknown {
+  return {
+    insights: [
+      {
+        title: 'Rotina de leitura',
+        content: 'Leia dez minutos antes de dormir.',
+        category: 'comportamento',
+        childName: 'Bento',
+      },
+    ],
+  };
+}
+
+function buildReportPayload(): unknown {
+  return {
+    grade: 7,
+    strengths: [{ title: 'Presenca', description: 'Esteve junto nos fins de semana.' }],
+    improvements: [{ title: 'Constancia', description: 'Faltou durante a semana.' }],
+    motivationalMessage: 'Continue.',
+    nextMonthGoal: 'Uma atividade por semana.',
+  };
+}
+
+describe('rotas de IA', () => {
+  test('insights voltam com id gerado pelo SERVIDOR', async () => {
+    const provider = createFakeProvider(buildInsightsPayload());
+    const client = createHarness({ provider });
+
+    const response = await client.send({ method: HTTP_METHODS.POST, path: INSIGHTS_PATH, body: {} });
+
+    expect(response.status).toBe(200);
+    const [insight] = readDataRecord(response).insights as readonly Record<string, unknown>[];
+    expect(insight?.title).toBe('Rotina de leitura');
+    expect(typeof insight?.id).toBe('string');
+    expect((insight?.id as string).length).toBeGreaterThan(0);
+  });
+
+  test('sem filho cadastrado NAO chama o provedor — a chamada custa dinheiro', async () => {
+    const provider = createFakeProvider(buildInsightsPayload());
+    const client = createHarness({ provider, children: [] });
+
+    const response = await client.send({ method: HTTP_METHODS.POST, path: INSIGHTS_PATH, body: {} });
+
+    expect(response.status).toBe(422);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.ai.NO_CHILDREN);
+    expect(provider.prompts).toHaveLength(0);
+  });
+
+  test('a conversa dispensa filho cadastrado — a primeira pergunta vem antes', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider, children: [] });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHAT_PATH,
+      body: { message: 'Como lidar com birra?' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(readDataRecord(response).reply).toBe('Uma resposta do mentor.');
+    expect(provider.prompts[0]).toContain('Como lidar com birra?');
+  });
+
+  test('o boletim usa os numeros do SERVIDOR, nao o que o cliente mandar', async () => {
+    const provider = createFakeProvider(buildReportPayload());
+    const client = createHarness({
+      provider,
+      activities: [
+        { category: 'aventura', isCompleted: true, rating: 5 },
+        { category: 'aventura', isCompleted: true, rating: 3 },
+        { category: 'escolar', isCompleted: false, rating: null },
+        { category: null, isCompleted: false, rating: null },
+      ],
+      insights: [{ category: 'comportamento', rating: 4 }],
+    });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: REPORT_PATH,
+      // `completionRate` e `grade` sao ruido do cliente: o schema os descarta.
+      body: { month: MONTH, completionRate: 100, grade: 10 },
+    });
+
+    expect(response.status).toBe(200);
+    expect(readDataRecord(response).grade).toBe(7);
+    expect(provider.prompts[0]).toContain('atividades planejadas: 4');
+    expect(provider.prompts[0]).toContain('taxa de conclusao: 50%');
+  });
+
+  test('mes fora de YYYY-MM para na fronteira, antes de gastar a chamada', async () => {
+    const provider = createFakeProvider(buildReportPayload());
+    const client = createHarness({ provider });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: REPORT_PATH,
+      body: { month: 'agosto' },
+    });
+
+    expect(response.status).toBe(400);
+    expect(provider.prompts).toHaveLength(0);
+  });
+
+  test('resposta fora do formato e culpa do PROVEDOR: 502, nao 400', async () => {
+    const provider = createFakeProvider({ insights: [{ title: 'so o titulo' }] });
+    const client = createHarness({ provider });
+
+    const response = await client.send({ method: HTTP_METHODS.POST, path: INSIGHTS_PATH, body: {} });
+
+    expect(response.status).toBe(502);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.ai.RESPONSE_INVALID);
+  });
+
+  test('estourar o teto devolve 429 COM Retry-After', async () => {
+    const provider = createFakeProvider({ suggestions: [] });
+    const client = createHarness({ provider, policy: { maxRequests: 2, windowSeconds: 60 } });
+    const send = () =>
+      client.send({ method: HTTP_METHODS.POST, path: ACTIVITY_SUGGESTIONS_PATH, body: {} });
+
+    expect((await send()).status).toBe(200);
+    expect((await send()).status).toBe(200);
+    const blocked = await send();
+
+    expect(blocked.status).toBe(429);
+    expect(readErrorCode(blocked)).toBe(ERROR_CODES.shared.TOO_MANY_REQUESTS);
+    expect(Number(blocked.headers.get('retry-after'))).toBeGreaterThan(0);
+  });
+
+  test('o teto e por USUARIO: as quatro rotas dividem a mesma cota', async () => {
+    const provider = createFakeProvider(buildInsightsPayload());
+    const client = createHarness({ provider, policy: { maxRequests: 1, windowSeconds: 60 } });
+
+    expect(
+      (await client.send({ method: HTTP_METHODS.POST, path: INSIGHTS_PATH, body: {} })).status,
+    ).toBe(200);
+    expect(
+      (await client.send({ method: HTTP_METHODS.POST, path: CHAT_PATH, body: { message: 'oi' } }))
+        .status,
+    ).toBe(429);
+  });
+});

@@ -32,7 +32,14 @@ const auth = buildAuthModule({
 });
 
 const router = createRouter({
-  routes: buildApplicationRoutes(database),
+  routes: buildApplicationRoutes({
+    database,
+    llm: {
+      providerName: environment.LLM_PROVIDER,
+      apiKey: environment.LLM_API_KEY,
+      model: environment.LLM_MODEL,
+    },
+  }),
   publicRoutes: auth.publicRoutes,
   authenticatedUserResolver: auth.authenticatedUserResolver,
 });

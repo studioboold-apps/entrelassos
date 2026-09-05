@@ -9,6 +9,8 @@ export type AppErrorParams = {
   readonly message: string;
   readonly statusCode: number;
   readonly details?: readonly FieldErrorDetail[];
+  /** Cabecalhos que a RECUSA exige (`Retry-After` no 429, apis.md). */
+  readonly responseHeaders?: Readonly<Record<string, string>>;
 };
 
 export type FieldErrorDetail = {
@@ -21,13 +23,15 @@ export class AppError extends Error {
   readonly code: string;
   readonly statusCode: number;
   readonly details: readonly FieldErrorDetail[];
+  readonly responseHeaders: Readonly<Record<string, string>>;
 
-  constructor({ code, message, statusCode, details = [] }: AppErrorParams) {
+  constructor({ code, message, statusCode, details = [], responseHeaders = {} }: AppErrorParams) {
     super(message);
     this.name = new.target.name;
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
+    this.responseHeaders = responseHeaders;
   }
 }
 

@@ -6,6 +6,8 @@
 
 import type { Database } from './database/client';
 import { buildActivityRoutes } from './modules/Activity/activity.controller';
+import { buildAiModule } from './modules/Ai/ai.module';
+import type { LlmProviderName } from './modules/Ai/ai.constant';
 import { createActivityRepository } from './modules/Activity/activity.repository';
 import { createActivityUseCases } from './modules/Activity/activity.use-case';
 import type { ChildOwnershipPort } from './modules/Activity/types/activity.types';
@@ -44,22 +46,35 @@ function adaptPostExistence(repository: CommunityPostRepository): PostExistenceP
   return { exists: (postId) => repository.exists(postId) };
 }
 
-export function buildApplicationRoutes(database: Database): readonly RouteDefinition[] {
+export type BuildApplicationRoutesParams = {
+  readonly database: Database;
+  /** Chave do provedor de IA: vive so aqui dentro, nunca sai numa resposta. */
+  readonly llm: {
+    readonly providerName: LlmProviderName;
+    readonly apiKey: string;
+    readonly model: string;
+  };
+};
+
+export function buildApplicationRoutes({
+  database,
+  llm,
+}: BuildApplicationRoutesParams): readonly RouteDefinition[] {
   const childRepository = createChildRepository(database);
   const communityPostRepository = createCommunityPostRepository(database);
+  const activityRepository = createActivityRepository(database);
+  const insightRatingRepository = createInsightRatingRepository(database);
 
   return [
     ...buildUserRoutes(createUserUseCases(createUserRepository(database))),
     ...buildChildRoutes(createChildUseCases(childRepository)),
     ...buildActivityRoutes(
       createActivityUseCases({
-        repository: createActivityRepository(database),
+        repository: activityRepository,
         childOwnership: adaptChildOwnership(childRepository),
       }),
     ),
-    ...buildInsightRatingRoutes(
-      createInsightRatingUseCases(createInsightRatingRepository(database)),
-    ),
+    ...buildInsightRatingRoutes(createInsightRatingUseCases(insightRatingRepository)),
     ...buildCommunityPostRoutes(createCommunityPostUseCases(communityPostRepository)),
     ...buildCommunityCommentRoutes(
       createCommunityCommentUseCases({
@@ -68,5 +83,11 @@ export function buildApplicationRoutes(database: Database): readonly RouteDefini
       }),
     ),
     ...buildChatMessageRoutes(createChatMessageUseCases(createChatMessageRepository(database))),
+    ...buildAiModule({
+      children: childRepository,
+      activities: activityRepository,
+      insights: insightRatingRepository,
+      ...llm,
+    }),
   ];
 }

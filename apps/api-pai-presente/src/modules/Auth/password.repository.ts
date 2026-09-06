@@ -7,6 +7,7 @@
 import { eq } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
+import { isUniqueViolation } from '../../database/postgres-error';
 import type { AuthenticatedUser } from '../shared/auth/authenticated-user.interface';
 import { usersTable } from '../User/user.table';
 import { EmailAlreadyRegisteredError } from './auth.error';
@@ -16,15 +17,6 @@ import type {
   PasswordAccountRepository,
   PasswordCredential,
 } from './types/auth.types';
-
-/** `unique_violation` do Postgres. */
-const UNIQUE_VIOLATION_CODE = '23505';
-
-function isUniqueViolation(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error
-    ? (error as { readonly code: unknown }).code === UNIQUE_VIOLATION_CODE
-    : false;
-}
 
 export function createPasswordAccountRepository(database: Database): PasswordAccountRepository {
   return {

@@ -208,21 +208,47 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
 - [ ] `P5.1` — credenciais reais de `D7`, login provado por uma pessoa
       **BLOQUEADA em `D7`, e o bloqueio é medido.** Tudo o que não depende dele
       está feito: o app está no ar em `https://web-production-1d6f.up.railway.app`,
-      e o bundle publicado traz `Sz="AGUARDANDO-D7"` — o identificador atravessa
-      o IaC, o `--build-arg`, o `ENV` e o `define` do Vite e chega ao navegador.
-      Falta só o valor real, que sai de uma conta Google Cloud que não é minha.
-      O que o Google precisa é **origem JavaScript autorizada**, não
-      `redirect_uri`: o fluxo é o token de identidade do GIS, que resolve dentro
-      da página. `public-environment.test.js` guarda os quatro elos, e foi visto
-      reprovar quando um deles cai.
+      e o encanamento das quatro pontas foi visto funcionando em 05/09/2026, com
+      `Sz="AGUARDANDO-D7"` no bundle publicado — o valor do IaC atravessava o
+      `--build-arg`, o `ENV` e o `define` do Vite e chegava ao navegador. Em
+      06/09 esse marcador saiu (`P5.2`), e o bundle no ar não traz mais nem
+      `AGUARDANDO-D7` nem `gsi/client`: com o identificador vazio o SDK do
+      Google não é sequer baixado. Falta só o valor real, que sai de uma conta
+      Google Cloud que não é minha. O que o Google precisa é **origem
+      JavaScript autorizada**, não `redirect_uri`: o fluxo é o token de
+      identidade do GIS, que resolve dentro da página.
+      `public-environment.test.js` guarda os quatro elos afirmando os NOMES
+      declarados, nunca os valores — foi por isso que esvaziar não o quebrou —,
+      e foi visto reprovar quando um elo cai.
 
-- [ ] `P5.2` — entrada por e-mail e senha, para o app no ar ter porta
+- [x] `P5.2` — entrada por e-mail e senha, para o app no ar ter porta
       Cadastro e login próprios, sem depender de conta de terceiro. `senha` é
       provedor irmão de `google`/`apple` no corpo do login, não um
       `IdentityVerifier` — verificador transforma prova externa em identidade e
-      não tem metade de cadastro. `GOOGLE_CLIENT_ID` passa a nascer **vazio**:
-      o marcador `AGUARDANDO-D7` é verdadeiro, e verdadeiro faz a tela tentar
-      desenhar um botão que o Google recusa.
+      não tem metade de cadastro. `GOOGLE_CLIENT_ID` passou a nascer **vazio**:
+      o marcador `AGUARDANDO-D7` era verdadeiro, e verdadeiro fazia a tela
+      tentar desenhar um botão que o Google recusa.
+
+      **Provado no app publicado em 06/09/2026**, um caso por linha: cadastro
+      `201`; **e-mail repetido `409 AUTH_EMAIL_ALREADY_REGISTERED`**; login com
+      a senha certa `201`; senha errada `401 AUTH_IDENTITY_TOKEN_INVALID`;
+      e-mail desconhecido **a mesma** `401` e o mesmo código; rota autenticada
+      `200` com o cookie da sessão; senha curta `400`. Suíte:
+      `make test-e2e` 18 passando / 0 falhando, `make validate` 501 passando /
+      24 puladas / 0 falhando.
+
+      **Um defeito só apareceu no ar, e virou teste antes de virar conserto.**
+      O e-mail repetido respondia `500 INTERNAL_ERROR`, e a tela ancora "este
+      e-mail já tem conta" naquele código — o pai via o aviso genérico do
+      rodapé. Causa medida: `isUniqueViolation` lia `error.code === '23505'` na
+      casca, e o `DrizzleQueryError` não tem `code` nenhum; o SQLSTATE mora em
+      `.cause.errno`. Por que nenhum teste via: a única cobertura de e-mail
+      repetido usava um repositório de mentira que LANÇA
+      `EmailAlreadyRegisteredError` de propósito — ela prova o que o
+      controlador faz com o erro, nunca a única coisa que só o Postgres decide,
+      se o `unique_violation` VIRA aquele erro. A leitura virou
+      `database/postgres-error.ts`, com a forma medida fixada em teste unitário
+      e o caso de ponta a ponta contra o Postgres de verdade.
 
 ### Fase 6 — dívida
 - [x] `P6.1` — o que a Fase 2 tocou sai nos padrões; o resto vira lista datada

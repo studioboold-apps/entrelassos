@@ -151,16 +151,19 @@ página e nunca redireciona. Campo de redirecionamento não é lido por esse
 fluxo, e pedi-lo custaria uma rodada configurando o lugar errado.
 
 **O encanamento já está pronto e vazio — medido em 05/09/2026.** No bundle no
-ar, `Sz="AGUARDANDO-D7"` é o identificador do Google e `Pz=""` o da Apple: o
+ar, `Sz="AGUARDANDO-D7"` era o identificador do Google e `Pz=""` o da Apple: o
 valor declarado no IaC atravessa o `--build-arg` do Railway, o `define` do
 `vite.config.js` e chega ao navegador. A suspeita de que faltava o prefixo
 `VITE_` no `Dockerfile` era falsa, e quem a derrubou foi um `grep` no bundle,
 não a leitura do arquivo.
 
-Como o marcador não é vazio, a tela **tenta** desenhar o botão: chama
-`initialize` com um identificador que o Google não conhece, e o que sobra é
-uma área vazia onde deveria estar o botão. Nada aqui é código a escrever —
-falta só o valor real.
+Como o marcador não era vazio, a tela **tentava** desenhar o botão: chamava
+`initialize` com um identificador que o Google não conhece, e o que sobrava era
+uma área vazia onde deveria estar o botão. **`F5.2` esvaziou a variável em
+06/09**, e o bundle publicado hoje não traz nem `AGUARDANDO-D7` nem
+`gsi/client` — sem identificador, o SDK do Google nem é baixado. Nada aqui é
+código a escrever: falta só o valor real, e a única mudança quando `D7` chegar
+é trocar o valor nos dois serviços do IaC.
 
 **Aceite:** uma pessoa entra no app publicado com a conta dela e cadastra um
 filho. É o aceite do objetivo inteiro.
@@ -219,6 +222,20 @@ cravados) na mesma passada — é o que aquele documento manda.
 **Aceite:** cadastro e login por e-mail e senha no app publicado, sem Google
 configurado; e a suíte cobrindo e-mail repetido, senha curta, senha errada e
 e-mail desconhecido.
+
+**Aceite provado em 06/09/2026** contra `https://web-production-1d6f.up.railway.app`:
+cadastro `201`, e-mail repetido `409 AUTH_EMAIL_ALREADY_REGISTERED`, login
+`201`, senha errada `401 AUTH_IDENTITY_TOKEN_INVALID`, e-mail desconhecido a
+mesma `401` e o mesmo código, rota autenticada `200` com o cookie, senha curta
+`400`. Suíte: `make test-e2e` 18 passando / 0 falhando; `make validate` 501
+passando / 24 puladas / 0 falhando.
+
+O e-mail repetido reprovou na primeira medição — `500` em vez de `409` — e o
+conserto seguiu a invariante: **primeiro o teste de ponta a ponta que
+reproduziu**, depois a leitura do SQLSTATE corrigida em
+`database/postgres-error.ts` (`DrizzleQueryError` não tem `code`; o valor mora
+em `.cause.errno`). O fake que cobria e-mail repetido lançava o erro de
+propósito, então provava o controlador e nunca o Postgres.
 
 ---
 

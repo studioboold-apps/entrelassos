@@ -77,13 +77,23 @@ export default defineRailway(() => {
       LLM_PROVIDER: 'anthropic',
       LLM_API_KEY: preserve(),
       /**
-       * `D7` ainda aberta: nao existe client_id do Google. O boot exige ALGUM
-       * provedor (fail-closed, `security.md` §2), entao aqui vai um MARCADOR —
-       * de proposito fora do formato do Google, para nunca ser confundido com
-       * credencial. Enquanto ele estiver aqui o login recusa todo mundo, que e'
-       * a verdade: `F5.1` e' que abre a porta.
+       * A porta que NAO depende de terceiro. Ela ja e' o padrao do schema; esta
+       * declarada assim mesmo porque quem le o plano precisa ver COMO se entra
+       * no ambiente sem olhar o codigo da app.
        */
-      GOOGLE_CLIENT_ID: 'AGUARDANDO-D7',
+      AUTH_PASSWORD_SIGN_IN: '1',
+      /**
+       * `D7` ainda aberta: nao existe client_id do Google, e VAZIO e' a unica
+       * forma honesta de dizer isso. Ate 06/09 havia aqui um marcador
+       * (`AGUARDANDO-D7`) so para o boot fail-closed (`security.md` §2) achar
+       * ALGUM provedor — e o preco era o login recusar todo mundo, com a tela
+       * publicada sem nenhum jeito de entrar.
+       *
+       * Agora a senha e' a porta, e ela conta como porta na checagem de boot
+       * (`verifier-registry.test.ts`). O dia em que `D7` chegar, o unico passo e'
+       * trocar esta linha pelo client_id de verdade — nada mais muda.
+       */
+      GOOGLE_CLIENT_ID: '',
     },
   });
 
@@ -113,7 +123,14 @@ export default defineRailway(() => {
       PORT: String(WEB_PORT),
       /** O Vite ASSA no bundle (`web.md` §12): tem de existir no BUILD. */
       APP_ENV: 'production',
-      GOOGLE_CLIENT_ID: 'AGUARDANDO-D7',
+      /**
+       * Vazio ESCONDE o botao do Google; qualquer valor manda a tela tentar
+       * desenha-lo. O marcador que ficava aqui era truthy: o SDK do Google era
+       * baixado, recusava o client_id invalido, e a tela ficava com um buraco
+       * onde devia haver botao — pior que nao ter botao nenhum, porque parece
+       * carregamento pela metade.
+       */
+      GOOGLE_CLIENT_ID: '',
     },
   });
 

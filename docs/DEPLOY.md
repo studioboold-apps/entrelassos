@@ -191,11 +191,20 @@ mesmo. Quem prova o banco é o health check interno do provedor, que faz
 `select 1` a cada sondagem — e é ele que impede um deploy quebrado de ser
 promovido.
 
-### O que continua fechado
+### Como se entra hoje, e o que continua fechado
 
-`GOOGLE_CLIENT_ID=AGUARDANDO-D7` é **marcador, não credencial**. O boot exige
-algum valor; enquanto `D7` não trouxer o `client_id` real, a tela de entrada do
-Google não funciona no ar. Quem abre isso é `F5.1`.
+**A porta é e-mail e senha** (`AUTH_PASSWORD_SIGN_IN=1`, o padrão do schema).
+Ela não depende de terceiro nenhum, e conta como porta na checagem fail-closed
+do boot — a produção configurada só com senha sobe.
+
+`GOOGLE_CLIENT_ID` fica **vazio** até `D7`. Vazio é a única forma honesta de
+dizer "não existe client_id": qualquer valor, inclusive o marcador
+`AGUARDANDO-D7` que ficou aqui até 06/09, é verdadeiro, e verdadeiro manda a
+tela baixar o SDK do Google, que recusa o identificador inválido e deixa um
+buraco onde deveria haver botão.
+
+Quando `D7` chegar, o único passo é trocar `GOOGLE_CLIENT_ID` nos dois serviços
+(`api` e `web`) pelo identificador real — `F5.1` já tem o resto pronto.
 
 ## 8. O backup — ainda não agendado
 

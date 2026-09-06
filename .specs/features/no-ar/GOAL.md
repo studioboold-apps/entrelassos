@@ -216,6 +216,14 @@ com o app da Base44 depois da virada (desligar? deixar lendo?) continua sem dono
       da página. `public-environment.test.js` guarda os quatro elos, e foi visto
       reprovar quando um deles cai.
 
+- [ ] `P5.2` — entrada por e-mail e senha, para o app no ar ter porta
+      Cadastro e login próprios, sem depender de conta de terceiro. `senha` é
+      provedor irmão de `google`/`apple` no corpo do login, não um
+      `IdentityVerifier` — verificador transforma prova externa em identidade e
+      não tem metade de cadastro. `GOOGLE_CLIENT_ID` passa a nascer **vazio**:
+      o marcador `AGUARDANDO-D7` é verdadeiro, e verdadeiro faz a tela tentar
+      desenhar um botão que o Google recusa.
+
 ### Fase 6 — dívida
 - [x] `P6.1` — o que a Fase 2 tocou sai nos padrões; o resto vira lista datada
       **Medido em 05/09/2026:** `*.hook.js` 0 → 9; `*.locale.json` 0 → 13; textos

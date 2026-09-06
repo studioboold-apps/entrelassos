@@ -165,6 +165,52 @@ falta só o valor real.
 **Aceite:** uma pessoa entra no app publicado com a conta dela e cadastra um
 filho. É o aceite do objetivo inteiro.
 
+### `F5.2` — entrada por e-mail e senha, para não depender de `D7`
+
+**Por que existe.** `F5.1` está bloqueada numa conta que não é nossa, e
+enquanto ela não chega o produto no ar **não tem porta nenhuma**: o botão do
+Google é desenhado com um identificador que o Google não conhece, e sobra uma
+área vazia. Uma porta que não depende de terceiro é o que tira o objetivo do
+estado "publicado e inalcançável".
+
+**Senha NÃO é um `IdentityVerifier`.** O verificador transforma prova
+**externa** em identidade e nunca toca no nosso banco; a senha lê o nosso
+próprio armazém e ainda tem uma metade — o **cadastro** — que verificador
+nenhum tem. Enfiá-la na interface obrigaria todo verificador a aceitar uma
+prova que ele não sabe ler.
+
+O corpo do login vira **união discriminada** por `provider`:
+`{provider:'google'|'apple'|'dev', idToken}` contra
+`{provider:'password', email, password}`.
+
+**O que se guarda.** `auth_identities` com `provider='password'` e `subject` =
+e-mail normalizado (o `unique(provider,subject)` que já existe é a busca),
+mais `password_credentials` com o hash. Senha em `users` seria uma coluna nula
+para todo mundo que entra por Google.
+
+**Argon2id pelo `Bun.password`**, e **verificação boba em e-mail
+desconhecido**: sem ela, a resposta volta rápido demais quando a conta não
+existe, e o tempo enumera quem tem conta no app. A recusa é a mesma frase dos
+outros provedores — nunca "senha errada", que confirma o e-mail.
+
+**Envs, e a que fica esperando `D7`:**
+
+| variável | valor | por quê |
+|---|---|---|
+| `AUTH_PASSWORD_SIGN_IN` | `1` por padrão | porta que não depende de terceiro; desligá-la é decisão explícita |
+| `GOOGLE_CLIENT_ID` | **vazio** até `D7` | o marcador `AGUARDANDO-D7` é verdadeiro, e verdadeiro faz a tela TENTAR desenhar o botão. Vazio esconde |
+
+O boot continua **fail-closed**: sem nenhum provedor **e** sem senha, a API não
+sobe. Contar só verificador deixaria uma configuração só-senha morrendo no
+boot.
+
+`SignIn.jsx` é tocado, então paga a dívida dele (`docs/DEBITO.md`: 7 textos
+cravados) na mesma passada — é o que aquele documento manda.
+
+**Aceite:** cadastro e login por e-mail e senha no app publicado, sem Google
+configurado; e a suíte cobrindo e-mail repetido, senha curta, senha errada e
+e-mail desconhecido.
+
 ---
 
 ## Fase 6 — A dívida dos padrões

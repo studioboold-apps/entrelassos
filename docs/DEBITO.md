@@ -31,18 +31,24 @@ de atividade**, que existiam em `Juntinhos.jsx` e em `Boletim.jsx`, e as
 
 ## O que continua devendo
 
-Cinco componentes que a Fase 2 não tocou. Nenhum deles tem `*.locale.json`, e
-três têm texto em português cravado no JSX.
+Quatro componentes que a Fase 2 não tocou. Nenhum deles tem `*.locale.json`, e
+dois têm texto em português cravado no JSX.
 
 | arquivo | linhas | textos cravados | o que falta |
 |---|---|---|---|
 | `components/CommunityPostCard.jsx` | 147 | 6 | locale (§6); a mutation de comentário mora no componente, não em hook (§4) |
 | `components/CommunityCreatePost.jsx` | 77 | 6 | locale (§6); a mutation de publicação mora no componente (§4) |
-| `components/SignIn.jsx` | 74 | 7 | locale (§6) |
 | `components/EnvironmentBanner.jsx` | 29 | 0 no arquivo | as duas frases da faixa moram em `lib/environment.js`, em português cravado |
 | `components/AuthLayout.jsx` | 23 | 0 | nada — recebe título e subtítulo por prop |
 
-**Total: 19 textos nos componentes + 2 em `lib/environment.js` = 21.**
+**Total: 12 textos nos componentes + 2 em `lib/environment.js` = 14.**
+
+`components/SignIn.jsx` **saiu desta lista em 06/09**: a entrada por e-mail e
+senha (`F5.2`) reescreveu a tela inteira, e a regra desta página — *quem mexer
+num destes arquivos por qualquer outro motivo paga a dívida dele na mesma
+passada* — cobrou as sete frases junto. Agora são 22 chaves em
+`components/SignIn.locale.json`, e `SignIn.test.js` reprova qualquer literal
+acentuado que volte para o JSX.
 
 ### A duplicação que sobrou, e por que ela fica
 

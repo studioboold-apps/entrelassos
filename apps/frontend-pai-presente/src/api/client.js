@@ -10,6 +10,7 @@ import { HTTP_METHODS, request, requestPage } from './http';
 const PATHS = Object.freeze({
   me: '/v1/me',
   sessions: '/v1/auth/sessions',
+  registrations: '/v1/auth/registrations',
   children: '/v1/children',
   activities: '/v1/activities',
   insightRatings: '/v1/insight-ratings',
@@ -127,9 +128,21 @@ const auth = Object.freeze({
   me: () => request(HTTP_METHODS.GET, PATHS.me),
   updateMe: (values) =>
     request(HTTP_METHODS.PATCH, PATHS.me, { body: pickProfileFields(values) }),
-  /** O `idToken` vai no CORPO: em query string ele vazaria para log e historico. */
-  signIn: ({ provider, idToken }) =>
-    request(HTTP_METHODS.POST, PATHS.sessions, { body: { provider, idToken } }),
+  /**
+   * O corpo e' uniao discriminada por `provider`, e viaja INTEIRO: desmontar
+   * aqui para remontar campo a campo faria a entrada por senha perder `email` e
+   * `password` em silencio, que e' o mesmo erro que o schema estrito da API
+   * pega tarde demais.
+   *
+   * Credencial no CORPO, nunca em query string: la ela vazaria para log,
+   * historico do navegador e Referer.
+   */
+  signIn: (credentials) => request(HTTP_METHODS.POST, PATHS.sessions, { body: credentials }),
+  /** Nome em branco nao e' um valor, e' ausencia de pedido — e ausencia se omite. */
+  register: ({ email, password, fullName = '' }) =>
+    request(HTTP_METHODS.POST, PATHS.registrations, {
+      body: fullName === '' ? { email, password } : { email, password, fullName },
+    }),
   logout: () => request(HTTP_METHODS.DELETE, PATHS.sessions),
 });
 

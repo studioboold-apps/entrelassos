@@ -6,6 +6,7 @@
 
 import activityCard from '@/components/ActivityCard.locale.json';
 import insightCard from '@/components/InsightCard.locale.json';
+import signIn from '@/components/SignIn.locale.json';
 import boletim from '@/pages/Boletim.locale.json';
 import chat from '@/pages/Chat.locale.json';
 import comunidade from '@/pages/Comunidade.locale.json';
@@ -42,4 +43,5 @@ export const LOCALE_MESSAGES = Object.freeze({
   onboarding,
   perfil,
   profile,
+  signIn,
 });

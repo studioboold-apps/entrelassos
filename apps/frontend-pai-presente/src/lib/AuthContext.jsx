@@ -42,8 +42,17 @@ export const AuthProvider = ({ children }) => {
   }, [reloadUser]);
 
   const signIn = useCallback(
-    async ({ provider, idToken }) => {
-      await api.auth.signIn({ provider, idToken });
+    async (credentials) => {
+      await api.auth.signIn(credentials);
+      await reloadUser();
+    },
+    [reloadUser],
+  );
+
+  /** Cadastrar ja abre a sessao na API — nao ha segundo login a fazer aqui. */
+  const register = useCallback(
+    async (account) => {
+      await api.auth.register(account);
       await reloadUser();
     },
     [reloadUser],
@@ -69,6 +78,7 @@ export const AuthProvider = ({ children }) => {
         isLoadingAuth,
         authError,
         signIn,
+        register,
         logout,
         reloadUser,
       }}

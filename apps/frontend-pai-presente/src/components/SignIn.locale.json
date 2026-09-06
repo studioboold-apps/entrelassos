@@ -1,0 +1,32 @@
+{
+  "title": "Pai Presente",
+  "subtitle": "Entre para acompanhar o tempo com seus filhos.",
+  "footer": "Usamos sua conta só para identificar você.",
+  "submitting": "Entrando…",
+  "passwordHint": "Pelo menos {count} caracteres.",
+  "dividerOtherWays": "ou entre com",
+  "apple": "Continuar com Apple",
+  "noProvider": "Google e Apple ainda não estão configurados neste ambiente.",
+  "modes": {
+    "signIn": "Entrar",
+    "register": "Criar conta"
+  },
+  "fields": {
+    "email": "E-mail",
+    "password": "Senha",
+    "fullName": "Seu nome (opcional)"
+  },
+  "submit": {
+    "signIn": "Entrar",
+    "register": "Criar conta"
+  },
+  "errors": {
+    "email": "Digite um e-mail válido, com @ e domínio.",
+    "passwordRequired": "Digite sua senha.",
+    "passwordShort": "A senha precisa de pelo menos {count} caracteres.",
+    "emailTaken": "Este e-mail já tem conta. Volte para Entrar.",
+    "failed": "E-mail ou senha não conferem. Confira e tente de novo.",
+    "registerFailed": "Não conseguimos criar a conta agora. Tente de novo em instantes.",
+    "server": "Não conseguimos falar com o servidor agora. Tente de novo em instantes."
+  }
+}

@@ -19,6 +19,7 @@ export const HTTP_STATUS = {
   CREATED: 201,
   NO_CONTENT: 204,
   FORBIDDEN: 403,
+  CONFLICT: 409,
   SERVICE_UNAVAILABLE: 503,
 } as const;
 

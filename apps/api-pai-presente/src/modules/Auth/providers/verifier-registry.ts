@@ -8,8 +8,8 @@ import {
   DEVELOPMENT_AUTH_PROVIDER,
   OIDC_AUTH_PROVIDERS,
   OIDC_PROVIDER_CONFIG,
-  type AuthProvider,
   type OidcAuthProvider,
+  type TokenAuthProvider,
 } from '../auth.constant';
 import type { IdentityVerifier, IdentityVerifierRegistry } from '../types/auth.types';
 import { createDevelopmentVerifier } from './development.verifier';
@@ -25,6 +25,12 @@ export type DevelopmentSignInSettings = {
 export type CreateIdentityVerifierRegistryParams = {
   readonly clientIds: ProviderClientIds;
   readonly developmentSignIn: DevelopmentSignInSettings;
+  /**
+   * Entrada por senha nao produz verificador nenhum, mas CONTA como porta. Sem
+   * isto, uma instalacao que so aceita e-mail e senha morreria no boot dizendo
+   * que nao ha login configurado — justamente com o login que ela usa ligado.
+   */
+  readonly isPasswordSignInEnabled: boolean;
 };
 
 /**
@@ -38,6 +44,7 @@ export type CreateIdentityVerifierRegistryParams = {
 export function createIdentityVerifierRegistry({
   clientIds,
   developmentSignIn,
+  isPasswordSignInEnabled,
 }: CreateIdentityVerifierRegistryParams): IdentityVerifierRegistry {
   if (developmentSignIn.isEnabled && developmentSignIn.isProduction) {
     throw new Error(
@@ -45,7 +52,7 @@ export function createIdentityVerifierRegistry({
     );
   }
 
-  const verifiers = new Map<AuthProvider, IdentityVerifier>();
+  const verifiers = new Map<TokenAuthProvider, IdentityVerifier>();
 
   for (const provider of OIDC_AUTH_PROVIDERS) {
     const clientId = clientIds[provider];
@@ -58,14 +65,14 @@ export function createIdentityVerifierRegistry({
     verifiers.set(DEVELOPMENT_AUTH_PROVIDER, createDevelopmentVerifier());
   }
 
-  if (verifiers.size === 0) {
+  if (verifiers.size === 0 && !isPasswordSignInEnabled) {
     throw new Error(
-      'nenhum provedor de login configurado: defina GOOGLE_CLIENT_ID, APPLE_CLIENT_ID ou AUTH_DEV_SIGN_IN=1 fora de producao',
+      'nenhum provedor de login configurado: defina AUTH_PASSWORD_SIGN_IN=1, GOOGLE_CLIENT_ID, APPLE_CLIENT_ID ou AUTH_DEV_SIGN_IN=1 fora de producao',
     );
   }
 
   return {
-    forProvider(provider: AuthProvider): IdentityVerifier | undefined {
+    forProvider(provider: TokenAuthProvider): IdentityVerifier | undefined {
       return verifiers.get(provider);
     },
   };

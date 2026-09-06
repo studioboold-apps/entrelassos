@@ -5,7 +5,7 @@
  */
 
 import type { AuthenticatedUser } from '../../shared/auth/authenticated-user.interface';
-import type { AuthProvider } from '../auth.constant';
+import type { AuthProvider, PASSWORD_AUTH_PROVIDER, TokenAuthProvider } from '../auth.constant';
 
 export type ProviderIdentity = {
   readonly subject: string;
@@ -18,7 +18,8 @@ export type IdentityVerifier = {
 };
 
 export type IdentityVerifierRegistry = {
-  forProvider(provider: AuthProvider): IdentityVerifier | undefined;
+  /** Senha nao entra aqui: verificador le prova EXTERNA, nunca o nosso banco. */
+  forProvider(provider: TokenAuthProvider): IdentityVerifier | undefined;
 };
 
 export type FindOrCreateAccountParams = {
@@ -71,13 +72,55 @@ export type IssuedSession = {
   readonly refreshTokenValue: string;
 };
 
-export type SignInParams = {
-  readonly provider: AuthProvider;
+export type VerifyPasswordParams = {
+  readonly password: string;
+  /** Indefinido e o caso do e-mail sem senha — ele tambem paga o `verify`. */
+  readonly passwordHash: string | undefined;
+};
+
+export type PasswordHasher = {
+  hash(password: string): Promise<string>;
+  verify(params: VerifyPasswordParams): Promise<boolean>;
+};
+
+export type CreatePasswordAccountParams = {
+  readonly email: string;
+  readonly fullName: string | undefined;
+  readonly passwordHash: string;
+};
+
+export type PasswordCredential = {
+  readonly user: AuthenticatedUser;
+  readonly passwordHash: string | undefined;
+};
+
+export type PasswordAccountRepository = {
+  create(params: CreatePasswordAccountParams): Promise<AuthenticatedUser>;
+  findCredentialByEmail(email: string): Promise<PasswordCredential | undefined>;
+};
+
+export type TokenSignInParams = {
+  readonly provider: TokenAuthProvider;
   readonly idToken: string;
+};
+
+export type PasswordSignInParams = {
+  readonly provider: typeof PASSWORD_AUTH_PROVIDER;
+  readonly email: string;
+  readonly password: string;
+};
+
+export type SignInParams = TokenSignInParams | PasswordSignInParams;
+
+export type RegisterWithPasswordParams = {
+  readonly email: string;
+  readonly password: string;
+  readonly fullName: string | undefined;
 };
 
 export type AuthUseCases = {
   signIn(params: SignInParams): Promise<IssuedSession>;
+  registerWithPassword(params: RegisterWithPasswordParams): Promise<IssuedSession>;
   refreshSession(refreshTokenValue: string): Promise<IssuedSession>;
   signOut(refreshTokenValue: string): Promise<void>;
 };

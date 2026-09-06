@@ -12,7 +12,7 @@ import type {
   CreateCommunityPostParams,
   ToggleLikeParams,
 } from '../modules/CommunityPost/types/community-post.types';
-import type { SignInParams } from '../modules/Auth/types/auth.types';
+import type { TokenSignInParams } from '../modules/Auth/types/auth.types';
 import type { UpdateUserParams } from '../modules/User/types/user.types';
 
 /**
@@ -33,7 +33,7 @@ export type SeedPostRecord = {
 
 export type SeedAuthPort = {
   /** Devolve o pai dono do seed; o refresh volta so para o seed poder encerrar. */
-  signIn(params: SignInParams): Promise<{
+  signIn(params: TokenSignInParams): Promise<{
     readonly userId: string;
     readonly refreshTokenValue: string;
   }>;

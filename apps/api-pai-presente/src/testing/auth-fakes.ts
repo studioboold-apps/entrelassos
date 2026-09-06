@@ -6,12 +6,15 @@
 
 import { randomUUID } from 'node:crypto';
 
-import type { AuthProvider } from '../modules/Auth/auth.constant';
-import { IdentityTokenInvalidError } from '../modules/Auth/auth.error';
+import type { TokenAuthProvider } from '../modules/Auth/auth.constant';
+import { EmailAlreadyRegisteredError, IdentityTokenInvalidError } from '../modules/Auth/auth.error';
 import type {
   AuthAccountRepository,
   CreateSessionParams,
   IdentityVerifierRegistry,
+  PasswordAccountRepository,
+  PasswordCredential,
+  PasswordHasher,
   ProviderIdentity,
   SessionRecord,
   SessionRepository,
@@ -29,7 +32,7 @@ export const GOOGLE_IDENTITY: ProviderIdentity = {
 /** Apple fica de fora de proposito: e o provedor "nao configurado" dos testes. */
 export function createFakeVerifierRegistry(): IdentityVerifierRegistry {
   return {
-    forProvider(provider: AuthProvider) {
+    forProvider(provider: TokenAuthProvider) {
       if (provider !== 'google') return undefined;
       return {
         verify: async (idToken: string) => {
@@ -99,6 +102,40 @@ export function createFakeSessionRepository(): FakeSessionRepository {
       let live = 0;
       for (const stored of byHash.values()) if (stored.revokedAt === null) live += 1;
       return live;
+    },
+  };
+}
+
+/**
+ * Hash de mentira, e de proposito: `argon2id` gasta centenas de milissegundos
+ * por chamada — o custo que protege a senha em producao e o mesmo que faria a
+ * suite arrastar. Quem verifica o hash de verdade e' `password.service.test.ts`,
+ * que roda pouquissimas vezes.
+ */
+export function createFakePasswordHasher(): PasswordHasher {
+  return {
+    async hash(password: string) {
+      return `hash:${password}`;
+    },
+    async verify({ password, passwordHash }) {
+      if (passwordHash === undefined) return false;
+      return passwordHash === `hash:${password}`;
+    },
+  };
+}
+
+export function createFakePasswordAccountRepository(): PasswordAccountRepository {
+  const credentialsByEmail = new Map<string, PasswordCredential>();
+
+  return {
+    async create({ email, passwordHash }) {
+      if (credentialsByEmail.has(email)) throw new EmailAlreadyRegisteredError();
+      const user: AuthenticatedUser = { userId: randomUUID(), email };
+      credentialsByEmail.set(email, { user, passwordHash });
+      return user;
+    },
+    async findCredentialByEmail(email: string) {
+      return credentialsByEmail.get(email);
     },
   };
 }

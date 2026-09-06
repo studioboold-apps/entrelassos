@@ -9,7 +9,11 @@ import { index, pgTable, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg
 import { buildIdentityColumns } from '../shared/columns.constant';
 import { DOMAIN_VALUE_LENGTH } from '../shared/shared.constant';
 import { usersTable } from '../User/user.table';
-import { PROVIDER_SUBJECT_LENGTH, REFRESH_TOKEN_HASH_LENGTH } from './auth.constant';
+import {
+  PASSWORD_HASH_LENGTH,
+  PROVIDER_SUBJECT_LENGTH,
+  REFRESH_TOKEN_HASH_LENGTH,
+} from './auth.constant';
 
 /**
  * Tabela separada de `users` porque a mesma pessoa pode entrar por Google e por
@@ -33,6 +37,25 @@ export const authIdentitiesTable = pgTable(
 );
 
 /**
+ * A senha NAO ganha linha em `auth_identities`, e nao ganha coluna em `users`.
+ *
+ * Em `auth_identities` o `subject` teria de ser o e-mail, que ja mora em
+ * `users.email` — e duas copias do mesmo e-mail concordam ate a primeira troca
+ * de endereco. Em `users` a coluna ficaria nula para todo mundo que entrou por
+ * Google, e coluna que quase sempre e nula deixa de dizer o que significa.
+ *
+ * Uma linha por usuario (`unique`): a pessoa tem uma senha ou nao tem nenhuma.
+ */
+export const passwordCredentialsTable = pgTable('password_credentials', {
+  ...buildIdentityColumns(),
+  userId: uuid('user_id')
+    .notNull()
+    .unique()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  passwordHash: varchar('password_hash', { length: PASSWORD_HASH_LENGTH }).notNull(),
+});
+
+/**
  * O refresh vive aqui como HASH: vazamento de banco nao vira sessao ativa, e o
  * valor em claro so existe no cookie do dono.
  */
@@ -53,4 +76,5 @@ export const sessionsTable = pgTable(
 );
 
 export type AuthIdentityRow = typeof authIdentitiesTable.$inferSelect;
+export type PasswordCredentialRow = typeof passwordCredentialsTable.$inferSelect;
 export type SessionRow = typeof sessionsTable.$inferSelect;

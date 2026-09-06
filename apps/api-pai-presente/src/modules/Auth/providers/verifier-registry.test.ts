@@ -22,6 +22,7 @@ describe('registro de verificadores', () => {
     const registry = createIdentityVerifierRegistry({
       clientIds: NO_CLIENT_IDS,
       developmentSignIn: { isEnabled: true, isProduction: false },
+      isPasswordSignInEnabled: false,
     });
 
     const identity = await registry.forProvider(DEVELOPMENT_AUTH_PROVIDER)?.verify('pai@teste.dev');
@@ -35,6 +36,7 @@ describe('registro de verificadores', () => {
       createIdentityVerifierRegistry({
         clientIds: GOOGLE_ONLY,
         developmentSignIn: { isEnabled: true, isProduction: true },
+        isPasswordSignInEnabled: false,
       }),
     ).toThrow(/producao/);
   });
@@ -43,6 +45,7 @@ describe('registro de verificadores', () => {
     const registry = createIdentityVerifierRegistry({
       clientIds: GOOGLE_ONLY,
       developmentSignIn: { isEnabled: false, isProduction: false },
+      isPasswordSignInEnabled: false,
     });
 
     expect(registry.forProvider(DEVELOPMENT_AUTH_PROVIDER)).toBeUndefined();
@@ -54,14 +57,33 @@ describe('registro de verificadores', () => {
       createIdentityVerifierRegistry({
         clientIds: NO_CLIENT_IDS,
         developmentSignIn: { isEnabled: false, isProduction: false },
+        isPasswordSignInEnabled: false,
       }),
     ).toThrow(/nenhum provedor/);
+  });
+
+  /**
+   * A senha nao produz verificador nenhum — ela le o nosso proprio banco. Se o
+   * fail-closed contasse so verificador, a producao configurada SO com senha
+   * morreria no boot, que e' exatamente a configuracao que este projeto usa
+   * enquanto `D7` (a conta no Google Cloud) nao chega.
+   */
+  test('so a senha ja e porta: o boot vive sem verificador nenhum', () => {
+    const registry = createIdentityVerifierRegistry({
+      clientIds: NO_CLIENT_IDS,
+      developmentSignIn: { isEnabled: false, isProduction: true },
+      isPasswordSignInEnabled: true,
+    });
+
+    expect(registry.forProvider('google')).toBeUndefined();
+    expect(registry.forProvider(DEVELOPMENT_AUTH_PROVIDER)).toBeUndefined();
   });
 
   test('o token de desenvolvimento precisa ser um email', () => {
     const registry = createIdentityVerifierRegistry({
       clientIds: NO_CLIENT_IDS,
       developmentSignIn: { isEnabled: true, isProduction: false },
+      isPasswordSignInEnabled: false,
     });
 
     expect(registry.forProvider(DEVELOPMENT_AUTH_PROVIDER)?.verify('qualquer-coisa')).rejects.toThrow();
@@ -71,6 +93,7 @@ describe('registro de verificadores', () => {
     const registry = createIdentityVerifierRegistry({
       clientIds: NO_CLIENT_IDS,
       developmentSignIn: { isEnabled: true, isProduction: false },
+      isPasswordSignInEnabled: false,
     });
 
     const identity = await registry

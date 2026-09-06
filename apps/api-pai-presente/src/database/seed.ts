@@ -8,6 +8,8 @@ import { readSeedEnvironment } from '../config/environment';
 import { createActivityRepository } from '../modules/Activity/activity.repository';
 import { createActivityUseCases } from '../modules/Activity/activity.use-case';
 import { createAuthAccountRepository, createSessionRepository } from '../modules/Auth/auth.repository';
+import { createPasswordAccountRepository } from '../modules/Auth/password.repository';
+import { createPasswordHasher } from '../modules/Auth/password.service';
 import { createAuthUseCases } from '../modules/Auth/auth.use-case';
 import { createIdentityVerifierRegistry } from '../modules/Auth/providers/verifier-registry';
 import { createTokenService } from '../modules/Auth/token.service';
@@ -50,8 +52,13 @@ export function buildSeedPorts({
     verifiers: createIdentityVerifierRegistry({
       clientIds: {},
       developmentSignIn: { isEnabled: true, isProduction },
+      // O seed entra pelo token de desenvolvimento, nunca por senha.
+      isPasswordSignInEnabled: false,
     }),
     accounts: createAuthAccountRepository(database),
+    passwordAccounts: createPasswordAccountRepository(database),
+    passwordHasher: createPasswordHasher(),
+    isPasswordSignInEnabled: false,
     sessions: createSessionRepository(database),
     tokenService: createTokenService(jwtSecret),
   });

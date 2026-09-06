@@ -10,6 +10,10 @@ import type { PublicRouteDefinition } from '../shared/http/route.types';
 import { buildAuthRoutes } from './auth.controller';
 import { createAuthAccountRepository, createSessionRepository } from './auth.repository';
 import { createAuthUseCases } from './auth.use-case';
+import { PASSWORD_SIGN_IN_RATE_LIMIT } from './auth.constant';
+import { createPasswordAccountRepository } from './password.repository';
+import { createPasswordHasher } from './password.service';
+import { createRateLimiter } from '../shared/http/rate-limit';
 import {
   createIdentityVerifierRegistry,
   type DevelopmentSignInSettings,
@@ -23,6 +27,7 @@ export type BuildAuthModuleParams = {
   readonly jwtSecret: string;
   readonly clientIds: ProviderClientIds;
   readonly developmentSignIn: DevelopmentSignInSettings;
+  readonly isPasswordSignInEnabled: boolean;
   readonly isSecureCookie: boolean;
 };
 
@@ -36,18 +41,30 @@ export function buildAuthModule({
   jwtSecret,
   clientIds,
   developmentSignIn,
+  isPasswordSignInEnabled,
   isSecureCookie,
 }: BuildAuthModuleParams): AuthModule {
   const tokenService = createTokenService(jwtSecret);
   const useCases = createAuthUseCases({
-    verifiers: createIdentityVerifierRegistry({ clientIds, developmentSignIn }),
+    verifiers: createIdentityVerifierRegistry({
+      clientIds,
+      developmentSignIn,
+      isPasswordSignInEnabled,
+    }),
     accounts: createAuthAccountRepository(database),
+    passwordAccounts: createPasswordAccountRepository(database),
+    passwordHasher: createPasswordHasher(),
+    isPasswordSignInEnabled,
     sessions: createSessionRepository(database),
     tokenService,
   });
 
   return {
-    publicRoutes: buildAuthRoutes({ useCases, isSecureCookie }),
+    publicRoutes: buildAuthRoutes({
+      useCases,
+      isSecureCookie,
+      signInRateLimiter: createRateLimiter(PASSWORD_SIGN_IN_RATE_LIMIT),
+    }),
     authenticatedUserResolver: createCookieSessionResolver(tokenService),
   };
 }

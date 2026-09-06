@@ -10,6 +10,8 @@ import { ERROR_CODES } from '../shared/errors/codes';
 import { HTTP_METHODS, HTTP_STATUS } from '../shared/http/http.constant';
 import {
   createFakeAccountRepository,
+  createFakePasswordAccountRepository,
+  createFakePasswordHasher,
   createFakeSessionRepository,
   createFakeVerifierRegistry,
   VALID_GOOGLE_TOKEN,
@@ -22,9 +24,12 @@ import {
   type TestClient,
   type TestResponse,
 } from '../../testing/http-test.util';
+import { createRateLimiter } from '../shared/http/rate-limit';
 import {
   ACCESS_COOKIE_NAME,
+  PASSWORD_SIGN_IN_RATE_LIMIT,
   REFRESH_COOKIE_NAME,
+  REGISTRATIONS_PATH,
   SESSIONS_PATH,
   type AuthProvider,
 } from './auth.constant';
@@ -39,20 +44,50 @@ type Harness = {
   readonly sessions: FakeSessionRepository;
 };
 
-function createHarness(): Harness {
+type HarnessOptions = {
+  readonly isPasswordSignInEnabled?: boolean;
+};
+
+function createHarness({ isPasswordSignInEnabled = true }: HarnessOptions = {}): Harness {
   const sessions = createFakeSessionRepository();
   const useCases = createAuthUseCases({
     verifiers: createFakeVerifierRegistry(),
     accounts: createFakeAccountRepository(),
+    passwordAccounts: createFakePasswordAccountRepository(),
+    passwordHasher: createFakePasswordHasher(),
+    isPasswordSignInEnabled,
     sessions,
     tokenService: createTokenService(JWT_SECRET),
   });
   const client = createTestClient({
     routes: [],
-    publicRoutes: buildAuthRoutes({ useCases, isSecureCookie: true }),
+    publicRoutes: buildAuthRoutes({
+      useCases,
+      isSecureCookie: true,
+      // Um limitador POR HARNESS: compartilhar um so faria o teste seguinte
+      // herdar a cota gasta pelo anterior, e a suite falharia pela ordem.
+      signInRateLimiter: createRateLimiter(PASSWORD_SIGN_IN_RATE_LIMIT),
+    }),
     user: undefined,
   });
   return { client, sessions };
+}
+
+const EMAIL = 'pai.senha@example.com';
+const PASSWORD = 'senha-comprida-de-teste';
+
+function register(
+  client: TestClient,
+  body: Readonly<Record<string, unknown>> = { email: EMAIL, password: PASSWORD, fullName: 'Pai Senha' },
+): Promise<TestResponse> {
+  return client.send({ method: HTTP_METHODS.POST, path: REGISTRATIONS_PATH, body });
+}
+
+function signInWithPassword(
+  client: TestClient,
+  body: Readonly<Record<string, unknown>> = { provider: 'password', email: EMAIL, password: PASSWORD },
+): Promise<TestResponse> {
+  return client.send({ method: HTTP_METHODS.POST, path: SESSIONS_PATH, body });
 }
 
 function readSetCookies(response: TestResponse): readonly string[] {
@@ -249,5 +284,144 @@ describe('saida', () => {
 
     expect(response.status).toBe(HTTP_STATUS.NO_CONTENT);
     expect(readSetCookies(response)).toHaveLength(2);
+  });
+});
+
+describe('cadastro e entrada por e-mail e senha', () => {
+  test('o cadastro abre a sessao na hora, com os dois cookies', async () => {
+    const { client } = createHarness();
+
+    const response = await register(client);
+
+    expect(response.status).toBe(HTTP_STATUS.CREATED);
+    expect(readDataRecord(response).user).toMatchObject({ email: EMAIL });
+    expect(readSetCookies(response)).toHaveLength(2);
+  });
+
+  test('e-mail repetido responde 409, e nao 500 nem conta duplicada', async () => {
+    const { client } = createHarness();
+    await register(client);
+
+    const response = await register(client);
+
+    expect(response.status).toBe(HTTP_STATUS.CONFLICT);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.auth.EMAIL_ALREADY_REGISTERED);
+    expect(readSetCookies(response)).toHaveLength(0);
+  });
+
+  /** O e-mail e' normalizado ANTES de validar, entao a maiuscula colide. */
+  test('o mesmo e-mail em outra caixa e o mesmo e-mail', async () => {
+    const { client } = createHarness();
+    await register(client);
+
+    const response = await register(client, { email: EMAIL.toUpperCase(), password: PASSWORD });
+
+    expect(response.status).toBe(HTTP_STATUS.CONFLICT);
+  });
+
+  test('senha curta e barrada na fronteira, antes de virar conta', async () => {
+    const { client } = createHarness();
+
+    const response = await register(client, { email: 'curta@example.com', password: 'curta' });
+
+    expect(response.status).toBe(400);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
+  });
+
+  test('quem se cadastrou entra depois com a mesma senha', async () => {
+    const { client } = createHarness();
+    const created = readDataRecord(await register(client)).user;
+
+    const response = await signInWithPassword(client);
+
+    expect(response.status).toBe(HTTP_STATUS.CREATED);
+    expect(readDataRecord(response).user).toEqual(created);
+  });
+
+  /**
+   * Senha errada e e-mail que nao existe devolvem a MESMA recusa: distinguir
+   * as duas conta a quem tentar quais e-mails tem conta neste banco.
+   */
+  test('senha errada e e-mail desconhecido dao a mesma resposta', async () => {
+    const { client } = createHarness();
+    await register(client);
+
+    const wrongPassword = await signInWithPassword(client, {
+      provider: 'password',
+      email: EMAIL,
+      password: 'senha-errada-porem-longa',
+    });
+    const unknownEmail = await signInWithPassword(client, {
+      provider: 'password',
+      email: 'ninguem@example.com',
+      password: PASSWORD,
+    });
+
+    expect(wrongPassword.status).toBe(401);
+    expect(unknownEmail.status).toBe(401);
+    expect(readErrorCode(wrongPassword)).toBe(ERROR_CODES.auth.IDENTITY_TOKEN_INVALID);
+    expect(readErrorCode(unknownEmail)).toBe(readErrorCode(wrongPassword));
+    expect(readSetCookies(wrongPassword)).toHaveLength(0);
+  });
+
+  /**
+   * Quem entrou por Google nao tem senha guardada. A tentativa cai na mesma
+   * recusa vaga — dizer "essa conta e do Google" confirmaria que ela existe.
+   */
+  test('conta que entrou por Google nao vira porta de senha', async () => {
+    const { client } = createHarness();
+    await signIn(client);
+
+    const response = await signInWithPassword(client, {
+      provider: 'password',
+      email: 'pai@example.com',
+      password: PASSWORD,
+    });
+
+    expect(response.status).toBe(401);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.auth.IDENTITY_TOKEN_INVALID);
+  });
+
+  test('a tentativa em rajada esbarra no limite por e-mail', async () => {
+    const { client } = createHarness();
+    const attempts = PASSWORD_SIGN_IN_RATE_LIMIT.maxRequests + 1;
+
+    let last: TestResponse | undefined;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      last = await signInWithPassword(client, {
+        provider: 'password',
+        email: EMAIL,
+        password: 'senha-errada-porem-longa',
+      });
+    }
+
+    expect(last?.status).toBe(429);
+    expect(last === undefined ? undefined : readErrorCode(last)).toBe(ERROR_CODES.shared.TOO_MANY_REQUESTS);
+  });
+
+  /** O limite e' POR E-MAIL: quem chuta uma conta nao tranca a do vizinho. */
+  test('a rajada num e-mail nao tranca a porta de outro', async () => {
+    const { client } = createHarness();
+    await register(client, { email: 'vizinho@example.com', password: PASSWORD });
+    for (let attempt = 0; attempt <= PASSWORD_SIGN_IN_RATE_LIMIT.maxRequests; attempt += 1) {
+      await signInWithPassword(client, { provider: 'password', email: EMAIL, password: 'errada-porem-longa' });
+    }
+
+    const response = await signInWithPassword(client, {
+      provider: 'password',
+      email: 'vizinho@example.com',
+      password: PASSWORD,
+    });
+
+    expect(response.status).toBe(HTTP_STATUS.CREATED);
+  });
+
+  test('sem senha ligada, a rota responde 503 em vez de fingir que nao existe', async () => {
+    const { client } = createHarness({ isPasswordSignInEnabled: false });
+
+    const response = await register(client);
+
+    expect(response.status).toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.auth.PROVIDER_NOT_CONFIGURED);
   });
 });

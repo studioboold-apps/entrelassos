@@ -32,6 +32,22 @@ export class RefreshTokenInvalidError extends DomainError {
   }
 }
 
+/**
+ * So o CADASTRO conta que o e-mail ja existe, e conta porque a alternativa e
+ * pior: sem isso, quem se cadastrou por Google e esqueceu tentaria de novo e
+ * receberia uma falha muda. O LOGIN continua vago de proposito — la, dizer
+ * "essa senha esta errada" confirmaria a conta para quem esta sondando.
+ */
+export class EmailAlreadyRegisteredError extends DomainError {
+  constructor() {
+    super({
+      code: ERROR_CODES.auth.EMAIL_ALREADY_REGISTERED,
+      message: 'Esse e-mail ja tem conta. Entre em vez de criar outra.',
+      statusCode: HTTP_STATUS.CONFLICT,
+    });
+  }
+}
+
 /** Falha de configuracao do servidor, nao erro de quem chamou. */
 export class ProviderNotConfiguredError extends DomainError {
   constructor(provider: string) {

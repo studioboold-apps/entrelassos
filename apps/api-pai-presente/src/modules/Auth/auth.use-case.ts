@@ -5,22 +5,37 @@
  */
 
 import type { AuthenticatedUser } from '../shared/auth/authenticated-user.interface';
-import { RefreshTokenInvalidError, ProviderNotConfiguredError } from './auth.error';
-import { REFRESH_TOKEN_TTL_SECONDS } from './auth.constant';
+import {
+  IdentityTokenInvalidError,
+  ProviderNotConfiguredError,
+  RefreshTokenInvalidError,
+} from './auth.error';
+import { PASSWORD_AUTH_PROVIDER, REFRESH_TOKEN_TTL_SECONDS } from './auth.constant';
 import type {
   AuthAccountRepository,
   AuthUseCases,
   IdentityVerifierRegistry,
   IssuedSession,
+  PasswordAccountRepository,
+  PasswordHasher,
+  PasswordSignInParams,
+  RegisterWithPasswordParams,
   SessionRecord,
   SessionRepository,
   SignInParams,
   TokenService,
+  TokenSignInParams,
 } from './types/auth.types';
+
+/** O nome que o pai le na recusa, quando a entrada por senha esta desligada. */
+const PASSWORD_PROVIDER_LABEL = 'e-mail e senha';
 
 export type CreateAuthUseCasesParams = {
   readonly verifiers: IdentityVerifierRegistry;
   readonly accounts: AuthAccountRepository;
+  readonly passwordAccounts: PasswordAccountRepository;
+  readonly passwordHasher: PasswordHasher;
+  readonly isPasswordSignInEnabled: boolean;
   readonly sessions: SessionRepository;
   readonly tokenService: TokenService;
 };
@@ -28,6 +43,9 @@ export type CreateAuthUseCasesParams = {
 export function createAuthUseCases({
   verifiers,
   accounts,
+  passwordAccounts,
+  passwordHasher,
+  isPasswordSignInEnabled,
   sessions,
   tokenService,
 }: CreateAuthUseCasesParams): AuthUseCases {
@@ -55,13 +73,56 @@ export function createAuthUseCases({
     if (session.expiresAt.getTime() <= Date.now()) throw new RefreshTokenInvalidError();
   }
 
-  return {
-    async signIn({ provider, idToken }: SignInParams): Promise<IssuedSession> {
-      const verifier = verifiers.forProvider(provider);
-      if (verifier === undefined) throw new ProviderNotConfiguredError(provider);
+  async function signInWithToken({ provider, idToken }: TokenSignInParams): Promise<IssuedSession> {
+    const verifier = verifiers.forProvider(provider);
+    if (verifier === undefined) throw new ProviderNotConfiguredError(provider);
 
-      const identity = await verifier.verify(idToken);
-      const user = await accounts.findOrCreateByIdentity({ provider, identity });
+    const identity = await verifier.verify(idToken);
+    const user = await accounts.findOrCreateByIdentity({ provider, identity });
+    return await issueSession(user);
+  }
+
+  function assertPasswordSignInIsEnabled(): void {
+    if (!isPasswordSignInEnabled) throw new ProviderNotConfiguredError(PASSWORD_PROVIDER_LABEL);
+  }
+
+  /**
+   * A recusa e SEMPRE a mesma, venha ela de e-mail que nao existe, de conta sem
+   * senha (entrou por Google) ou de senha errada. Distinguir aqui entregaria a
+   * lista de quem tem conta a qualquer um com um formulario e uma tarde.
+   */
+  async function signInWithPassword({ email, password }: PasswordSignInParams): Promise<IssuedSession> {
+    assertPasswordSignInIsEnabled();
+
+    const credential = await passwordAccounts.findCredentialByEmail(email);
+    const isCorrect = await passwordHasher.verify({
+      password,
+      passwordHash: credential?.passwordHash,
+    });
+    if (!isCorrect || credential === undefined) throw new IdentityTokenInvalidError();
+    return await issueSession(credential.user);
+  }
+
+  return {
+    async signIn(params: SignInParams): Promise<IssuedSession> {
+      if (params.provider === PASSWORD_AUTH_PROVIDER) return await signInWithPassword(params);
+      return await signInWithToken(params);
+    },
+
+    /**
+     * Cadastrar ja abre a sessao. Mandar a pessoa preencher e-mail e senha de
+     * novo, na tela ao lado, e pedir duas vezes a mesma coisa pelo prazer de
+     * separar as rotas.
+     */
+    async registerWithPassword({
+      email,
+      password,
+      fullName,
+    }: RegisterWithPasswordParams): Promise<IssuedSession> {
+      assertPasswordSignInIsEnabled();
+
+      const passwordHash = await passwordHasher.hash(password);
+      const user = await passwordAccounts.create({ email, fullName, passwordHash });
       return await issueSession(user);
     },
 

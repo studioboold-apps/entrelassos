@@ -46,6 +46,15 @@ const authShape = {
     .enum(['0', '1'])
     .default('0')
     .transform((value) => value === '1'),
+  /**
+   * Entrada por e-mail e senha. Ligada por padrao, ao contrario do login de
+   * desenvolvimento: aquilo e porta dos fundos, isto e o produto. Desligar e
+   * decisao explicita de quem so quer OAuth.
+   */
+  AUTH_PASSWORD_SIGN_IN: z
+    .enum(['0', '1'])
+    .default('1')
+    .transform((value) => value === '1'),
 } as const;
 
 const aiShape = {

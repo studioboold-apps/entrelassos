@@ -183,10 +183,19 @@ O corpo do login vira **união discriminada** por `provider`:
 `{provider:'google'|'apple'|'dev', idToken}` contra
 `{provider:'password', email, password}`.
 
-**O que se guarda.** `auth_identities` com `provider='password'` e `subject` =
-e-mail normalizado (o `unique(provider,subject)` que já existe é a busca),
-mais `password_credentials` com o hash. Senha em `users` seria uma coluna nula
-para todo mundo que entra por Google.
+**O que se guarda — `password_credentials` SOZINHA** (corrigido na execução; a
+versão escrita desta caixa mandava abrir também uma linha em `auth_identities`
+com `subject` = e-mail).
+
+O `subject` daquela linha só poderia ser o e-mail, que **já mora em
+`users.email`**. Duas cópias do mesmo e-mail concordam até a primeira troca de
+endereço, e aí o login por senha passa a procurar por um endereço que o dono já
+abandonou — é exatamente a duplicação de fonte de verdade que
+`code-standart.md` §"uma fonte de verdade por regra" proíbe, e que já custou
+L-032 e L-033 no Battle Square. A busca por e-mail é `users.email`, que já é
+`unique`; `password_credentials` guarda só o hash, com `unique(user_id)`.
+
+Senha em `users` seria uma coluna nula para todo mundo que entra por Google.
 
 **Argon2id pelo `Bun.password`**, e **verificação boba em e-mail
 desconhecido**: sem ela, a resposta volta rápido demais quando a conta não

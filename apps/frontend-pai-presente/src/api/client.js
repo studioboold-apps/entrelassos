@@ -115,6 +115,22 @@ const ChildFile = Object.freeze({
     request(HTTP_METHODS.DELETE, `${buildChildFilesPath(childId)}/${fileId}`),
 });
 
+/**
+ * O consentimento do art. 14 §1 e' uma ESCRITA, e a tela precisa dele nos dois
+ * sentidos: ler quem ja consentiu (para nao cobrar duas vezes) e conceder. O
+ * `POST` e' idempotente pelo `unique(child_id, purpose)` da API, entao aceitar
+ * de novo nao cria linha nova nem e' erro.
+ */
+function buildChildConsentsPath(childId) {
+  return `${PATHS.children}/${childId}/consents`;
+}
+
+const ChildConsent = Object.freeze({
+  list: (childId) => listAll(buildChildConsentsPath(childId)),
+  grant: ({ childId, purpose }) =>
+    request(HTTP_METHODS.POST, buildChildConsentsPath(childId), { body: { purpose } }),
+});
+
 const Activity = Object.freeze({
   list: () => listAll(PATHS.activities, { aliases: ACTIVITY_ALIASES }),
   create: (values) =>
@@ -193,6 +209,7 @@ export const api = Object.freeze({
   entities: Object.freeze({
     Child,
     ChildFile,
+    ChildConsent,
     Activity,
     InsightRating,
     CommunityPost,

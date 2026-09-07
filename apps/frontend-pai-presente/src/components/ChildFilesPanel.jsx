@@ -34,7 +34,8 @@ export default function ChildFilesPanel({ child }) {
     isUploading,
     showsExamNotice,
     isExamConsentPending,
-    hasAcceptedExamNotice,
+    isGrantingConsent,
+    consentFailure,
     canUpload,
     handleKindChange,
     handleAcceptExamNotice,
@@ -115,11 +116,12 @@ export default function ChildFilesPanel({ child }) {
             </div>
           </div>
 
-          {isExamConsentPending || hasAcceptedExamNotice ? (
+          {isExamConsentPending ? (
             <div className="flex items-start gap-2">
               <Checkbox
                 id="exam-consent"
-                checked={hasAcceptedExamNotice}
+                checked={false}
+                disabled={isGrantingConsent}
                 onCheckedChange={(isChecked) => handleAcceptExamNotice(isChecked === true)}
                 className="mt-0.5"
               />
@@ -129,6 +131,12 @@ export default function ChildFilesPanel({ child }) {
             </div>
           ) : (
             <p className="text-xs text-zinc-500">{t('perfil.childFiles.examNotice.reminder')}</p>
+          )}
+
+          {consentFailure && (
+            <p role="alert" className="text-sm text-red-400">
+              {consentFailure.message}
+            </p>
           )}
         </div>
       )}

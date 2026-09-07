@@ -35,6 +35,7 @@ export const API_FIELD_LABELS = Object.freeze({
   description: 'Descricao',
   category: 'Categoria',
   content: 'Conteudo',
+  consent: 'Consentimento',
 });
 
 function toFieldLabels(details) {

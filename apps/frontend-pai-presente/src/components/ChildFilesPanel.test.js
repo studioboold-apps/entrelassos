@@ -104,9 +104,12 @@ describe('o aviso vem antes do primeiro exame', () => {
     expect(HOOK).toContain('!isExamConsentPending');
   });
 
-  /** Aceitar pelo Joao nao pode liberar o exame da Ana. */
-  test('o aceite morre com o painel do filho', () => {
-    expect(HOOK).toContain('const [hasAcceptedExamNotice, setHasAcceptedExamNotice] = useState(false)');
+  /**
+   * Aceitar pelo Joao nao pode liberar o exame da Ana: a API grava
+   * `unique(child_id, purpose)`, e a pergunta e' feita por filho.
+   */
+  test('o consentimento e perguntado por filho', () => {
+    expect(HOOK).toContain('queryKey: [CHILD_CONSENTS_QUERY_KEY, childId]');
   });
 
   test('o texto do aviso sai do arquivo de traducao', () => {
@@ -179,5 +182,40 @@ describe('o album tem porta de entrada na ficha do filho', () => {
 
   test('o botao de icone tem nome para o leitor de tela', () => {
     expect(SECTION).toContain("aria-label={t('perfil.childrenSection.files')}");
+  });
+});
+
+describe('o aceite chega ao SERVIDOR, nao para no estado da tela', () => {
+  /**
+   * Medido em `child-file.use-case.ts`: `upload()` consulta
+   * `childConsent.hasConsent({childId, userId, purpose})` ANTES do teto de
+   * tamanho e antes do primeiro byte, e sem linha registrada lanca
+   * `ChildExamConsentMissingError` (403). A caixa de aceite do `H5.3` mudava
+   * `useState` e liberava o botao — o primeiro exame de cada filho batia no 403
+   * e o pai lia "Confira: consent.".
+   */
+  test('aceitar concede o consentimento pela API', () => {
+    expect(HOOK).toContain('api.entities.ChildConsent.grant');
+  });
+
+  test('a tela pergunta ao servidor quem ja consentiu', () => {
+    expect(HOOK).toContain('api.entities.ChildConsent.list');
+  });
+
+  /** O palpite "ja tem exame guardado" saiu de cena: quem responde e' a lista de consentimentos. */
+  test('o aceite nao mora mais em estado de tela', () => {
+    expect(HOOK).not.toContain('hasAcceptedExamNotice');
+    expect(HOOK).not.toContain('hasStoredExam');
+  });
+
+  /** Conceder e' escrita: a lista de consentimentos se refaz, senao o botao fica preso. */
+  test('a concessao invalida a lista de consentimentos', () => {
+    expect(HOOK).toContain('CHILD_CONSENTS_QUERY_KEY');
+    expect(HOOK).toContain('CHILD_CONSENT_PURPOSES.HEALTH_DATA');
+  });
+
+  /** Enquanto a concessao viaja, a caixa nao pode aceitar duas vezes. */
+  test('a caixa desabilita durante a concessao', () => {
+    expect(PANEL).toContain('isGrantingConsent');
   });
 });

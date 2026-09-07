@@ -11,9 +11,16 @@ import { api } from '@/api/client';
 import { describeApiFailure } from '@/lib/api-error-message';
 import { CHILD_FILE_KINDS } from '@/lib/child-files';
 import { buildChildTimeline } from '@/lib/child-timeline';
-import { needsExamConsent, shouldShowExamNotice } from '@/lib/exam-consent';
+import {
+  CHILD_CONSENT_PURPOSES,
+  needsExamConsent,
+  shouldShowExamNotice,
+} from '@/lib/exam-consent';
 
 const CHILD_FILES_QUERY_KEY = 'childFiles';
+
+/** Por filho, como os arquivos: consentir pelo Joao nao consente pela Ana. */
+const CHILD_CONSENTS_QUERY_KEY = 'childConsents';
 
 /** A mesma chave das outras telas: a lista de atividades ja esta em cache quando o dialogo abre. */
 const ACTIVITIES_QUERY_KEY = 'activities';
@@ -32,12 +39,6 @@ export function useChildFiles({ child }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [file, setFile] = useState(null);
 
-  /**
-   * O aceite vive no painel, que nasce e morre com o filho escolhido: aceitar
-   * pelo Joao nao pode liberar o exame da Ana.
-   */
-  const [hasAcceptedExamNotice, setHasAcceptedExamNotice] = useState(false);
-
   const filesQuery = useQuery({
     queryKey: [CHILD_FILES_QUERY_KEY, childId],
     queryFn: () => api.entities.ChildFile.list(childId),
@@ -55,6 +56,17 @@ export function useChildFiles({ child }) {
     enabled: childId !== undefined,
   });
 
+  /**
+   * Quem responde se ha consentimento e' a API — a MESMA linha que `upload()`
+   * consulta antes do primeiro byte. Guardar o aceite em estado de tela fazia a
+   * caixa liberar o botao e a API recusar o envio com 403.
+   */
+  const consentsQuery = useQuery({
+    queryKey: [CHILD_CONSENTS_QUERY_KEY, childId],
+    queryFn: () => api.entities.ChildConsent.list(childId),
+    enabled: childId !== undefined,
+  });
+
   function refreshFiles() {
     queryClient.invalidateQueries({ queryKey: [CHILD_FILES_QUERY_KEY, childId] });
   }
@@ -65,6 +77,18 @@ export function useChildFiles({ child }) {
       setForm(EMPTY_FORM);
       setFile(null);
       refreshFiles();
+    },
+  });
+
+  /** Conceder e' escrita: sem refazer a lista, o botao ficaria preso ate' o dialogo fechar. */
+  const grantConsentMutation = useMutation({
+    mutationFn: () =>
+      api.entities.ChildConsent.grant({
+        childId,
+        purpose: CHILD_CONSENT_PURPOSES.HEALTH_DATA,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CHILD_CONSENTS_QUERY_KEY, childId] });
     },
   });
 
@@ -91,8 +115,15 @@ export function useChildFiles({ child }) {
     setFile(event.target.files?.[0] ?? null);
   }
 
+  /**
+   * Sem caminho de volta pela caixa: retirar consentimento (art. 8 §5) apaga a
+   * base legal de exames que JA estao guardados, e desmarcar uma caixa nao e'
+   * lugar de decidir isso. A retirada tem rota propria na API e vai ganhar tela
+   * com a lista do que sera afetado.
+   */
   function handleAcceptExamNotice(isAccepted) {
-    setHasAcceptedExamNotice(isAccepted);
+    if (!isAccepted) return;
+    grantConsentMutation.mutate();
   }
 
   function handleUpload() {
@@ -120,14 +151,16 @@ export function useChildFiles({ child }) {
 
   const isExamConsentPending = needsExamConsent({
     kind: form.kind,
-    files,
-    hasAccepted: hasAcceptedExamNotice,
+    consents: consentsQuery.data ?? [],
   });
 
   return {
     timeline,
     isLoadingTimeline: filesQuery.isFetching || activitiesQuery.isFetching,
     listFailure: listError ? describeApiFailure(listError) : null,
+    consentFailure: grantConsentMutation.isError
+      ? describeApiFailure(grantConsentMutation.error)
+      : null,
     uploadFailure: uploadMutation.isError ? describeApiFailure(uploadMutation.error) : null,
     removeFailure: removeMutation.isError ? describeApiFailure(removeMutation.error) : null,
     form,
@@ -135,7 +168,7 @@ export function useChildFiles({ child }) {
     isUploading: uploadMutation.isPending,
     showsExamNotice: shouldShowExamNotice(form.kind),
     isExamConsentPending,
-    hasAcceptedExamNotice,
+    isGrantingConsent: grantConsentMutation.isPending,
     canUpload: file !== null && !uploadMutation.isPending && !isExamConsentPending,
     handleKindChange,
     handleAcceptExamNotice,

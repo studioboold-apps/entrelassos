@@ -8,11 +8,12 @@ import { ERROR_CODES } from '../shared/errors/codes';
 import { ResourceNotFoundError } from '../shared/errors/shared.error';
 import type { ChildRow } from './child.table';
 import type {
-  ChildRepository,
   CreateChildParams,
+  CreateChildUseCasesParams,
   FindChildParams,
   ListChildrenParams,
   ListChildrenResult,
+  RemoveChildParams,
   UpdateChildParams,
 } from './types/child.types';
 
@@ -25,10 +26,10 @@ export type ChildUseCases = {
   getById(params: FindChildParams): Promise<ChildRow>;
   create(params: CreateChildParams): Promise<ChildRow>;
   update(params: UpdateChildParams): Promise<ChildRow>;
-  remove(params: FindChildParams): Promise<void>;
+  remove(params: RemoveChildParams): Promise<void>;
 };
 
-export function createChildUseCases(repository: ChildRepository): ChildUseCases {
+export function createChildUseCases({ repository, childFiles }: CreateChildUseCasesParams): ChildUseCases {
   return {
     list: (params) => repository.list(params),
 
@@ -44,8 +45,22 @@ export function createChildUseCases(repository: ChildRepository): ChildUseCases 
       return child ?? childNotFound();
     },
 
-    async remove(params) {
-      const wasRemoved = await repository.remove(params);
+    /**
+     * Os BYTES saem antes da linha, e nao o contrario. A ordem decide qual
+     * metade sobrevive a uma falha: linha sem byte aparece na listagem e pode
+     * ser apagada de novo; byte sem linha e' inominavel para sempre, porque
+     * quem sabe quais arquivos um filho tem e' o Postgres — o balde nao tem
+     * `list()`.
+     *
+     * A varredura vem antes de saber se o filho existe, e isso e' de proposito:
+     * ela e' escopada pelo `userId` de quem pediu, entao filho alheio varre o
+     * proprio nada. Consultar antes so' acrescentaria uma ida ao banco para
+     * chegar na mesma resposta.
+     */
+    async remove({ childId, userId, clientIp }) {
+      await childFiles.purgeByChild({ childId, userId, clientIp });
+
+      const wasRemoved = await repository.remove({ childId, userId });
       if (!wasRemoved) childNotFound();
     },
   };

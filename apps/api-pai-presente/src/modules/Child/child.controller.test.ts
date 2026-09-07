@@ -24,10 +24,15 @@ import { HTTP_METHODS } from '../shared/http/http.constant';
 import { buildChildRoutes } from './child.controller';
 import { createChildUseCases } from './child.use-case';
 import type { ChildRow } from './child.table';
+import type { ChildFilePurgePort } from '../shared/child-file-purge.interface';
 import type { ChildRepository } from './types/child.types';
 
 const CHILDREN_PATH = '/v1/children';
 const CREATED_ID = '55555555-5555-4555-8555-555555555555';
+
+/** O IP entra na trilha do exame apagado, e vem do cabecalho do proxy. */
+const CLIENT_IP = '203.0.113.7';
+const PROXY_HEADERS = { 'x-forwarded-for': CLIENT_IP } as const;
 
 function buildChildRow(overrides: RowOverrides<ChildRow> = {}): ChildRow {
   return applyOverrides({
@@ -86,11 +91,32 @@ function createFakeChildRepository(rows: ChildRow[]): ChildRepository {
   };
 }
 
+type PurgeCall = {
+  readonly childId: string;
+  readonly userId: string;
+  readonly clientIp: string;
+  /**
+   * Se a linha do filho ainda estava la' na hora da varredura, os BYTES sairam
+   * antes dela. E' a unica forma de afirmar a ordem sem espiar o codigo: uma
+   * dupla que so' contasse chamadas ficaria verde com a ordem invertida.
+   */
+  readonly rowWasStillThere: boolean;
+};
+
 let client: TestClient;
+let purgeCalls: PurgeCall[];
 
 beforeEach(() => {
   const rows = [buildChildRow(), buildChildRow({ ...buildIdentity(MISSING_ID), userId: OTHER_USER_ID })];
-  client = createTestClient({ routes: buildChildRoutes(createChildUseCases(createFakeChildRepository(rows))) });
+  purgeCalls = [];
+  const childFiles: ChildFilePurgePort = {
+    purgeByChild: async ({ childId, userId, clientIp }) => {
+      purgeCalls.push({ childId, userId, clientIp, rowWasStillThere: rows.some((row) => row.id === childId) });
+    },
+  };
+  client = createTestClient({
+    routes: buildChildRoutes(createChildUseCases({ repository: createFakeChildRepository(rows), childFiles })),
+  });
 });
 
 describe('GET /v1/children', () => {
@@ -175,5 +201,43 @@ describe('DELETE /v1/children/:childId', () => {
   test('remover filho de outro usuario responde 404', async () => {
     const response = await client.send({ method: HTTP_METHODS.DELETE, path: `${CHILDREN_PATH}/${MISSING_ID}` });
     expect(response.status).toBe(404);
+  });
+
+  /**
+   * `ON DELETE CASCADE` apaga as LINHAS dos arquivos e nenhum byte. Sem esta
+   * varredura, o album e os exames do filho apagado ficariam no balde sem
+   * ninguem capaz de nomea-los — `MediaStorage` nao tem `list()`.
+   */
+  test('os bytes do balde saem ANTES da linha do filho', async () => {
+    const response = await client.send({
+      method: HTTP_METHODS.DELETE,
+      path: `${CHILDREN_PATH}/${KNOWN_ID}`,
+      headers: PROXY_HEADERS,
+    });
+
+    expect(response.status).toBe(204);
+    expect(purgeCalls).toHaveLength(1);
+    expect(purgeCalls[0]).toEqual({
+      childId: KNOWN_ID,
+      userId: TEST_USER_ID,
+      clientIp: CLIENT_IP,
+      rowWasStillThere: true,
+    });
+  });
+
+  /**
+   * A varredura e' escopada por quem PEDIU, nunca pelo dono da linha: e' isso
+   * que faz o apagamento de filho alheio varrer o proprio nada em vez do album
+   * do vizinho (BOLA, OWASP API1).
+   */
+  test('apagar filho de outro pai varre no escopo de quem pediu', async () => {
+    await client.send({
+      method: HTTP_METHODS.DELETE,
+      path: `${CHILDREN_PATH}/${MISSING_ID}`,
+      headers: PROXY_HEADERS,
+    });
+
+    expect(purgeCalls).toHaveLength(1);
+    expect(purgeCalls[0]?.userId).toBe(TEST_USER_ID);
   });
 });

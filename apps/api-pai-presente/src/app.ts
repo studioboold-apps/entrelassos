@@ -88,34 +88,38 @@ export function buildApplicationRoutes({
     childOwnership: adaptChildOwnership(childRepository),
     audit: { record: (entry) => recordAuditEntry({ executor: database, entry }) },
   });
+  /**
+   * UMA instancia, dois papeis, como a do consentimento: ela ATENDE as rotas de
+   * arquivo e VARRE o balde quando um filho e' apagado. A cascata do banco leva
+   * as linhas e nenhum byte, e quem conhece o balde e' este modulo.
+   */
+  const childFileUseCases = createChildFileUseCases({
+    repository: createChildFileRepository(database),
+    storage: createMediaStorage(media),
+    childOwnership: adaptChildOwnership(childRepository),
+    childConsent: childConsentUseCases,
+    /**
+     * A trilha do arquivo NAO pega carona em transacao: a escrita no balde
+     * acontece fora dela, e uma linha de trilha que rola junto com o insert
+     * diria "guardou" antes de haver byte guardado.
+     */
+    audit: { record: (entry) => recordAuditEntry({ executor: database, entry }) },
+    encodedEncryptionKey: media.encryptionKey,
+  });
   const communityPostRepository = createCommunityPostRepository(database);
   const activityRepository = createActivityRepository(database);
   const insightRatingRepository = createInsightRatingRepository(database);
 
   return [
     ...buildUserRoutes(createUserUseCases(createUserRepository(database))),
-    ...buildChildRoutes(createChildUseCases(childRepository)),
+    ...buildChildRoutes(createChildUseCases({ repository: childRepository, childFiles: childFileUseCases })),
     ...buildActivityRoutes(
       createActivityUseCases({
         repository: activityRepository,
         childOwnership: adaptChildOwnership(childRepository),
       }),
     ),
-    ...buildChildFileRoutes(
-      createChildFileUseCases({
-        repository: createChildFileRepository(database),
-        storage: createMediaStorage(media),
-        childOwnership: adaptChildOwnership(childRepository),
-        childConsent: childConsentUseCases,
-        /**
-         * A trilha do arquivo NAO pega carona em transacao: a escrita no balde
-         * acontece fora dela, e uma linha de trilha que rola junto com o insert
-         * diria "guardou" antes de haver byte guardado.
-         */
-        audit: { record: (entry) => recordAuditEntry({ executor: database, entry }) },
-        encodedEncryptionKey: media.encryptionKey,
-      }),
-    ),
+    ...buildChildFileRoutes(childFileUseCases),
     ...buildChildConsentRoutes(childConsentUseCases),
     ...buildInsightRatingRoutes(createInsightRatingUseCases(insightRatingRepository)),
     ...buildCommunityPostRoutes(createCommunityPostUseCases(communityPostRepository)),

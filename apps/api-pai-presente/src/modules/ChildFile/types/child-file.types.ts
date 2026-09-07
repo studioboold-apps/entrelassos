@@ -7,6 +7,7 @@
 import type { AuditEntry } from '../../Audit/types/audit.types';
 import type { MediaStorage } from '../../Media/media-storage.interface';
 import type { ChildConsentPort } from '../../shared/child-consent.interface';
+import type { PurgeChildFilesParams } from '../../shared/child-file-purge.interface';
 import type { ChildOwnershipPort } from '../../shared/child-ownership.interface';
 import type { ChildFileKind } from '../../shared/shared.constant';
 import type { CHILD_FILE_DELIVERIES } from '../child-file.constant';
@@ -51,6 +52,13 @@ export type ChildFileRepository = {
   insert(row: NewChildFileRow): Promise<ChildFileRow>;
   findById(params: FindChildFileParams): Promise<ChildFileRow | undefined>;
   listByChild(params: ListChildFilesParams): Promise<ListChildFilesResult>;
+  /**
+   * Sem `limit` nem `offset`, ao contrario de `listByChild`: quem varre o balde
+   * de um filho apagado nao pode parar na primeira pagina. Paginar aqui
+   * deixaria byte para tras a cada album maior que uma pagina, e o resto some
+   * com a cascata — ninguem descobriria.
+   */
+  listAllByChild(params: ChildFileChildScopeParams): Promise<readonly ChildFileRow[]>;
   listByUser(params: ListUserFilesParams): Promise<readonly ChildFileRow[]>;
   /**
    * Devolve a LINHA apagada, nao um booleano: quem apaga precisa da

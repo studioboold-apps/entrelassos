@@ -5,7 +5,7 @@
  */
 
 import { HTTP_METHODS, HTTP_STATUS } from '../shared/http/http.constant';
-import { parseJsonBody, parsePagination, parseWithSchema } from '../shared/http/request.util';
+import { parseJsonBody, parsePagination, parseWithSchema, readClientIp } from '../shared/http/request.util';
 import {
   respondWithData,
   respondWithList,
@@ -70,9 +70,13 @@ export function buildChildRoutes(useCases: ChildUseCases): readonly RouteDefinit
       method: HTTP_METHODS.DELETE,
       path: CHILD_PATH,
       summary: 'Remove um filho.',
-      handle: async ({ pathParams, authenticatedUser }) => {
+      handle: async ({ request, pathParams, authenticatedUser }) => {
         const childId = parseWithSchema(uuidSchema, pathParams.childId);
-        await useCases.remove({ childId, userId: authenticatedUser.userId });
+        await useCases.remove({
+          childId,
+          userId: authenticatedUser.userId,
+          clientIp: readClientIp(request),
+        });
         return respondWithNoContent();
       },
     },

@@ -65,7 +65,20 @@ export function buildSeedPorts({
 
   const users = createUserUseCases(createUserRepository(database));
   const childRepository = createChildRepository(database);
-  const children = createChildUseCases(childRepository);
+  const children = createChildUseCases({
+    repository: childRepository,
+    /**
+     * O seed semeia, nunca apaga: nao ha' filho para varrer nem balde montado
+     * aqui. A porta recusa em voz alta em vez de devolver sucesso — varredura
+     * que nao varre deixaria byte de exame para tras no dia em que alguem
+     * chamasse `remove` a partir do seed.
+     */
+    childFiles: {
+      purgeByChild: async () => {
+        throw new Error('o seed nao apaga arquivo de filho');
+      },
+    },
+  });
   const activities = createActivityUseCases({
     repository: createActivityRepository(database),
     childOwnership: {

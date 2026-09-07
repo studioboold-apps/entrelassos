@@ -4,6 +4,7 @@
  * Licenca: proprietaria.
  */
 
+import type { ChildFilePurgePort } from '../../shared/child-file-purge.interface';
 import type { ChildRow, NewChildRow } from '../child.table';
 import type { CreateChildBody, UpdateChildBody } from '../child.schema';
 
@@ -29,6 +30,15 @@ export type UpdateChildParams = {
   readonly values: UpdateChildBody;
 };
 
+/**
+ * Apagar carrega o IP, o que ler e atualizar nao carregam: e' o unico dos
+ * quatro que produz trilha, porque e' o unico que tira exame do balde.
+ */
+export type RemoveChildParams = FindChildParams & {
+  /** Vai para a trilha do exame apagado, nao para o log (`security.md` §1). */
+  readonly clientIp: string;
+};
+
 export type CreateChildParams = {
   readonly userId: string;
   readonly values: CreateChildBody;
@@ -48,4 +58,18 @@ export type ChildRepository = {
   update(params: UpdateChildParams): Promise<ChildRow | undefined>;
   remove(params: FindChildParams): Promise<boolean>;
   listContext(userId: string): Promise<readonly ChildContextRow[]>;
+};
+
+/**
+ * Objeto, e nao dois parametros posicionais (`code-standart.md` §10): o filho
+ * passou a ter um segundo dono no apagamento, e uma lista posicional cresceria
+ * sem nome a cada dono novo.
+ */
+export type CreateChildUseCasesParams = {
+  readonly repository: ChildRepository;
+  /**
+   * A cascata do banco leva as LINHAS dos arquivos e nenhum byte. Porta, e nao
+   * consulta propria: quem conhece o balde e' `ChildFile`.
+   */
+  readonly childFiles: ChildFilePurgePort;
 };

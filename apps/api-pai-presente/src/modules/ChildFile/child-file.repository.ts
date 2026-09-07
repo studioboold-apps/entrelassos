@@ -90,6 +90,11 @@ export function createChildFileRepository(database: Database): ChildFileReposito
       return { items, total: totals[0]?.value ?? 0 };
     },
 
+    /** Para a varredura do balde quando o filho e' apagado: sem teto de pagina. */
+    listAllByChild(params: ChildFileChildScopeParams): Promise<ChildFileRow[]> {
+      return database.select().from(childFilesTable).where(buildChildScope(params));
+    },
+
     /** Para a exportacao do art. 18 e para o `DELETE /v1/me`, que precisa das chaves. */
     listByUser(params: ListUserFilesParams): Promise<ChildFileRow[]> {
       return database.select().from(childFilesTable).where(buildUserScope(params));

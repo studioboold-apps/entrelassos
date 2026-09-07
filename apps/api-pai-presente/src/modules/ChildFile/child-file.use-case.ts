@@ -27,6 +27,7 @@ import {
   ChildFileTypeNotAllowedError,
   ChildFileTypeUnknownError,
 } from './child-file.error';
+import type { PurgeChildFilesParams } from '../shared/child-file-purge.interface';
 import type {
   ChildFileContent,
   ChildFileUseCasesParams,
@@ -67,6 +68,7 @@ export type ChildFileUseCases = {
   list(params: ListChildFilesParams): Promise<ListChildFilesView>;
   readContent(params: ReadChildFileContentParams): Promise<ChildFileContent>;
   remove(params: DeleteChildFileParams): Promise<void>;
+  purgeByChild(params: PurgeChildFilesParams): Promise<void>;
 };
 
 /**
@@ -236,6 +238,47 @@ export function createChildFileUseCases({
         targetId: fileId,
         clientIp,
       });
+    },
+
+    /**
+     * Tira do balde tudo o que e' deste filho, e NAO apaga linha: as linhas
+     * saem com o filho, pela cascata do banco. E' a metade que a cascata nao
+     * sabe fazer — o Postgres nao conhece o balde.
+     *
+     * Nao ha' `assertChildIsOwned` aqui: o escopo esta na consulta, com o
+     * `userId` dentro do `where`. Repetir a checagem seria uma segunda copia da
+     * mesma regra (`code-standart.md` §16), e ela responderia 404 de
+     * `ChildFile` justamente quando quem chama esta' a um passo de responder o
+     * seu proprio.
+     */
+    async purgeByChild({ childId, userId, clientIp }) {
+      const rows = await repository.listAllByChild({ childId, userId });
+      if (rows.length === 0) return;
+
+      /**
+       * Apagar byte que nao existe e' sucesso, entao repetir a varredura e'
+       * seguro: se o balde cair no meio, o filho continua no banco e as linhas
+       * que sobraram ainda nomeiam as chaves que faltam.
+       */
+      await Promise.all(rows.map((row) => storage.delete(row.objectKey)));
+
+      /**
+       * Trilha do EXAME, e nao de cada foto: o art. 46 pergunta o que houve com
+       * dado de saude, e um album de trezentas fotos afogaria a resposta em
+       * trezentas linhas que ninguem le'.
+       */
+      const exams = rows.filter((row) => isHealthData(row.kind));
+      await Promise.all(
+        exams.map((row) =>
+          audit.record({
+            actorId: userId,
+            action: AUDIT_ACTIONS.CHILD_EXAM_DELETED,
+            targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+            targetId: row.id,
+            clientIp,
+          }),
+        ),
+      );
     },
 
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {

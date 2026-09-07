@@ -52,6 +52,8 @@ import { buildIdentity } from '../../testing/row.factory';
 
 const OWNED_CHILD_ID = '77777777-7777-4777-8777-777777777777';
 const FOREIGN_CHILD_ID = '88888888-8888-4888-8888-888888888888';
+/** Irmao: mesmo pai, outro filho. Apagar um nao pode levar o album do outro. */
+const SIBLING_CHILD_ID = '99999999-9999-4999-8999-999999999999';
 
 const KEY = Buffer.alloc(ENVELOPE_KEY_BYTES, 11).toString('base64');
 
@@ -152,6 +154,9 @@ function createFakeRepository(rows: ChildFileRow[]): ChildFileRepository {
       const scoped = rows.filter((row) => row.childId === childId && row.userId === userId);
       return { items: scoped.slice(offset, offset + limit), total: scoped.length };
     },
+    /** Sem teto de pagina, e de proposito: apagar o filho nao pode parar na primeira. */
+    listAllByChild: async ({ childId, userId }) =>
+      rows.filter((row) => row.childId === childId && row.userId === userId),
     listByUser: async ({ userId }) => rows.filter((row) => row.userId === userId),
     remove: async ({ fileId, userId }) => {
       const position = indexOf(fileId, userId);
@@ -1243,5 +1248,132 @@ describe('o exame exige o consentimento do art. 14 §1', () => {
 
     expect(response.status).toBe(404);
     expect(readErrorCode(response)).toBe(ERROR_CODES.child.CHILD_NOT_FOUND);
+  });
+});
+
+/**
+ * `ON DELETE CASCADE` apaga LINHA, e o balde nao e' o Postgres: sem esta
+ * varredura, apagar o filho deixaria os bytes no balde para sempre — e
+ * `MediaStorage` nao tem `list()` de proposito, entao um objeto cuja linha
+ * sumiu e' um objeto que ninguem consegue mais nomear para apagar.
+ */
+describe('purgeByChild — apagar o filho leva os BYTES', () => {
+  type SeedParams = {
+    readonly fakes: Fakes;
+    readonly childId: string;
+    readonly userId?: string;
+  };
+
+  /**
+   * Linha posta a mao: as rotas so' aceitam `OWNED_CHILD_ID`, e o que se afirma
+   * aqui e' justamente o arquivo que NAO e' daquele filho.
+   */
+  function seedFile({ fakes, childId, userId = TEST_USER_ID }: SeedParams): string {
+    const objectKey = `criancas/${childId}/objeto-${fakes.rows.length}`;
+    fakes.objects.set(objectKey, { objectKey, bytes: JPEG, contentType: 'image/jpeg' });
+    fakes.rows.push({
+      ...buildIdentity(''),
+      userId,
+      childId,
+      kind: 'foto',
+      objectKey,
+      contentType: 'image/jpeg',
+      byteSize: JPEG.byteLength,
+      checksum: sha256(JPEG),
+      isEncrypted: false,
+      caption: null,
+      takenOn: null,
+    });
+    return objectKey;
+  }
+
+  function purge(fakes: Fakes, childId = OWNED_CHILD_ID, userId = TEST_USER_ID) {
+    return fakes.useCases.purgeByChild({ childId, userId, clientIp: CLIENT_IP });
+  }
+
+  test('foto e exame do filho saem do balde', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { kind: 'foto', bytes: JPEG });
+    await upload(client, { kind: 'exame', bytes: PDF });
+    expect(fakes.objects.size).toBe(2);
+
+    await purge(fakes);
+
+    expect(fakes.objects.size).toBe(0);
+  });
+
+  /** O escopo mora na consulta: irmao e' outro `childId`, e nao se toca nele. */
+  test('o album do irmao continua no balde', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+    const irmao = seedFile({ fakes, childId: SIBLING_CHILD_ID });
+
+    await purge(fakes);
+
+    expect(fakes.objects.has(irmao)).toBe(true);
+    expect(fakes.objects.size).toBe(1);
+  });
+
+  /**
+   * O `userId` no `where` e' o que impede o apagamento cruzado (BOLA, OWASP
+   * API1): pai que nao e' dono varre o proprio nada.
+   */
+  test('pai que nao e dono nao apaga byte nenhum', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    await purge(fakes, OWNED_CHILD_ID, OTHER_USER_ID);
+
+    expect(fakes.objects.size).toBe(1);
+  });
+
+  /**
+   * As LINHAS ficam: quem as apaga e' a cascata do banco, uma vez, no
+   * `DELETE` do filho. Apagar linha aqui tambem faria a varredura competir com
+   * a cascata pela mesma verdade — e a cascata ganha sempre.
+   */
+  test('as linhas ficam para a cascata do banco', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    await purge(fakes);
+
+    expect(fakes.rows).toHaveLength(1);
+  });
+
+  /**
+   * Trilha do EXAME, e nao de cada foto: o art. 46 pergunta o que aconteceu com
+   * dado de saude, e um album de trezentas fotos afogaria a resposta em
+   * trezentas linhas que ninguem vai ler.
+   */
+  test('a trilha registra o exame apagado, e nenhuma foto', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { kind: 'foto', bytes: JPEG });
+    const exame = readDataRecord(await upload(client, { kind: 'exame', bytes: PDF }));
+    fakes.trail.length = 0;
+
+    await purge(fakes);
+
+    expect(fakes.trail).toHaveLength(1);
+    expect(fakes.trail[0]).toMatchObject({
+      action: AUDIT_ACTIONS.CHILD_EXAM_DELETED,
+      targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+      targetId: exame.id,
+      clientIp: CLIENT_IP,
+    });
+  });
+
+  /**
+   * Balde fora do ar ESTOURA, e o filho continua no banco: e' a metade
+   * recuperavel. A linha sobrevivente ainda nomeia a `objectKey`, entao apagar
+   * o filho de novo termina o servico; a ordem inversa deixaria byte orfao.
+   */
+  test('balde fora do ar estoura, e nao apaga o filho pela metade', async () => {
+    const fakes = buildFakes({ failOnDelete: true });
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    await expect(purge(fakes)).rejects.toThrow();
   });
 });

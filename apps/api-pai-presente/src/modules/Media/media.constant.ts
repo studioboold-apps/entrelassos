@@ -20,6 +20,20 @@ export const MEDIA_OBJECT_ROOT = 'children';
 export const DEFAULT_PRESIGN_TTL_SECONDS = 300;
 
 /**
+ * Os tipos que este produto sabe guardar E servir depois. A lista e' curta de
+ * proposito: `image/svg+xml` esta fora porque SVG carrega `<script>`.
+ */
+export const MEDIA_CONTENT_TYPES = {
+  JPEG: 'image/jpeg',
+  PNG: 'image/png',
+  WEBP: 'image/webp',
+  HEIC: 'image/heic',
+  PDF: 'application/pdf',
+} as const;
+
+export type MediaContentType = (typeof MEDIA_CONTENT_TYPES)[keyof typeof MEDIA_CONTENT_TYPES];
+
+/**
  * Magica propria, diferente da do backup: envelope de proposito diferente nunca
  * deve abrir como se fosse o outro, mesmo que a cifra seja a mesma.
  */

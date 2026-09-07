@@ -5,13 +5,14 @@
  */
 
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { createFilesystemMediaStorage } from './filesystem-media-storage';
 import { createMediaStorage } from './media-storage.factory';
-import { MEDIA_DESTINATIONS } from './media.constant';
+import { MEDIA_DESTINATIONS, MEDIA_DIRECTORY_VARIABLE } from './media.constant';
+import { MediaDirectoryNotWritableError } from './media.error';
 
 const CHAVE = 'children/8f1c9d02-0000-4000-8000-000000000001/2b7a0004-0000-4000-8000-000000000002';
 const FOTO = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
@@ -26,7 +27,68 @@ async function pastaTemporaria(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(pastas.splice(0).map((pasta) => rm(pasta, { recursive: true, force: true })));
+  /** Pasta sem escrita nao se apaga: devolver o modo antes de remover. */
+  await Promise.all(
+    pastas.splice(0).map(async (pasta) => {
+      await chmod(pasta, 0o700).catch(() => undefined);
+      await rm(pasta, { recursive: true, force: true });
+    }),
+  );
+});
+
+/**
+ * Medido em producao em 07/09/2026: a imagem da API roda com `WORKDIR /app` e
+ * usuario sem escrita ali, e `MEDIA_DIRECTORY` valia `.media` — relativo. A
+ * primeira foto respondeu `500 INTERNAL_ERROR`, e a unica pista era
+ * `EACCES: permission denied, mkdir '/app/.media'` no log do servidor.
+ *
+ * O codigo estava certo e a configuracao errada; o defeito e' a API ter dito
+ * "erro interno" para configuracao de servidor. Chave de midia ausente ja
+ * responde 503 nomeando a variavel (`MediaKeyInvalidError`), e pasta sem
+ * escrita e' o mesmo tipo de falha: quem opera precisa do NOME da variavel na
+ * resposta, nao de um rastro de pilha que so aparece para quem tem o log.
+ */
+describe('pasta de midia sem escrita recusa em voz alta', () => {
+  test('a falha nomeia a variavel, e nao vira erro interno', async () => {
+    const pasta = await pastaTemporaria();
+    await chmod(pasta, 0o500);
+    const storage = createFilesystemMediaStorage(pasta);
+
+    const guardar = storage.put({ objectKey: CHAVE, bytes: FOTO, contentType: 'image/jpeg' });
+
+    await expect(guardar).rejects.toBeInstanceOf(MediaDirectoryNotWritableError);
+  });
+
+  test('a mensagem diz qual variavel mudar e qual pasta falhou', async () => {
+    const pasta = await pastaTemporaria();
+    await chmod(pasta, 0o500);
+    const storage = createFilesystemMediaStorage(pasta);
+
+    const falha = await storage
+      .put({ objectKey: CHAVE, bytes: FOTO, contentType: 'image/jpeg' })
+      .then(() => undefined)
+      .catch((erro: unknown) => erro as MediaDirectoryNotWritableError);
+
+    expect(falha?.message).toContain(MEDIA_DIRECTORY_VARIABLE);
+    expect(falha?.message).toContain(pasta);
+  });
+
+  /**
+   * 503, como a chave: 500 diria ao pai "tente de novo", e tentar de novo na
+   * mesma pasta falha para sempre.
+   */
+  test('e 503, porque e configuracao do servidor', async () => {
+    const pasta = await pastaTemporaria();
+    await chmod(pasta, 0o500);
+    const storage = createFilesystemMediaStorage(pasta);
+
+    const falha = await storage
+      .put({ objectKey: CHAVE, bytes: FOTO, contentType: 'image/jpeg' })
+      .then(() => undefined)
+      .catch((erro: unknown) => erro as MediaDirectoryNotWritableError);
+
+    expect(falha?.statusCode).toBe(503);
+  });
 });
 
 describe('o destino em disco guarda, devolve e apaga', () => {

@@ -21,9 +21,24 @@ export type FindChildFileParams = {
   readonly userId: string;
 };
 
-export type ListChildFilesParams = {
+export type ChildFileChildScopeParams = {
   readonly childId: string;
   readonly userId: string;
+};
+
+/**
+ * A lista do filho e' paginada como a de filhos (`apis.md`): album de anos
+ * cresce, e resposta sem teto e' resposta que um dia chega grande demais para o
+ * celular do pai. O teto vem de `PAGE_SIZE_MAX`, nao do que o cliente pedir.
+ */
+export type ListChildFilesParams = ChildFileChildScopeParams & {
+  readonly limit: number;
+  readonly offset: number;
+};
+
+export type ListChildFilesResult = {
+  readonly items: readonly ChildFileRow[];
+  readonly total: number;
 };
 
 export type ListUserFilesParams = {
@@ -33,7 +48,7 @@ export type ListUserFilesParams = {
 export type ChildFileRepository = {
   insert(row: NewChildFileRow): Promise<ChildFileRow>;
   findById(params: FindChildFileParams): Promise<ChildFileRow | undefined>;
-  listByChild(params: ListChildFilesParams): Promise<readonly ChildFileRow[]>;
+  listByChild(params: ListChildFilesParams): Promise<ListChildFilesResult>;
   listByUser(params: ListUserFilesParams): Promise<readonly ChildFileRow[]>;
   /**
    * Devolve a LINHA apagada, nao um booleano: quem apaga precisa da
@@ -59,6 +74,12 @@ export type ChildFileView = {
   readonly caption: string | undefined;
   readonly takenOn: string | undefined;
   readonly createdAt: Date;
+};
+
+/** O que a lista devolve ao pai: vista, nunca linha — sem `objectKey`. */
+export type ListChildFilesView = {
+  readonly items: readonly ChildFileView[];
+  readonly total: number;
 };
 
 export type UploadChildFileParams = {

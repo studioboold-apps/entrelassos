@@ -26,6 +26,8 @@ import {
 import type {
   ChildFileUseCasesParams,
   ChildFileView,
+  ListChildFilesParams,
+  ListChildFilesView,
   UploadChildFileParams,
 } from './types/child-file.types';
 
@@ -49,6 +51,7 @@ export function toChildFileView(row: ChildFileRow): ChildFileView {
 
 export type ChildFileUseCases = {
   upload(params: UploadChildFileParams): Promise<ChildFileView>;
+  list(params: ListChildFilesParams): Promise<ListChildFilesView>;
 };
 
 /**
@@ -87,6 +90,23 @@ export function createChildFileUseCases({
   }
 
   return {
+    /**
+     * Metadado, nunca byte. A lista e' o que a ficha do filho desenha e o que a
+     * linha do tempo do `H5.2` consome: mandar conteudo aqui faria o album de
+     * um ano baixar dezenas de megabytes para mostrar miniatura, e faria dado
+     * de saude atravessar a rede sem que ninguem tenha pedido para LER exame —
+     * que e' leitura com trilha propria (`H3.3`).
+     *
+     * E a lista NAO grava trilha de auditoria. Trilha existe para leitura de
+     * dado de saude; carimbar cada abertura da ficha encheria a trilha de
+     * linhas que nao contam nada e afogaria a linha que conta.
+     */
+    async list(params) {
+      await assertChildIsOwned(params.childId, params.userId);
+      const { items, total } = await repository.listByChild(params);
+      return { items: items.map(toChildFileView), total };
+    },
+
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {
       await assertChildIsOwned(childId, userId);
 

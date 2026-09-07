@@ -5,13 +5,14 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import type { SQL } from 'drizzle-orm';
+import { count, type SQL } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { createDatabaseClient } from '../../database/client';
 import { childFilesTable } from './child-file.table';
 import {
+  CHILD_FILE_TIMELINE_ORDER,
   buildChildScope,
   buildFileScope,
   buildUserScope,
@@ -108,6 +109,60 @@ describe('nao ha where avulso no repositorio', () => {
 
     expect(factories).toHaveLength(3);
     expect(factories.every((factory) => factory.includes('userId'))).toBe(true);
+  });
+});
+
+/**
+ * A ordem da lista se mede no SQL, e nao numa dupla: `takenOn` e' NULO quando o
+ * pai nao disse a data, e `order by taken_on desc` no Postgres poe NULO
+ * PRIMEIRO — a foto sem data pularia para o topo do album, acima da de hoje.
+ * O defeito e' invisivel em teste com dupla, porque a dupla ordena em
+ * JavaScript, onde `null` nao sobe.
+ */
+describe('a foto sem data cai no dia do envio, nao no topo do album', () => {
+  const ordered = DATABASE.select()
+    .from(childFilesTable)
+    .where(buildChildScope({ childId: FILHO_DE_A, userId: PAI_A }))
+    .orderBy(CHILD_FILE_TIMELINE_ORDER)
+    .limit(20)
+    .offset(40)
+    .toSQL();
+
+  test('a data que ordena e a do dia da foto, com o envio no lugar do nulo', () => {
+    expect(ordered.sql).toContain(
+      'order by coalesce("child_files"."taken_on", "child_files"."created_at"::date) desc',
+    );
+  });
+
+  /** O empate no mesmo dia se desfaz pelo relogio do envio — ordem estavel entre paginas. */
+  test('o empate do dia se desfaz pelo envio', () => {
+    expect(ordered.sql).toContain('"child_files"."created_at" desc');
+  });
+
+  test('nenhuma consulta ordena por taken_on cru', () => {
+    expect(SOURCE).not.toContain('desc(childFilesTable.takenOn)');
+  });
+
+  test('o teto e o pulo chegam como parametro, nao interpolados no SQL', () => {
+    expect(ordered.sql).toContain('limit $3 offset $4');
+    expect(ordered.params).toEqual([FILHO_DE_A, PAI_A, 20, 40]);
+  });
+});
+
+/**
+ * O total e' contado no BANCO, nao pelo tamanho da pagina: `total` igual a
+ * `items.length` diria "3 fotos" na primeira pagina de trezentas.
+ */
+describe('o total da lista vem do banco', () => {
+  test('a contagem usa o mesmo escopo e nao leva teto', () => {
+    const counted = DATABASE.select({ value: count() })
+      .from(childFilesTable)
+      .where(buildChildScope({ childId: FILHO_DE_A, userId: PAI_A }))
+      .toSQL();
+
+    expect(counted.sql).toContain('count(*)');
+    expect(counted.sql).not.toContain('limit');
+    expect(counted.params).toEqual([FILHO_DE_A, PAI_A]);
   });
 });
 

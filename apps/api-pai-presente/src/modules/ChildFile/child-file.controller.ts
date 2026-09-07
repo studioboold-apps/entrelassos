@@ -9,8 +9,8 @@ import {
   HTTP_METHODS,
   HTTP_STATUS,
 } from '../shared/http/http.constant';
-import { parseWithSchema, readClientIp } from '../shared/http/request.util';
-import { respondWithData } from '../shared/http/response.util';
+import { parsePagination, parseWithSchema, readClientIp } from '../shared/http/request.util';
+import { respondWithData, respondWithList } from '../shared/http/response.util';
 import type { RouteDefinition } from '../shared/http/route.types';
 import { ValidationError } from '../shared/errors/shared.error';
 import {
@@ -103,6 +103,24 @@ export function buildChildFileRoutes(useCases: ChildFileUseCases): readonly Rout
         });
 
         return respondWithData(view, HTTP_STATUS.CREATED);
+      },
+    },
+    {
+      method: HTTP_METHODS.GET,
+      path: CHILD_FILES_PATH,
+      summary: 'Lista as fotos e os exames do filho, sem os bytes.',
+      handle: async ({ url, pathParams, authenticatedUser }) => {
+        const childId = parseWithSchema(uuidSchema, pathParams.childId);
+        const { page, perPage, offset } = parsePagination(url);
+
+        const { items, total } = await useCases.list({
+          childId,
+          userId: authenticatedUser.userId,
+          limit: perPage,
+          offset,
+        });
+
+        return respondWithList(items, { total, page, perPage });
       },
     },
   ];

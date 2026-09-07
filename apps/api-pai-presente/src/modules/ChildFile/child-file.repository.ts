@@ -4,14 +4,16 @@
  * Licenca: proprietaria.
  */
 
-import { and, desc, eq, type SQL } from 'drizzle-orm';
+import { and, count, eq, sql, type SQL } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
 import { childFilesTable, type ChildFileRow, type NewChildFileRow } from './child-file.table';
 import type {
+  ChildFileChildScopeParams,
   ChildFileRepository,
   FindChildFileParams,
   ListChildFilesParams,
+  ListChildFilesResult,
   ListUserFilesParams,
 } from './types/child-file.types';
 
@@ -29,7 +31,7 @@ export function buildFileScope({ fileId, userId }: FindChildFileParams): SQL {
   return scope;
 }
 
-export function buildChildScope({ childId, userId }: ListChildFilesParams): SQL {
+export function buildChildScope({ childId, userId }: ChildFileChildScopeParams): SQL {
   const scope = and(eq(childFilesTable.childId, childId), eq(childFilesTable.userId, userId));
   if (scope === undefined) throw new Error('escopo de filho vazio');
   return scope;
@@ -38,6 +40,21 @@ export function buildChildScope({ childId, userId }: ListChildFilesParams): SQL 
 export function buildUserScope({ userId }: ListUserFilesParams): SQL {
   return eq(childFilesTable.userId, userId);
 }
+
+/**
+ * A ordem da linha do tempo, numa expressao SO' — a mesma que `H5.2` vai usar
+ * para misturar foto, exame e atividade.
+ *
+ * `takenOn` e' nulo quando o pai nao disse a data, e `DESC` no Postgres poe
+ * NULO PRIMEIRO: a foto sem data pularia para o topo do album, acima da de
+ * hoje. O `coalesce` diz mais que um `nulls last`: sem data declarada, o dia do
+ * ENVIO e' o melhor palpite que existe, e a foto cai onde ela entrou em vez de
+ * ir para um deposito no fim da lista.
+ *
+ * Template parametrizado do Drizzle, sem nenhum valor de usuario dentro
+ * (`database.md`): o que se interpola aqui sao as colunas.
+ */
+export const CHILD_FILE_TIMELINE_ORDER = sql`coalesce(${childFilesTable.takenOn}, ${childFilesTable.createdAt}::date) desc, ${childFilesTable.createdAt} desc`;
 
 export function createChildFileRepository(database: Database): ChildFileRepository {
   return {
@@ -53,12 +70,24 @@ export function createChildFileRepository(database: Database): ChildFileReposito
       return rows[0];
     },
 
-    listByChild(params: ListChildFilesParams): Promise<ChildFileRow[]> {
-      return database
-        .select()
-        .from(childFilesTable)
-        .where(buildChildScope(params))
-        .orderBy(desc(childFilesTable.takenOn), desc(childFilesTable.createdAt));
+    /**
+     * O escopo se monta DUAS vezes de proposito, uma por consulta: guardar o
+     * `SQL` numa variavel e passar `.where(scope)` apagaria a prova que o teste
+     * do repositorio cobra — todo `.where(` tem de vir de uma fabrica de escopo,
+     * e um apelido faria a proxima consulta sem dono passar batida.
+     */
+    async listByChild(params: ListChildFilesParams): Promise<ListChildFilesResult> {
+      const [items, totals] = await Promise.all([
+        database
+          .select()
+          .from(childFilesTable)
+          .where(buildChildScope(params))
+          .orderBy(CHILD_FILE_TIMELINE_ORDER)
+          .limit(params.limit)
+          .offset(params.offset),
+        database.select({ value: count() }).from(childFilesTable).where(buildChildScope(params)),
+      ]);
+      return { items, total: totals[0]?.value ?? 0 };
     },
 
     /** Para a exportacao do art. 18 e para o `DELETE /v1/me`, que precisa das chaves. */

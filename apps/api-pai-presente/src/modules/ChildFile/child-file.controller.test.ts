@@ -25,10 +25,13 @@ import { createChildFileUseCases, type ChildFileUseCases } from './child-file.us
 import type { ChildFileAuditPort, ChildFileRepository } from './types/child-file.types';
 
 import {
+  OTHER_USER_ID,
   TEST_USER_ID,
   createTestClient,
+  readDataList,
   readDataRecord,
   readErrorCode,
+  readPagination,
   type TestClient,
 } from '../../testing/http-test.util';
 import { buildIdentity } from '../../testing/row.factory';
@@ -101,8 +104,16 @@ function createFakeRepository(rows: ChildFileRow[]): ChildFileRepository {
       return created;
     },
     findById: async ({ fileId, userId }) => rows[indexOf(fileId, userId)],
-    listByChild: async ({ childId, userId }) =>
-      rows.filter((row) => row.childId === childId && row.userId === userId),
+    /**
+     * A dupla nao ORDENA: a ordem da linha do tempo e' medida no SQL de verdade
+     * (`child-file.repository.test.ts`, por `toSQL()`). Uma dupla que ordenasse
+     * por conta propria provaria a ordem da dupla, e continuaria verde no dia em
+     * que o `ORDER BY` do repositorio sumisse.
+     */
+    listByChild: async ({ childId, userId, limit, offset }) => {
+      const scoped = rows.filter((row) => row.childId === childId && row.userId === userId);
+      return { items: scoped.slice(offset, offset + limit), total: scoped.length };
+    },
     listByUser: async ({ userId }) => rows.filter((row) => row.userId === userId),
     remove: async ({ fileId, userId }) => {
       const position = indexOf(fileId, userId);
@@ -180,6 +191,35 @@ async function upload(client: TestClient, params: UploadParams = {}) {
     path: `/v1/children/${childId}/files`,
     body: form,
     headers: { ...PROXY_HEADERS, ...headers },
+  });
+}
+
+type ListParams = {
+  readonly childId?: string;
+  readonly query?: string;
+};
+
+function list(client: TestClient, { childId = OWNED_CHILD_ID, query = '' }: ListParams = {}) {
+  return client.send({ method: HTTP_METHODS.GET, path: `/v1/children/${childId}/files${query}` });
+}
+
+/**
+ * Linha posta A MAO na tabela da dupla, sem passar pelo `POST`: e' o unico jeito
+ * de montar o que a rota nao deixa criar — arquivo de OUTRO pai no mesmo filho.
+ */
+function seed(rows: ChildFileRow[], row: Partial<ChildFileRow> & { readonly id: string }): void {
+  rows.push({
+    ...buildIdentity(row.id),
+    userId: row.userId ?? TEST_USER_ID,
+    childId: row.childId ?? OWNED_CHILD_ID,
+    kind: row.kind ?? 'foto',
+    objectKey: row.objectKey ?? `children/${row.childId ?? OWNED_CHILD_ID}/${row.id}`,
+    contentType: row.contentType ?? 'image/jpeg',
+    byteSize: row.byteSize ?? JPEG.byteLength,
+    checksum: row.checksum ?? sha256(JPEG),
+    isEncrypted: row.isEncrypted ?? false,
+    caption: row.caption ?? null,
+    takenOn: row.takenOn ?? null,
   });
 }
 
@@ -492,5 +532,139 @@ describe('byte orfao e linha orfa nao sobrevivem a uma falha', () => {
     await upload(createClient(fakes.useCases));
 
     expect(fakes.trail).toHaveLength(0);
+  });
+});
+
+/**
+ * O pedido do usuario era este: *"vc precisa add esses arquivos para termos no
+ * historico"*. Guardar sem listar seria guardar num lugar de onde nada volta —
+ * a foto e o exame do MESMO filho saem na MESMA lista, porque e' uma historia
+ * so'.
+ */
+describe('a historia do filho volta em uma lista so', () => {
+  test('a foto e o exame do filho saem juntos, na mesma lista', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { caption: 'primeiro dia de escola', takenOn: '2026-02-10' });
+    await upload(client, { kind: 'exame', bytes: PDF, takenOn: '2026-03-01' });
+
+    const response = await list(client);
+
+    expect(response.status).toBe(200);
+    const items = readDataList(response);
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.kind).sort()).toEqual(['exame', 'foto']);
+  });
+
+  /**
+   * Metadado, nunca byte — e nem o envelope cifrado do exame. A ficha do filho
+   * desenha miniatura e data; conteudo de exame e' leitura com trilha propria
+   * (`H3.3`), e nao algo que sai de brinde ao abrir a ficha.
+   */
+  test('a lista nao carrega conteudo nenhum', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { kind: 'exame', bytes: PDF });
+
+    const [item] = readDataList(await list(client));
+
+    expect(item).toBeDefined();
+    expect(JSON.stringify(item)).not.toContain(MEDIA_ENVELOPE_MAGIC);
+    expect(JSON.stringify(item)).not.toContain(LAUDO);
+    expect(item?.objectKey).toBeUndefined();
+    expect(item?.userId).toBeUndefined();
+    expect(item?.isEncrypted).toBeUndefined();
+  });
+
+  /** `D6`: a data que a linha do tempo usa e' a do dia da foto, e ela tem de VOLTAR. */
+  test('a data do dia da foto volta na lista', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { takenOn: '2019-07-14', caption: 'colo do avo' });
+
+    const [item] = readDataList(await list(client));
+
+    expect(item?.takenOn).toBe('2019-07-14');
+    expect(item?.caption).toBe('colo do avo');
+    expect(item?.checksum).toBe(sha256(JPEG));
+  });
+
+  test('o total vem do banco, e a pagina pedida e a que volta', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client);
+    await upload(client);
+    await upload(client);
+
+    const first = await list(client, { query: '?page=1&perPage=2' });
+    const second = await list(client, { query: '?page=2&perPage=2' });
+
+    expect(readDataList(first)).toHaveLength(2);
+    expect(readDataList(second)).toHaveLength(1);
+    expect(readPagination(first)).toEqual({ total: 3, page: 1, perPage: 2 });
+  });
+
+  /**
+   * A trilha de auditoria e' para LEITURA de dado de saude (`H3.3`). Carimbar
+   * cada abertura da ficha encheria a trilha de linhas que nao contam nada, e
+   * afogaria a que conta.
+   */
+  test('listar nao grava trilha', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { kind: 'exame', bytes: PDF });
+    const before = fakes.trail.length;
+
+    await list(client);
+
+    expect(fakes.trail).toHaveLength(before);
+  });
+});
+
+/**
+ * BOLA (OWASP API1) na leitura. O `childId` aqui e' segmento de URL — justo o
+ * que se enumera —, e a divida que o `H2.2` deixou anotada era esta: provar em
+ * HTTP o que o SQL ja garantia.
+ */
+describe('a lista de outro pai nao tem como voltar', () => {
+  test('filho de outro pai responde 404, nao 403', async () => {
+    const fakes = buildFakes();
+    const response = await list(createClient(fakes.useCases), { childId: FOREIGN_CHILD_ID });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.child.CHILD_NOT_FOUND);
+  });
+
+  /** Filho compartilhado nao existe no produto; se um dia existir, esta linha reprova. */
+  test('arquivo de outro pai no mesmo filho nao aparece', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { caption: 'minha' });
+    seed(fakes.rows, { id: '99999999-9999-4999-8999-999999999999', userId: OTHER_USER_ID, caption: 'do vizinho' });
+
+    const items = readDataList(await list(client));
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.caption).toBe('minha');
+  });
+
+  test('arquivo de outro filho do mesmo pai nao aparece', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { caption: 'do filho certo' });
+    seed(fakes.rows, { id: '55555555-5555-4555-8555-555555555555', childId: FOREIGN_CHILD_ID });
+
+    const items = readDataList(await list(client));
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.caption).toBe('do filho certo');
+  });
+
+  test('childId que nao e uuid nao chega ao banco', async () => {
+    const fakes = buildFakes();
+    const response = await list(createClient(fakes.useCases), { childId: 'nao-e-uuid' });
+
+    expect(response.status).toBe(400);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
   });
 });

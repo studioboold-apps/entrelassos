@@ -80,20 +80,36 @@ async function readError(response) {
 /**
  * Cookie `HttpOnly` em vez de token no `localStorage` (`security.md` §8):
  * por isso `credentials: 'include'` em toda chamada, e nenhum header de sessao.
+ *
+ * A renovacao vive aqui, e nao dentro do `send`, porque o upload precisa dela
+ * igual: o pai que escolhe a foto depois de vinte minutos parado tem a sessao
+ * expirada, e perder o arquivo escolhido por 401 e' pedir para ele achar a foto
+ * outra vez. Reenviar e' seguro porque o corpo e' um `FormData`, nao um fluxo
+ * ja consumido.
  */
-async function send(method, path, options) {
-  const { query, body, aliases, canRenew = true } = options;
-  const response = await fetch(buildUrl(path, query), {
-    method,
-    credentials: 'include',
-    headers: body === undefined ? undefined : JSON_HEADERS,
-    body: body === undefined ? undefined : JSON.stringify(toApiPayload(body, aliases)),
-  });
+async function fetchWithRenewal({ method, path, url, init, canRenew }) {
+  const response = await fetch(url, { method, credentials: 'include', ...init });
 
   if (response.status === HTTP_UNAUTHORIZED && canRenew && path !== SESSIONS_PATH) {
     const renewed = await renewSession();
-    if (renewed) return send(method, path, { ...options, canRenew: false });
+    if (renewed) return fetchWithRenewal({ method, path, url, init, canRenew: false });
   }
+
+  return response;
+}
+
+async function send(method, path, options) {
+  const { query, body, aliases, canRenew = true } = options;
+  const response = await fetchWithRenewal({
+    method,
+    path,
+    url: buildUrl(path, query),
+    canRenew,
+    init: {
+      headers: body === undefined ? undefined : JSON_HEADERS,
+      body: body === undefined ? undefined : JSON.stringify(toApiPayload(body, aliases)),
+    },
+  });
 
   if (!response.ok) throw await readError(response);
   if (response.status === HTTP_NO_CONTENT) return undefined;
@@ -104,6 +120,30 @@ async function send(method, path, options) {
 export async function request(method, path, options = {}) {
   const payload = await send(method, path, options);
   return payload === undefined ? undefined : toPagePayload(payload.data, options.aliases);
+}
+
+/**
+ * Arquivo nao passa pelo `send`, e nao e' por gosto: ele serializa TODO corpo em
+ * JSON, e um `File` atravessando `JSON.stringify` chega na API como `{}` — sem
+ * erro nenhum, so' sem o arquivo.
+ *
+ * O `Content-Type` fica de fora de proposito. Quem monta o cabecalho e' o
+ * navegador, porque so' ele conhece a fronteira (`boundary`) que separa as
+ * partes; escrever `multipart/form-data` a mao apaga a fronteira e a API recebe
+ * um corpo que nao sabe ler.
+ */
+export async function requestUpload(path, { form }) {
+  const response = await fetchWithRenewal({
+    method: HTTP_METHODS.POST,
+    path,
+    url: buildUrl(path),
+    canRenew: true,
+    init: { body: form },
+  });
+
+  if (!response.ok) throw await readError(response);
+  const payload = await response.json();
+  return toPagePayload(payload.data);
 }
 
 /** Igual, mas devolve tambem o `pagination` — quem pagina precisa do total. */

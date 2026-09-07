@@ -5,7 +5,7 @@
  */
 
 import { ai } from './ai';
-import { HTTP_METHODS, request, requestPage } from './http';
+import { HTTP_METHODS, request, requestPage, requestUpload } from './http';
 
 const PATHS = Object.freeze({
   me: '/v1/me',
@@ -72,6 +72,47 @@ const Child = Object.freeze({
   update: (childId, values) =>
     request(HTTP_METHODS.PATCH, `${PATHS.children}/${childId}`, { body: values }),
   delete: (childId) => request(HTTP_METHODS.DELETE, `${PATHS.children}/${childId}`),
+});
+
+/**
+ * Os nomes das partes do multipart, iguais aos do `CHILD_FILE_FORM_FIELDS` da
+ * API. Sao a mesma palavra em dois repositorios porque nao existe pacote
+ * partilhado entre API e frontend hoje; escrever cada uma em quatro lugares
+ * dentro desta app e' o que este objeto evita (`code-standart.md` §16).
+ */
+const CHILD_FILE_FORM_FIELDS = Object.freeze({
+  FILE: 'file',
+  KIND: 'kind',
+  CAPTION: 'caption',
+  TAKEN_ON: 'takenOn',
+});
+
+function buildChildFilesPath(childId) {
+  return `${PATHS.children}/${childId}/files`;
+}
+
+/**
+ * Campo em branco nao viaja: a API trata texto vazio como ausencia, e mandar
+ * `takenOn: ''` faria a data do arquivo depender de um campo que o pai nunca
+ * tocou.
+ */
+function buildChildFileForm({ file, kind, caption, takenOn }) {
+  const form = new FormData();
+  form.append(CHILD_FILE_FORM_FIELDS.FILE, file);
+  form.append(CHILD_FILE_FORM_FIELDS.KIND, kind);
+  if (caption !== undefined && caption !== '') form.append(CHILD_FILE_FORM_FIELDS.CAPTION, caption);
+  if (takenOn !== undefined && takenOn !== '') form.append(CHILD_FILE_FORM_FIELDS.TAKEN_ON, takenOn);
+  return form;
+}
+
+const ChildFile = Object.freeze({
+  list: (childId) => listAll(buildChildFilesPath(childId)),
+  upload: ({ childId, file, kind, caption, takenOn }) =>
+    requestUpload(buildChildFilesPath(childId), {
+      form: buildChildFileForm({ file, kind, caption, takenOn }),
+    }),
+  delete: ({ childId, fileId }) =>
+    request(HTTP_METHODS.DELETE, `${buildChildFilesPath(childId)}/${fileId}`),
 });
 
 const Activity = Object.freeze({
@@ -151,6 +192,7 @@ export const api = Object.freeze({
   ai,
   entities: Object.freeze({
     Child,
+    ChildFile,
     Activity,
     InsightRating,
     CommunityPost,

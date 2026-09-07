@@ -20,7 +20,8 @@
     "add": "Adicionar",
     "empty": "Nenhum filho cadastrado",
     "edit": "Editar filho",
-    "delete": "Apagar filho"
+    "delete": "Apagar filho",
+    "files": "Fotos e exames"
   },
   "logout": "Sair da conta",
   "editProfile": {
@@ -40,5 +41,27 @@
     "confirm": "Apagar"
   },
   "saving": "Salvando...",
-  "save": "Salvar"
+  "save": "Salvar",
+  "childFiles": {
+    "title": "Fotos e exames de {child}",
+    "subtitle": "Fica guardado no histórico do seu filho, e só você vê.",
+    "kindLabel": "O que você está guardando",
+    "kinds": {
+      "photo": "Foto",
+      "exam": "Exame"
+    },
+    "fileLabel": "Arquivo",
+    "chosen": "Escolhido: {file}",
+    "captionLabel": "Legenda",
+    "captionPlaceholder": "Primeiro dia de aula",
+    "takenOnLabel": "Data",
+    "upload": "Guardar no histórico",
+    "uploading": "Enviando...",
+    "listTitle": "No histórico de {child}",
+    "loading": "Carregando...",
+    "empty": "Nada guardado ainda.",
+    "noDate": "sem data",
+    "rowMeta": "{kind} · {date} · {size}",
+    "remove": "Apagar arquivo"
+  }
 }

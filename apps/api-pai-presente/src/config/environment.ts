@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { LLM_PROVIDERS } from '../modules/Ai/ai.constant';
 import { BACKUP_DESTINATIONS } from '../modules/Backup/backup.constant';
+import { DEFAULT_PRESIGN_TTL_SECONDS, MEDIA_DESTINATIONS } from '../modules/Media/media.constant';
 
 type EnvironmentSource = Record<string, string | undefined>;
 
@@ -96,6 +97,17 @@ const backupShape = {
   RESTORE_DATABASE_URL: z.string().default(''),
 } as const;
 
+const mediaShape = {
+  MEDIA_DESTINATION: z
+    .enum([MEDIA_DESTINATIONS.FILESYSTEM, MEDIA_DESTINATIONS.S3])
+    .default(MEDIA_DESTINATIONS.FILESYSTEM),
+  MEDIA_DIRECTORY: z.string().default('.media'),
+  MEDIA_S3_BUCKET: z.string().default(''),
+  MEDIA_S3_ENDPOINT: z.string().default(''),
+  /** Vida do link da foto. Curta por design — ver `DEFAULT_PRESIGN_TTL_SECONDS`. */
+  MEDIA_PRESIGN_TTL_SECONDS: z.coerce.number().default(DEFAULT_PRESIGN_TTL_SECONDS),
+} as const;
+
 const databaseEnvironmentSchema = z.object({ ...runtimeShape, ...databaseShape });
 const backupEnvironmentSchema = z.object({
   ...runtimeShape,
@@ -114,6 +126,7 @@ const environmentSchema = z.object({
   ...httpShape,
   ...authShape,
   ...aiShape,
+  ...mediaShape,
 });
 
 export type DatabaseEnvironment = z.infer<typeof databaseEnvironmentSchema>;

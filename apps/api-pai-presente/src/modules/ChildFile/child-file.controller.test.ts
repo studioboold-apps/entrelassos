@@ -9,22 +9,34 @@ import { createHash } from 'node:crypto';
 
 import type { AuditEntry } from '../Audit/types/audit.types';
 import { AUDIT_ACTIONS, AUDIT_TARGET_TYPES } from '../Audit/audit.constant';
-import { decryptMedia } from '../Media/media-cipher';
-import { MEDIA_ENVELOPE_MAGIC } from '../Media/media.constant';
-import type { MediaObject, MediaStorage } from '../Media/media-storage.interface';
+import { decryptMedia, encryptMedia, readMediaKey } from '../Media/media-cipher';
+import { DEFAULT_PRESIGN_TTL_SECONDS, MEDIA_ENVELOPE_MAGIC } from '../Media/media.constant';
+import type { MediaObject, MediaStorage, PresignReadParams } from '../Media/media-storage.interface';
 import { ENVELOPE_KEY_BYTES } from '../shared/crypto/envelope-cipher.constant';
 import { ERROR_CODES } from '../shared/errors/codes';
 import type { ChildOwnershipPort } from '../shared/child-ownership.interface';
 import { CHILD_FILE_MAX_BYTES } from '../shared/shared.constant';
-import { HTTP_METHODS } from '../shared/http/http.constant';
+import {
+  CACHE_CONTROL_HEADER,
+  CONTENT_DISPOSITION_HEADER,
+  CONTENT_TYPE_HEADER,
+  HTTP_METHODS,
+  LOCATION_HEADER,
+} from '../shared/http/http.constant';
 
-import { CHILD_FILE_FORM_FIELDS } from './child-file.constant';
+import {
+  CHILD_FILE_CACHE_CONTROL,
+  CHILD_FILE_CONTENT_DISPOSITION,
+  CHILD_FILE_FORM_FIELDS,
+  CHILD_FILE_REDIRECT_STATUS,
+} from './child-file.constant';
 import { buildChildFileRoutes } from './child-file.controller';
 import type { ChildFileRow, NewChildFileRow } from './child-file.table';
 import { createChildFileUseCases, type ChildFileUseCases } from './child-file.use-case';
 import type { ChildFileAuditPort, ChildFileRepository } from './types/child-file.types';
 
 import {
+  MISSING_ID,
   OTHER_USER_ID,
   TEST_USER_ID,
   createTestClient,
@@ -32,6 +44,7 @@ import {
   readDataRecord,
   readErrorCode,
   readPagination,
+  type RawTestClient,
   type TestClient,
 } from '../../testing/http-test.util';
 import { buildIdentity } from '../../testing/row.factory';
@@ -40,6 +53,9 @@ const OWNED_CHILD_ID = '77777777-7777-4777-8777-777777777777';
 const FOREIGN_CHILD_ID = '88888888-8888-4888-8888-888888888888';
 
 const KEY = Buffer.alloc(ENVELOPE_KEY_BYTES, 11).toString('base64');
+
+/** O que um balde que assina devolveria. Basta ser reconhecivel. */
+const SIGNED_LINK_PREFIX = 'https://balde.example/';
 
 /** O IP entra na trilha, e vem do cabecalho do proxy (`request.util.ts`). */
 const CLIENT_IP = '203.0.113.7';
@@ -68,11 +84,19 @@ type Fakes = {
   readonly rows: ChildFileRow[];
   readonly objects: Map<string, MediaObject>;
   readonly trail: AuditEntry[];
+  /** O que o balde foi mandado assinar — vazio prova que ninguem assinou. */
+  readonly presignCalls: PresignReadParams[];
 };
 
 type BuildFakesParams = {
   readonly encodedEncryptionKey?: string;
   readonly failOnPut?: boolean;
+  /**
+   * Balde que sabe assinar declara `presignRead`; o que nao sabe simplesmente
+   * NAO declara — capacidade opcional por ausencia, como o balde de arquivo
+   * local de verdade (`filesystem-media-storage.ts`).
+   */
+  readonly canPresign?: boolean;
 };
 
 /** So o filho `OWNED_CHILD_ID` pertence ao usuario do teste. */
@@ -124,8 +148,20 @@ function createFakeRepository(rows: ChildFileRow[]): ChildFileRepository {
   };
 }
 
-function createFakeStorage(objects: Map<string, MediaObject>, failOnPut: boolean): MediaStorage {
-  return {
+type CreateFakeStorageParams = {
+  readonly objects: Map<string, MediaObject>;
+  readonly failOnPut: boolean;
+  readonly canPresign: boolean;
+  readonly presignCalls: PresignReadParams[];
+};
+
+function createFakeStorage({
+  objects,
+  failOnPut,
+  canPresign,
+  presignCalls,
+}: CreateFakeStorageParams): MediaStorage {
+  const storage: MediaStorage = {
     put: async (object) => {
       if (failOnPut) throw new Error('balde fora do ar');
       objects.set(object.objectKey, object);
@@ -139,12 +175,27 @@ function createFakeStorage(objects: Map<string, MediaObject>, failOnPut: boolean
       objects.delete(objectKey);
     },
   };
+
+  if (!canPresign) return storage;
+
+  return {
+    ...storage,
+    presignRead: async (params) => {
+      presignCalls.push(params);
+      return `${SIGNED_LINK_PREFIX}${params.objectKey}?exp=${params.ttlSeconds}`;
+    },
+  };
 }
 
-function buildFakes({ encodedEncryptionKey = KEY, failOnPut = false }: BuildFakesParams = {}): Fakes {
+function buildFakes({
+  encodedEncryptionKey = KEY,
+  failOnPut = false,
+  canPresign = false,
+}: BuildFakesParams = {}): Fakes {
   const rows: ChildFileRow[] = [];
   const objects = new Map<string, MediaObject>();
   const trail: AuditEntry[] = [];
+  const presignCalls: PresignReadParams[] = [];
   const audit: ChildFileAuditPort = {
     record: async (entry) => {
       trail.push(entry);
@@ -153,16 +204,16 @@ function buildFakes({ encodedEncryptionKey = KEY, failOnPut = false }: BuildFake
 
   const useCases = createChildFileUseCases({
     repository: createFakeRepository(rows),
-    storage: createFakeStorage(objects, failOnPut),
+    storage: createFakeStorage({ objects, failOnPut, canPresign, presignCalls }),
     childOwnership,
     audit,
     encodedEncryptionKey,
   });
 
-  return { useCases, rows, objects, trail };
+  return { useCases, rows, objects, trail, presignCalls };
 }
 
-function createClient(useCases: ChildFileUseCases): TestClient {
+function createClient(useCases: ChildFileUseCases): RawTestClient {
   return createTestClient({ routes: buildChildFileRoutes(useCases) });
 }
 
@@ -201,6 +252,38 @@ type ListParams = {
 
 function list(client: TestClient, { childId = OWNED_CHILD_ID, query = '' }: ListParams = {}) {
   return client.send({ method: HTTP_METHODS.GET, path: `/v1/children/${childId}/files${query}` });
+}
+
+function contentPath(fileId: string, childId: string): string {
+  return `/v1/children/${childId}/files/${fileId}/content`;
+}
+
+type ContentParams = {
+  readonly fileId: string;
+  readonly childId?: string;
+};
+
+/** Envelope JSON: serve para o 302 (corpo vazio) e para a recusa. */
+function content(client: TestClient, { fileId, childId = OWNED_CHILD_ID }: ContentParams) {
+  return client.send({
+    method: HTTP_METHODS.GET,
+    path: contentPath(fileId, childId),
+    headers: PROXY_HEADERS,
+  });
+}
+
+/** Bytes crus: `JSON.parse` estoura no primeiro byte de um PDF. */
+function contentBytes(client: RawTestClient, { fileId, childId = OWNED_CHILD_ID }: ContentParams) {
+  return client.sendRaw({
+    method: HTTP_METHODS.GET,
+    path: contentPath(fileId, childId),
+    headers: PROXY_HEADERS,
+  });
+}
+
+async function uploadAndReadId(client: TestClient, params: UploadParams = {}): Promise<string> {
+  const response = await upload(client, params);
+  return String(readDataRecord(response).id);
 }
 
 /**
@@ -666,5 +749,259 @@ describe('a lista de outro pai nao tem como voltar', () => {
 
     expect(response.status).toBe(400);
     expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
+  });
+});
+
+
+describe('a foto sai por link assinado, e a API fica fora do caminho', () => {
+  test('a foto responde 302 para o link do balde', async () => {
+    const fakes = buildFakes({ canPresign: true });
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+
+    const response = await content(client, { fileId });
+
+    expect(response.status).toBe(CHILD_FILE_REDIRECT_STATUS);
+    expect(response.headers.get(LOCATION_HEADER)).toContain(SIGNED_LINK_PREFIX);
+    expect(response.payload).toBeUndefined();
+  });
+
+  /**
+   * O prazo e' do modulo de midia, nao um numero escrito nesta rota: link
+   * assinado de vida longa e' link publico com data marcada.
+   */
+  test('o link vence, e o prazo e o do modulo de midia', async () => {
+    const fakes = buildFakes({ canPresign: true });
+    const client = createClient(fakes.useCases);
+
+    await content(client, { fileId: await uploadAndReadId(client) });
+
+    expect(fakes.presignCalls).toHaveLength(1);
+    expect(fakes.presignCalls[0]?.ttlSeconds).toBe(DEFAULT_PRESIGN_TTL_SECONDS);
+  });
+
+  /**
+   * Album de um fim de semana sao dezenas de aberturas. Carimbar cada uma
+   * encheria a trilha do art. 46 de linhas que nao contam nada, afogando a
+   * linha do exame — que e' a que a trilha existe para achar.
+   */
+  test('ler foto nao grava trilha', async () => {
+    const fakes = buildFakes({ canPresign: true });
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+
+    await content(client, { fileId });
+    await content(client, { fileId });
+
+    expect(fakes.trail).toHaveLength(1);
+    expect(fakes.trail[0]?.action).toBe(AUDIT_ACTIONS.CHILD_PHOTO_UPLOADED);
+  });
+
+  /**
+   * Balde de arquivo local nao assina nada, e a foto tem de abrir do mesmo
+   * jeito: a capacidade e' opcional por AUSENCIA, e a rota cai nos bytes.
+   */
+  test('balde que nao sabe assinar entrega os bytes', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+
+    const response = await contentBytes(client, { fileId });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get(CONTENT_TYPE_HEADER)).toBe('image/jpeg');
+    expect(Buffer.from(response.bytes).equals(Buffer.from(JPEG))).toBe(true);
+  });
+
+  test('nem o link nem os bytes podem ficar em cache', async () => {
+    const assinando = buildFakes({ canPresign: true });
+    const assinandoClient = createClient(assinando.useCases);
+    const comLink = await content(assinandoClient, { fileId: await uploadAndReadId(assinandoClient) });
+
+    const servindo = buildFakes();
+    const servindoClient = createClient(servindo.useCases);
+    const comBytes = await contentBytes(servindoClient, { fileId: await uploadAndReadId(servindoClient) });
+
+    expect(comLink.headers.get(CACHE_CONTROL_HEADER)).toBe(CHILD_FILE_CACHE_CONTROL);
+    expect(comBytes.headers.get(CACHE_CONTROL_HEADER)).toBe(CHILD_FILE_CACHE_CONTROL);
+  });
+});
+
+describe('o exame passa pela API, sempre', () => {
+  /**
+   * O balde SABE assinar neste teste, e ainda assim nao e' chamado. Link
+   * assinado deixa de ser observavel no instante em que e' emitido, e dado de
+   * saude de crianca exige trilha em toda leitura (`security.md` §10).
+   */
+  test('o exame nao sai por link, mesmo com balde que assina', async () => {
+    const fakes = buildFakes({ canPresign: true });
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+
+    const response = await contentBytes(client, { fileId });
+
+    expect(response.status).toBe(200);
+    expect(fakes.presignCalls).toHaveLength(0);
+  });
+
+  test('o exame volta decifrado, e no balde ele continua cifrado', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+
+    const response = await contentBytes(client, { fileId });
+
+    expect(response.headers.get(CONTENT_TYPE_HEADER)).toBe('application/pdf');
+    expect(Buffer.from(response.bytes).toString('utf8')).toContain(LAUDO);
+
+    const stored = [...fakes.objects.values()][0];
+    expect(Buffer.from(stored?.bytes ?? new Uint8Array()).toString('utf8')).toContain(MEDIA_ENVELOPE_MAGIC);
+  });
+
+  /** TODA leitura, nao a primeira: duas aberturas sao duas linhas. */
+  test('toda leitura de exame grava trilha', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+
+    await contentBytes(client, { fileId });
+    await contentBytes(client, { fileId });
+
+    const leituras = fakes.trail.filter((entry) => entry.action === AUDIT_ACTIONS.CHILD_EXAM_READ);
+    expect(leituras).toHaveLength(2);
+    expect(leituras[0]).toMatchObject({
+      actorId: TEST_USER_ID,
+      targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+      targetId: fileId,
+      clientIp: CLIENT_IP,
+    });
+  });
+
+  /** Nome de arquivo e' PII, e este produto nao guarda nenhum para poder mandar. */
+  test('o arquivo servido nao carrega nome nenhum', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+
+    const response = await contentBytes(client, { fileId });
+
+    expect(response.headers.get(CONTENT_DISPOSITION_HEADER)).toBe(CHILD_FILE_CONTENT_DISPOSITION);
+    expect(response.headers.get(CONTENT_DISPOSITION_HEADER)).not.toContain('filename');
+  });
+
+  /**
+   * Instalacao sem chave nao devolve o envelope cru "porque e' o que tem": 503,
+   * e trilha VAZIA — nao houve leitura para registrar.
+   */
+  test('exame sem chave configurada nao vaza, e nao grava trilha', async () => {
+    const fakes = buildFakes({ encodedEncryptionKey: '' });
+    seed(fakes.rows, { id: MISSING_ID, kind: 'exame', contentType: 'application/pdf', checksum: sha256(PDF) });
+    fakes.objects.set(`children/${OWNED_CHILD_ID}/${MISSING_ID}`, {
+      objectKey: `children/${OWNED_CHILD_ID}/${MISSING_ID}`,
+      bytes: encryptMedia({ plaintext: PDF, key: readMediaKey(KEY) }),
+      contentType: 'application/pdf',
+    });
+    Object.assign(fakes.rows[0] as ChildFileRow, { isEncrypted: true });
+
+    const response = await content(createClient(fakes.useCases), { fileId: MISSING_ID });
+
+    expect(response.status).toBe(503);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.media.KEY_INVALID);
+    expect(fakes.trail).toHaveLength(0);
+  });
+
+  /**
+   * O envelope trocado no balde ABRE — foi cifrado com a mesma chave —, e o
+   * conteudo e' outro. So o `checksum` do envio percebe, e e' para isso que ele
+   * foi guardado. Entregar numero de hemoglobina de outro exame e' pior que nao
+   * entregar nada, porque ninguem desconfia de um papel que abriu normalmente.
+   */
+  test('bytes trocados no balde nao chegam ao pai, e nao viram leitura', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+    const objectKey = `children/${OWNED_CHILD_ID}/${fileId}`;
+    const outroLaudo = new Uint8Array(Buffer.from('%PDF-1.4\nHemoglobina: 7,1 g/dL\n', 'utf8'));
+    fakes.objects.set(objectKey, {
+      objectKey,
+      bytes: encryptMedia({ plaintext: outroLaudo, key: readMediaKey(KEY) }),
+      contentType: 'application/pdf',
+    });
+    fakes.trail.length = 0;
+
+    const response = await content(client, { fileId });
+
+    expect(response.status).toBe(500);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_CORRUPTED);
+    expect(fakes.trail).toHaveLength(0);
+  });
+});
+
+describe('conteudo de outro dono nao tem como voltar', () => {
+  test('arquivo de outro pai responde 404', async () => {
+    const fakes = buildFakes();
+    seed(fakes.rows, { id: MISSING_ID, userId: OTHER_USER_ID });
+
+    const response = await content(createClient(fakes.useCases), { fileId: MISSING_ID });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND);
+  });
+
+  /**
+   * Mesmo pai, filho errado no CAMINHO. O `userId` sozinho nao pega este caso —
+   * quem pega e' a comparacao do `childId` da linha com o do segmento da URL.
+   */
+  test('arquivo de outro filho pelo caminho deste filho responde 404', async () => {
+    const fakes = buildFakes();
+    seed(fakes.rows, { id: MISSING_ID, childId: FOREIGN_CHILD_ID });
+
+    const response = await content(createClient(fakes.useCases), { fileId: MISSING_ID });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND);
+  });
+
+  test('filho de outro pai responde 404 de filho, nao 403', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+
+    const response = await content(client, { fileId, childId: FOREIGN_CHILD_ID });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.child.CHILD_NOT_FOUND);
+  });
+
+  test('fileId desconhecido responde 404', async () => {
+    const fakes = buildFakes();
+
+    const response = await content(createClient(fakes.useCases), { fileId: MISSING_ID });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND);
+  });
+
+  test('fileId que nao e uuid nao chega ao banco', async () => {
+    const fakes = buildFakes();
+
+    const response = await content(createClient(fakes.useCases), { fileId: 'nao-e-uuid' });
+
+    expect(response.status).toBe(400);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
+  });
+
+  /**
+   * Medido: `../../etc/passwd` no segmento e' normalizado pela propria URL antes
+   * de qualquer rota, e o caminho encurtado nao casa com rota nenhuma — 404, sem
+   * chegar ao balde. Vale afirmar porque o `objectKey` e' montado com o `fileId`.
+   */
+  test('subir diretorio no segmento nao alcanca rota nenhuma', async () => {
+    const fakes = buildFakes();
+
+    const response = await content(createClient(fakes.useCases), { fileId: '../../etc/passwd' });
+
+    expect(response.status).toBe(404);
+    expect(fakes.objects.size).toBe(0);
   });
 });

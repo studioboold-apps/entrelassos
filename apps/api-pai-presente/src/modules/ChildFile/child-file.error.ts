@@ -49,6 +49,26 @@ export class ChildFileTypeUnknownError extends DomainError {
   }
 }
 
+/**
+ * O que voltou do balde nao e' o que subiu. 500 porque o pedido estava certo e
+ * a culpa e' nossa — e recusar e' obrigatorio: entregar exame corrompido como se
+ * fosse o laudo do filho e' pior que nao entregar nada, porque ninguem
+ * desconfia de um numero errado num papel que abriu normalmente.
+ *
+ * O `checksum` foi guardado no envio para esta pergunta existir; sem a
+ * conferencia na leitura, ele seria coluna decorativa.
+ */
+export class ChildFileCorruptedError extends DomainError {
+  constructor(fileId: string) {
+    super({
+      code: ERROR_CODES.childFile.CHILD_FILE_CORRUPTED,
+      message: 'Nao conseguimos abrir este arquivo com seguranca. Tente enviar de novo.',
+      statusCode: 500,
+      details: [{ field: 'fileId', message: fileId }],
+    });
+  }
+}
+
 /** Os bytes se identificaram, e o tipo nao serve para este registro. */
 export class ChildFileTypeNotAllowedError extends DomainError {
   constructor(params: { readonly kind: string; readonly contentType: string }) {

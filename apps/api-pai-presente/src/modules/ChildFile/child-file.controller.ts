@@ -5,9 +5,14 @@
  */
 
 import {
+  CACHE_CONTROL_HEADER,
+  CONTENT_DISPOSITION_HEADER,
   CONTENT_LENGTH_HEADER,
+  CONTENT_TYPE_HEADER,
   HTTP_METHODS,
   HTTP_STATUS,
+  LOCATION_HEADER,
+  SECURITY_HEADERS,
 } from '../shared/http/http.constant';
 import { parsePagination, parseWithSchema, readClientIp } from '../shared/http/request.util';
 import { respondWithData, respondWithList } from '../shared/http/response.util';
@@ -18,7 +23,16 @@ import {
   CHILD_FILE_MAX_BYTES,
 } from '../shared/shared.constant';
 import { uuidSchema } from '../shared/shared.schema';
-import { CHILD_FILES_PATH, CHILD_FILE_FORM_FIELDS } from './child-file.constant';
+import {
+  CHILD_FILES_PATH,
+  CHILD_FILE_CACHE_CONTROL,
+  CHILD_FILE_CONTENT_DISPOSITION,
+  CHILD_FILE_CONTENT_PATH,
+  CHILD_FILE_DELIVERIES,
+  CHILD_FILE_FORM_FIELDS,
+  CHILD_FILE_REDIRECT_STATUS,
+} from './child-file.constant';
+import type { ChildFileContent } from './types/child-file.types';
 import { ChildFileMissingError, ChildFileTooLargeError } from './child-file.error';
 import { uploadChildFileFieldsSchema } from './child-file.schema';
 import type { ChildFileUseCases } from './child-file.use-case';
@@ -73,6 +87,28 @@ function readTextFields(form: RequestFormData): Record<string, string> {
   return fields;
 }
 
+/**
+ * A unica resposta desta API que nao e' JSON, e por isso ela nao mora em
+ * `response.util.ts`: um ajudante generico de bytes convidaria a proxima rota a
+ * servir arquivo, e servir arquivo e' o que este modulo faz com trilha e regra.
+ *
+ * `no-store` nas DUAS saidas. No link, porque um intermediario que guardasse a
+ * URL assinada a serviria depois de o prazo dela ter passado aqui; nos bytes,
+ * porque exame decifrado nao pode encostar em disco de proxy.
+ */
+function respondWithContent(content: ChildFileContent): Response {
+  const headers = new Headers({ ...SECURITY_HEADERS, [CACHE_CONTROL_HEADER]: CHILD_FILE_CACHE_CONTROL });
+
+  if (content.delivery === CHILD_FILE_DELIVERIES.LINK) {
+    headers.set(LOCATION_HEADER, content.url);
+    return new Response(null, { status: CHILD_FILE_REDIRECT_STATUS, headers });
+  }
+
+  headers.set(CONTENT_TYPE_HEADER, content.contentType);
+  headers.set(CONTENT_DISPOSITION_HEADER, CHILD_FILE_CONTENT_DISPOSITION);
+  return new Response(content.bytes, { status: HTTP_STATUS.OK, headers });
+}
+
 export function buildChildFileRoutes(useCases: ChildFileUseCases): readonly RouteDefinition[] {
   return [
     {
@@ -121,6 +157,21 @@ export function buildChildFileRoutes(useCases: ChildFileUseCases): readonly Rout
         });
 
         return respondWithList(items, { total, page, perPage });
+      },
+    },
+    {
+      method: HTTP_METHODS.GET,
+      path: CHILD_FILE_CONTENT_PATH,
+      summary: 'Entrega a foto por link assinado, e o exame decifrado pela propria API.',
+      handle: async ({ request, pathParams, authenticatedUser }) => {
+        const content = await useCases.readContent({
+          childId: parseWithSchema(uuidSchema, pathParams.childId),
+          fileId: parseWithSchema(uuidSchema, pathParams.fileId),
+          userId: authenticatedUser.userId,
+          clientIp: readClientIp(request),
+        });
+
+        return respondWithContent(content);
       },
     },
   ];

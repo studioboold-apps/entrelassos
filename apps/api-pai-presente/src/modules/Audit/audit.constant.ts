@@ -15,6 +15,14 @@ export const AUDIT_ACTIONS = {
    */
   CHILD_PHOTO_UPLOADED: 'child_photo_uploaded',
   CHILD_EXAM_UPLOADED: 'child_exam_uploaded',
+  /**
+   * LEITURA de exame deixa trilha; leitura de foto NAO. A trilha do art. 46 da
+   * LGPD existe para poder responder "quem viu o dado de saude desta crianca, e
+   * quando" — e carimbar cada foto que o album pinta na tela encheria a mesma
+   * tabela de milhares de linhas por sessao, afogando exatamente a linha que a
+   * pergunta procura.
+   */
+  CHILD_EXAM_READ: 'child_exam_read',
 } as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 

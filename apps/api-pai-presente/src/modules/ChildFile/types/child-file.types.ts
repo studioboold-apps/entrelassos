@@ -8,6 +8,7 @@ import type { AuditEntry } from '../../Audit/types/audit.types';
 import type { MediaStorage } from '../../Media/media-storage.interface';
 import type { ChildOwnershipPort } from '../../shared/child-ownership.interface';
 import type { ChildFileKind } from '../../shared/shared.constant';
+import type { CHILD_FILE_DELIVERIES } from '../child-file.constant';
 import type { ChildFileRow, NewChildFileRow } from '../child-file.table';
 
 /**
@@ -81,6 +82,33 @@ export type ListChildFilesView = {
   readonly items: readonly ChildFileView[];
   readonly total: number;
 };
+
+export type ReadChildFileContentParams = {
+  readonly childId: string;
+  readonly fileId: string;
+  readonly userId: string;
+  /** Vai para a trilha do exame, nao para o log (`security.md` §1). */
+  readonly clientIp: string;
+};
+
+/**
+ * Uniao discriminada, e nao um objeto com `url?` e `bytes?`: com os dois
+ * opcionais, o controlador precisaria escolher qual olhar primeiro, e o dia em
+ * que os dois viessem preenchidos ele serviria o exame E emitiria link.
+ */
+export type ChildFileLinkDelivery = {
+  readonly delivery: typeof CHILD_FILE_DELIVERIES.LINK;
+  readonly url: string;
+  readonly ttlSeconds: number;
+};
+
+export type ChildFileBytesDelivery = {
+  readonly delivery: typeof CHILD_FILE_DELIVERIES.BYTES;
+  readonly bytes: Uint8Array;
+  readonly contentType: string;
+};
+
+export type ChildFileContent = ChildFileLinkDelivery | ChildFileBytesDelivery;
 
 export type UploadChildFileParams = {
   readonly childId: string;

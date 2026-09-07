@@ -28,8 +28,29 @@ export type SendParams = {
   readonly headers?: Readonly<Record<string, string>> | undefined;
 };
 
+/**
+ * Resposta que NAO e' JSON. Existe porque uma rota deste produto serve arquivo
+ * (`GET .../files/:fileId/content`), e ler o corpo dela com `JSON.parse`
+ * estoura no primeiro byte de um PDF.
+ */
+export type RawTestResponse = {
+  readonly status: number;
+  readonly bytes: Uint8Array;
+  readonly headers: Headers;
+};
+
 export type TestClient = {
   send(params: SendParams): Promise<TestResponse>;
+};
+
+/**
+ * Ler bytes e' capacidade OPCIONAL POR PRESENCA, nao um metodo que todo cliente
+ * de teste tem de ter: o cliente do E2E fala por rede com pote de cookies e
+ * nunca busca arquivo, e obriga-lo a um segundo caminho de leitura de corpo
+ * seria encanamento que nada exercita.
+ */
+export type RawTestClient = TestClient & {
+  sendRaw(params: SendParams): Promise<RawTestResponse>;
 };
 
 export type CreateTestClientParams = {
@@ -38,7 +59,7 @@ export type CreateTestClientParams = {
   readonly user?: AuthenticatedUser | undefined;
 };
 
-export function createTestClient(params: CreateTestClientParams): TestClient {
+export function createTestClient(params: CreateTestClientParams): RawTestClient {
   // 'user' presente e undefined significa anonimo; ausente significa o padrao.
   // Valor default nao distingue os dois, e foi assim que o teste de 401 passou verde.
   const user = 'user' in params ? params.user : TEST_USER;
@@ -48,27 +69,40 @@ export function createTestClient(params: CreateTestClientParams): TestClient {
     authenticatedUserResolver: { resolve: async () => user },
   });
 
+  function buildRequest({ method, path, body, headers }: SendParams): Request {
+    const requestHeaders = new Headers(headers);
+    // `FormData` passa INTEIRO, sem `content-type` nosso: quem escreve o
+    // cabecalho com a fronteira certa e' o `Request`. Forcar json aqui fazia o
+    // upload chegar ao controlador como a string "[object FormData]".
+    const isFormData = body instanceof FormData;
+    if (body !== undefined && !isFormData) requestHeaders.set('content-type', 'application/json');
+    const init: RequestInit =
+      body === undefined
+        ? { method, headers: requestHeaders }
+        : {
+            method,
+            body: isFormData || typeof body === 'string' ? (body as RequestInit['body']) : JSON.stringify(body),
+            headers: requestHeaders,
+          };
+    return new Request(`http://localhost${path}`, init);
+  }
+
   return {
-    async send({ method, path, body, headers }: SendParams): Promise<TestResponse> {
-      const requestHeaders = new Headers(headers);
-      // `FormData` passa INTEIRO, sem `content-type` nosso: quem escreve o
-      // cabecalho com a fronteira certa e' o `Request`. Forcar json aqui fazia o
-      // upload chegar ao controlador como a string "[object FormData]".
-      const isFormData = body instanceof FormData;
-      if (body !== undefined && !isFormData) requestHeaders.set('content-type', 'application/json');
-      const init: RequestInit =
-        body === undefined
-          ? { method, headers: requestHeaders }
-          : {
-              method,
-              body: isFormData || typeof body === 'string' ? (body as RequestInit['body']) : JSON.stringify(body),
-              headers: requestHeaders,
-            };
-      const response = await router.handle(new Request(`http://localhost${path}`, init));
+    async send(params: SendParams): Promise<TestResponse> {
+      const response = await router.handle(buildRequest(params));
       const text = await response.text();
       return {
         status: response.status,
         payload: text.length > 0 ? JSON.parse(text) : undefined,
+        headers: response.headers,
+      };
+    },
+
+    async sendRaw(params: SendParams): Promise<RawTestResponse> {
+      const response = await router.handle(buildRequest(params));
+      return {
+        status: response.status,
+        bytes: new Uint8Array(await response.arrayBuffer()),
         headers: response.headers,
       };
     },

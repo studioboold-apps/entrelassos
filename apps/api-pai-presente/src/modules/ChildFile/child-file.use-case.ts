@@ -8,26 +8,30 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import { AUDIT_ACTIONS, AUDIT_TARGET_TYPES } from '../Audit/audit.constant';
 import { detectContentType } from '../Media/detect-content-type';
-import { encryptMedia, readMediaKey } from '../Media/media-cipher';
-import { MEDIA_OBJECT_ROOT } from '../Media/media.constant';
+import { decryptMedia, encryptMedia, readMediaKey } from '../Media/media-cipher';
+import { DEFAULT_PRESIGN_TTL_SECONDS, MEDIA_OBJECT_ROOT } from '../Media/media.constant';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { ResourceNotFoundError } from '../shared/errors/shared.error';
 import { CHILD_FILE_MAX_BYTES, type ChildFileKind } from '../shared/shared.constant';
 import type { ChildFileRow } from './child-file.table';
 import {
   CHILD_FILE_ALLOWED_CONTENT_TYPES,
+  CHILD_FILE_DELIVERIES,
   isHealthData,
 } from './child-file.constant';
 import {
+  ChildFileCorruptedError,
   ChildFileTooLargeError,
   ChildFileTypeNotAllowedError,
   ChildFileTypeUnknownError,
 } from './child-file.error';
 import type {
+  ChildFileContent,
   ChildFileUseCasesParams,
   ChildFileView,
   ListChildFilesParams,
   ListChildFilesView,
+  ReadChildFileContentParams,
   UploadChildFileParams,
 } from './types/child-file.types';
 
@@ -52,6 +56,7 @@ export function toChildFileView(row: ChildFileRow): ChildFileView {
 export type ChildFileUseCases = {
   upload(params: UploadChildFileParams): Promise<ChildFileView>;
   list(params: ListChildFilesParams): Promise<ListChildFilesView>;
+  readContent(params: ReadChildFileContentParams): Promise<ChildFileContent>;
 };
 
 /**
@@ -105,6 +110,79 @@ export function createChildFileUseCases({
       await assertChildIsOwned(params.childId, params.userId);
       const { items, total } = await repository.listByChild(params);
       return { items: items.map(toChildFileView), total };
+    },
+
+    /**
+     * Foto sai por LINK assinado; exame sai por BYTES, decifrado por nos.
+     *
+     * Nao e' economia de banda em um caso e nao no outro: e' que link assinado
+     * deixa de ser observavel no instante em que e' emitido. Quem tem a URL le'
+     * o objeto direto no balde, sem passar por aqui, e nenhuma dessas leituras
+     * aparece em trilha nenhuma. Para foto isso e' aceitavel e desejavel — o
+     * album do fim de semana nao pesa no servidor. Para dado de saude de
+     * crianca nao e': o art. 46 da LGPD cobra poder responder QUEM viu e QUANDO
+     * (`security.md` §10), e so' o caminho que atravessa a API sabe disso.
+     *
+     * Por isso a decisao e' do `kind`, e nunca do cliente nem do que o balde
+     * sabe fazer: um balde que aprendesse a assinar nao passaria a emitir link
+     * de exame.
+     */
+    async readContent({ childId, fileId, userId, clientIp }) {
+      await assertChildIsOwned(childId, userId);
+
+      const row = await repository.findById({ fileId, userId });
+      /**
+       * O arquivo tambem tem de ser DESTE filho. Sem esta comparacao, o caminho
+       * de um filho serviria arquivo de outro — o `userId` blindaria contra o
+       * pai vizinho, e nao contra a troca de segmento na propria URL.
+       */
+      if (row === undefined || row.childId !== childId) {
+        throw new ResourceNotFoundError(
+          ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND,
+          'Arquivo nao encontrado.',
+        );
+      }
+
+      if (!isHealthData(row.kind) && storage.presignRead !== undefined) {
+        const url = await storage.presignRead({
+          objectKey: row.objectKey,
+          ttlSeconds: DEFAULT_PRESIGN_TTL_SECONDS,
+        });
+        return { delivery: CHILD_FILE_DELIVERIES.LINK, url, ttlSeconds: DEFAULT_PRESIGN_TTL_SECONDS };
+      }
+
+      const stored = await storage.get(row.objectKey);
+      /**
+       * `isEncrypted` da LINHA decide decifrar, e nao `isHealthData` de novo: o
+       * dia em que a politica mudar, o arquivo antigo continua sendo o que ele
+       * era quando subiu, e e' a linha que sabe disso.
+       */
+      const bytes = row.isEncrypted
+        ? decryptMedia({ envelope: stored, key: readMediaKey(encodedEncryptionKey) })
+        : stored;
+
+      if (createHash('sha256').update(bytes).digest('hex') !== row.checksum) {
+        throw new ChildFileCorruptedError(fileId);
+      }
+
+      /**
+       * A trilha vem ANTES de os bytes saírem — o contrario do envio, e de
+       * proposito. No envio, trilha antes do fato afirmaria o que nao
+       * aconteceu; aqui, bytes antes da trilha seria divulgacao de dado de
+       * saude sem registro, que e' exatamente o que a trilha existe para
+       * impedir. Falhar a leitura e' recuperavel; a lacuna nao.
+       */
+      if (isHealthData(row.kind)) {
+        await audit.record({
+          actorId: userId,
+          action: AUDIT_ACTIONS.CHILD_EXAM_READ,
+          targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+          targetId: fileId,
+          clientIp,
+        });
+      }
+
+      return { delivery: CHILD_FILE_DELIVERIES.BYTES, bytes, contentType: row.contentType };
     },
 
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {

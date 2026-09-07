@@ -72,6 +72,10 @@ export const CORS_ALLOWED_HEADERS = 'Content-Type';
 export const CORS_MAX_AGE_SECONDS = '600';
 
 export const CONTENT_LENGTH_HEADER = 'content-length';
+export const CONTENT_TYPE_HEADER = 'Content-Type';
+export const CONTENT_DISPOSITION_HEADER = 'Content-Disposition';
+export const CACHE_CONTROL_HEADER = 'Cache-Control';
+export const LOCATION_HEADER = 'Location';
 
 /** Cabecalhos que o proxy usa para contar o endereco de origem. */
 export const FORWARDED_FOR_HEADER = 'x-forwarded-for';

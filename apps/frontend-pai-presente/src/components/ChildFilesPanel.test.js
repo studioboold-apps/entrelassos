@@ -98,6 +98,41 @@ describe('o painel nasce vazio para cada filho', () => {
   });
 });
 
+describe('a linha do tempo junta atividade, foto e exame', () => {
+  /**
+   * Guardar foto e exame num painel separado das atividades daria DUAS
+   * historias do mesmo filho, e nenhuma das duas responderia "o que aconteceu
+   * em agosto". A juncao e' derivada na renderizacao, nao copiada para estado.
+   */
+  test('a juncao sai do modulo puro, com teste proprio', () => {
+    expect(HOOK).toContain('buildChildTimeline');
+  });
+
+  test('as atividades vem pela chave que as outras telas ja aquecem', () => {
+    expect(HOOK).toContain("const ACTIVITIES_QUERY_KEY = 'activities'");
+    expect(HOOK).toContain('api.entities.Activity.list()');
+  });
+
+  /** Uma lista so' seria meia historia: quem falhar das duas tem de falar. */
+  test('o carregando e a falha cobrem as duas listas', () => {
+    expect(HOOK).toContain('filesQuery.isFetching || activitiesQuery.isFetching');
+    expect(HOOK).toContain('filesQuery.error ?? activitiesQuery.error');
+  });
+
+  test('o painel entrega a linha do tempo a quem desenha', () => {
+    expect(PANEL).toContain('<ChildTimeline entries={timeline} onRemoveFile={handleRemove} />');
+  });
+
+  /**
+   * Duas copias da tabela de tipos concordam ate' a primeira edicao: o rotulo
+   * mudaria no formulario e continuaria antigo na lista.
+   */
+  test('o tipo sai da fonte unica, nao de uma tabela do painel', () => {
+    expect(PANEL).toContain('CHILD_FILE_KIND_OPTIONS');
+    expect(PANEL).not.toContain('const KIND_OPTIONS');
+  });
+});
+
 describe('o album tem porta de entrada na ficha do filho', () => {
   /**
    * Terceira ocorrencia do padrao que este projeto ja pagou: capacidade que

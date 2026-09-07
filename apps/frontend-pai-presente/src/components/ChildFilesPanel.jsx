@@ -5,12 +5,13 @@
  */
 
 import React from 'react';
-import { FileText, ImagePlus, Loader2, Trash2, Upload } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 
+import ChildTimeline from '@/components/ChildTimeline';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CHILD_FILE_ACCEPT, CHILD_FILE_KINDS, formatByteSize } from '@/lib/child-files';
+import { CHILD_FILE_ACCEPT, CHILD_FILE_KIND_OPTIONS } from '@/lib/child-files';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -18,26 +19,12 @@ import { useChildFiles } from './ChildFilesPanel.hook';
 
 const INPUT_CLASS = 'mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600';
 
-/**
- * A chave do rotulo e' LITERAL em cada opcao, e nao montada com
- * `perfil.childFiles.kinds.${kind}`: a varredura de `i18n-keys.test.js` le
- * texto, entao chave montada em tempo de execucao nao e' conferida por ninguem
- * e o idioma novo nasce faltando a linha.
- */
-const KIND_OPTIONS = Object.freeze([
-  { kind: CHILD_FILE_KINDS.PHOTO, icon: ImagePlus, labelKey: 'perfil.childFiles.kinds.photo' },
-  { kind: CHILD_FILE_KINDS.EXAM, icon: FileText, labelKey: 'perfil.childFiles.kinds.exam' },
-]);
-
-function findKindOption(kind) {
-  return KIND_OPTIONS.find((option) => option.kind === kind);
-}
 
 export default function ChildFilesPanel({ child }) {
   const { t } = useTranslation();
   const {
-    files,
-    isLoadingFiles,
+    timeline,
+    isLoadingTimeline,
     listFailure,
     uploadFailure,
     removeFailure,
@@ -57,7 +44,7 @@ export default function ChildFilesPanel({ child }) {
       <div>
         <Label className="text-zinc-400">{t('perfil.childFiles.kindLabel')}</Label>
         <div className="grid grid-cols-2 gap-2 mt-1.5">
-          {KIND_OPTIONS.map((option) => (
+          {CHILD_FILE_KIND_OPTIONS.map((option) => (
             <button
               key={option.kind}
               type="button"
@@ -154,40 +141,13 @@ export default function ChildFilesPanel({ child }) {
           </p>
         )}
 
-        {isLoadingFiles && <p className="text-sm text-zinc-500">{t('perfil.childFiles.loading')}</p>}
+        {isLoadingTimeline && <p className="text-sm text-zinc-500">{t('perfil.childFiles.loading')}</p>}
 
-        {!isLoadingFiles && files.length === 0 && !listFailure && (
+        {!isLoadingTimeline && timeline.length === 0 && !listFailure && (
           <p className="text-sm text-zinc-500">{t('perfil.childFiles.empty')}</p>
         )}
 
-        {files.map((file) => (
-          <div
-            key={file.id}
-            className="flex items-center justify-between gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2"
-          >
-            <div className="min-w-0">
-              <p className="text-sm text-white truncate">
-                {file.caption ?? t(findKindOption(file.kind).labelKey)}
-              </p>
-              <p className="text-xs text-zinc-500">
-                {t('perfil.childFiles.rowMeta', {
-                  kind: t(findKindOption(file.kind).labelKey),
-                  date: file.taken_on ?? t('perfil.childFiles.noDate'),
-                  size: formatByteSize(file.byte_size),
-                })}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t('perfil.childFiles.remove')}
-              onClick={() => handleRemove(file.id)}
-              className="text-zinc-500 hover:text-red-400 shrink-0"
-            >
-              <Trash2 aria-hidden="true" className="w-4 h-4" />
-            </Button>
-          </div>
-        ))}
+        <ChildTimeline entries={timeline} onRemoveFile={handleRemove} />
       </div>
     </div>
   );

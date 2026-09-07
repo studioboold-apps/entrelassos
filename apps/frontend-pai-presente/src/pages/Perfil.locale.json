@@ -21,7 +21,7 @@
     "empty": "Nenhum filho cadastrado",
     "edit": "Editar filho",
     "delete": "Apagar filho",
-    "files": "Fotos e exames"
+    "files": "Histórico"
   },
   "logout": "Sair da conta",
   "editProfile": {
@@ -43,12 +43,13 @@
   "saving": "Salvando...",
   "save": "Salvar",
   "childFiles": {
-    "title": "Fotos e exames de {child}",
-    "subtitle": "Fica guardado no histórico do seu filho, e só você vê.",
+    "title": "Histórico de {child}",
+    "subtitle": "Atividades, fotos e exames na ordem em que aconteceram — e só você vê.",
     "kindLabel": "O que você está guardando",
     "kinds": {
       "photo": "Foto",
-      "exam": "Exame"
+      "exam": "Exame",
+      "activity": "Atividade"
     },
     "fileLabel": "Arquivo",
     "chosen": "Escolhido: {file}",
@@ -57,11 +58,12 @@
     "takenOnLabel": "Data",
     "upload": "Guardar no histórico",
     "uploading": "Enviando...",
-    "listTitle": "No histórico de {child}",
+    "listTitle": "O histórico de {child}",
     "loading": "Carregando...",
-    "empty": "Nada guardado ainda.",
+    "empty": "Nada no histórico ainda.",
     "noDate": "sem data",
     "rowMeta": "{kind} · {date} · {size}",
-    "remove": "Apagar arquivo"
+    "remove": "Apagar arquivo",
+    "activityMeta": "{kind} · {date}"
   }
 }

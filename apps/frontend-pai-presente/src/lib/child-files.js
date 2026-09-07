@@ -4,7 +4,31 @@
  * Licenca: proprietaria.
  */
 
+import { FileText, ImagePlus } from 'lucide-react';
+
 export const CHILD_FILE_KINDS = Object.freeze({ PHOTO: 'foto', EXAM: 'exame' });
+
+/**
+ * Mesmo desenho de `activity-categories.js`: o `kind` e' o que a API grava, e o
+ * rotulo e' texto de usuario, que vive em `*.locale.json` e chega aqui como
+ * CHAVE literal — chave montada em tempo de execucao nao e' verificada por
+ * ninguem.
+ *
+ * A tabela e' unica porque tanto o formulario de envio quanto a linha do tempo
+ * nomeiam o tipo: duas copias concordam ate a primeira edicao.
+ */
+export const CHILD_FILE_KIND_OPTIONS = Object.freeze([
+  { kind: CHILD_FILE_KINDS.PHOTO, icon: ImagePlus, labelKey: 'perfil.childFiles.kinds.photo' },
+  { kind: CHILD_FILE_KINDS.EXAM, icon: FileText, labelKey: 'perfil.childFiles.kinds.exam' },
+]);
+
+/**
+ * @param {string} kind
+ * @returns {{kind: string, icon: unknown, labelKey: string} | undefined}
+ */
+export function findChildFileKind(kind) {
+  return CHILD_FILE_KIND_OPTIONS.find((option) => option.kind === kind);
+}
 
 const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/heic';
 

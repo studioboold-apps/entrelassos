@@ -49,6 +49,20 @@ export type InsightCategory = (typeof INSIGHT_CATEGORIES)[number];
 export const CHAT_ROLES = ['user', 'assistant'] as const;
 export type ChatRole = (typeof CHAT_ROLES)[number];
 
+/**
+ * Foto e exame nao sao dois nomes para a mesma coisa: um e' lembranca, o outro
+ * e' dado de saude sensivel (LGPD art. 5º II) e por isso viaja cifrado e com
+ * trilha a cada leitura. O `kind` e' o que decide qual dos dois caminhos.
+ */
+export const CHILD_FILE_KINDS = ['foto', 'exame'] as const;
+export type ChildFileKind = (typeof CHILD_FILE_KINDS)[number];
+
+/** sha-256 em hexadecimal: 64 caracteres, sempre. */
+export const CHECKSUM_LENGTH = 64;
+
+/** `children/{uuid}/{uuid}` cabe em 80; o teto e' folga, nao estimativa. */
+export const OBJECT_KEY_LENGTH = 200;
+
 /** Teto de VARCHAR para valor de dominio fechado; ENUM nativo e proibido. */
 export const DOMAIN_VALUE_LENGTH = 32;
 export const SHORT_TEXT_LENGTH = 120;

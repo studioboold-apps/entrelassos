@@ -29,6 +29,13 @@
       "when": 1788708065559,
       "tag": "0003_absent_post",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788779743251,
+      "tag": "0004_regular_killmonger",
+      "breakpoints": true
     }
   ]
 }

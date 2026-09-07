@@ -19,4 +19,5 @@ export {
 } from '../modules/CommunityPost/community-post.table';
 export { communityCommentsTable } from '../modules/CommunityComment/community-comment.table';
 export { chatMessagesTable } from '../modules/ChatMessage/chat-message.table';
+export { childFilesTable } from '../modules/ChildFile/child-file.table';
 export { auditLogTable } from '../modules/Audit/audit.table';

@@ -30,11 +30,21 @@ export const AUDIT_ACTIONS = {
    */
   CHILD_PHOTO_DELETED: 'child_photo_deleted',
   CHILD_EXAM_DELETED: 'child_exam_deleted',
+  /**
+   * O consentimento do art. 14 §1 e a retirada dele (art. 8 §5) deixam trilha,
+   * e sao as linhas que dao HISTORICO a uma tabela que guarda so' o estado
+   * atual: `child_consents` tem uma linha por finalidade, e revogar a apaga.
+   * Sem estas duas acoes, "quando este pai consentiu, e por quanto tempo" seria
+   * pergunta sem resposta no dia em que alguem a fizesse.
+   */
+  CHILD_CONSENT_GRANTED: 'child_consent_granted',
+  CHILD_CONSENT_REVOKED: 'child_consent_revoked',
 } as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
 export const AUDIT_TARGET_TYPES = {
   ACCOUNT: 'account',
   CHILD_FILE: 'child_file',
+  CHILD_CONSENT: 'child_consent',
 } as const;
 export type AuditTargetType = (typeof AUDIT_TARGET_TYPES)[keyof typeof AUDIT_TARGET_TYPES];

@@ -14,6 +14,7 @@ import { DEFAULT_PRESIGN_TTL_SECONDS, MEDIA_ENVELOPE_MAGIC } from '../Media/medi
 import type { MediaObject, MediaStorage, PresignReadParams } from '../Media/media-storage.interface';
 import { ENVELOPE_KEY_BYTES } from '../shared/crypto/envelope-cipher.constant';
 import { ERROR_CODES } from '../shared/errors/codes';
+import type { ChildConsentPort } from '../shared/child-consent.interface';
 import type { ChildOwnershipPort } from '../shared/child-ownership.interface';
 import { CHILD_FILE_MAX_BYTES } from '../shared/shared.constant';
 import {
@@ -99,12 +100,23 @@ type BuildFakesParams = {
    * local de verdade (`filesystem-media-storage.ts`).
    */
   readonly canPresign?: boolean;
+  /**
+   * Concedido por PADRAO, e de proposito: os testes de exame que ja existiam
+   * afirmam cifra, trilha e checksum, nao o art. 14 §1. Se o padrao fosse
+   * "sem consentimento", todos eles passariam a medir a recusa — e a cifra
+   * deixaria de ter teste sem ninguem apagar teste nenhum.
+   */
+  readonly consentGranted?: boolean;
 };
 
 /** So o filho `OWNED_CHILD_ID` pertence ao usuario do teste. */
 const childOwnership: ChildOwnershipPort = {
   isOwnedByUser: async ({ childId, userId }) => childId === OWNED_CHILD_ID && userId === TEST_USER_ID,
 };
+
+function createFakeConsent(consentGranted: boolean): ChildConsentPort {
+  return { hasConsent: async () => consentGranted };
+}
 
 function createFakeRepository(rows: ChildFileRow[]): ChildFileRepository {
   function indexOf(fileId: string, userId: string): number {
@@ -197,6 +209,7 @@ function buildFakes({
   failOnPut = false,
   failOnDelete = false,
   canPresign = false,
+  consentGranted = true,
 }: BuildFakesParams = {}): Fakes {
   const rows: ChildFileRow[] = [];
   const objects = new Map<string, MediaObject>();
@@ -212,6 +225,7 @@ function buildFakes({
     repository: createFakeRepository(rows),
     storage: createFakeStorage({ objects, failOnPut, failOnDelete, canPresign, presignCalls }),
     childOwnership,
+    childConsent: createFakeConsent(consentGranted),
     audit,
     encodedEncryptionKey,
   });
@@ -1157,5 +1171,77 @@ describe('ninguem apaga arquivo que nao e seu', () => {
 
     expect(response.status).toBe(400);
     expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
+  });
+});
+
+describe('o exame exige o consentimento do art. 14 §1', () => {
+  /**
+   * O defeito que este teste impede de voltar: um `403` que sai DEPOIS de a
+   * linha e o objeto existirem. A recusa e' sobre tratamento de dado sensivel
+   * de menor sem base legal — e o que foi escrito foi tratado, ainda que a
+   * resposta diga "nao".
+   */
+  test('sem consentimento, o exame nao deixa linha, byte nem trilha', async () => {
+    const fakes = buildFakes({ consentGranted: false });
+
+    const response = await upload(createClient(fakes.useCases), { kind: 'exame', bytes: PDF });
+
+    expect(response.status).toBe(403);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_EXAM_CONSENT_MISSING);
+    expect(fakes.rows).toHaveLength(0);
+    expect(fakes.objects.size).toBe(0);
+    expect(fakes.trail).toHaveLength(0);
+  });
+
+  /** Para a FOTO, o consentimento da conta basta (tabela do GOAL). */
+  test('a foto sobe sem consentimento especifico', async () => {
+    const fakes = buildFakes({ consentGranted: false });
+
+    const response = await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    expect(response.status).toBe(201);
+    expect(fakes.rows).toHaveLength(1);
+    expect(fakes.objects.size).toBe(1);
+  });
+
+  test('com consentimento, o exame sobe cifrado como antes', async () => {
+    const fakes = buildFakes({ consentGranted: true });
+
+    const response = await upload(createClient(fakes.useCases), { kind: 'exame', bytes: PDF });
+
+    expect(response.status).toBe(201);
+    expect(fakes.rows[0]?.isEncrypted).toBe(true);
+    expect(fakes.trail[0]?.action).toBe(AUDIT_ACTIONS.CHILD_EXAM_UPLOADED);
+  });
+
+  /**
+   * A recusa acontece ANTES do teto de tamanho: um exame gigante e sem
+   * consentimento responde pelo consentimento, nao pelo tamanho. Se a ordem se
+   * invertesse, o pai corrigiria o tamanho e so' ai descobriria que faltava
+   * consentimento — duas idas para uma recusa.
+   */
+  test('a recusa vem antes do teto de tamanho', async () => {
+    const fakes = buildFakes({ consentGranted: false });
+    const enorme = new Uint8Array(CHILD_FILE_MAX_BYTES + 1);
+    enorme.set(PDF, 0);
+
+    const response = await upload(createClient(fakes.useCases), { kind: 'exame', bytes: enorme });
+
+    expect(response.status).toBe(403);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_EXAM_CONSENT_MISSING);
+  });
+
+  /** Filho de outro pai continua 404: a posse se afirma antes do consentimento. */
+  test('filho de outro pai responde 404, e nao 403 de consentimento', async () => {
+    const fakes = buildFakes({ consentGranted: false });
+
+    const response = await upload(createClient(fakes.useCases), {
+      kind: 'exame',
+      bytes: PDF,
+      childId: FOREIGN_CHILD_ID,
+    });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.child.CHILD_NOT_FOUND);
   });
 });

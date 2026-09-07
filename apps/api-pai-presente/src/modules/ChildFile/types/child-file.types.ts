@@ -6,6 +6,7 @@
 
 import type { AuditEntry } from '../../Audit/types/audit.types';
 import type { MediaStorage } from '../../Media/media-storage.interface';
+import type { ChildConsentPort } from '../../shared/child-consent.interface';
 import type { ChildOwnershipPort } from '../../shared/child-ownership.interface';
 import type { ChildFileKind } from '../../shared/shared.constant';
 import type { CHILD_FILE_DELIVERIES } from '../child-file.constant';
@@ -148,6 +149,11 @@ export type ChildFileUseCasesParams = {
   readonly repository: ChildFileRepository;
   readonly storage: MediaStorage;
   readonly childOwnership: ChildOwnershipPort;
+  /**
+   * O art. 14 §1 pergunta antes do primeiro exame. Porta, e nao consulta
+   * propria: quem responde e' `ChildConsent`, dono unico da pergunta.
+   */
+  readonly childConsent: ChildConsentPort;
   readonly audit: ChildFileAuditPort;
   /**
    * A chave chega CODIFICADA e so' e' lida quando um exame aparece. Ler no boot

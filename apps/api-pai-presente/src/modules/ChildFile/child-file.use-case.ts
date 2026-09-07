@@ -7,6 +7,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { AUDIT_ACTIONS, AUDIT_TARGET_TYPES } from '../Audit/audit.constant';
+import { CHILD_CONSENT_PURPOSES } from '../ChildConsent/child-consent.constant';
 import { detectContentType } from '../Media/detect-content-type';
 import { decryptMedia, encryptMedia, readMediaKey } from '../Media/media-cipher';
 import { DEFAULT_PRESIGN_TTL_SECONDS, MEDIA_OBJECT_ROOT } from '../Media/media.constant';
@@ -20,6 +21,7 @@ import {
   isHealthData,
 } from './child-file.constant';
 import {
+  ChildExamConsentMissingError,
   ChildFileCorruptedError,
   ChildFileTooLargeError,
   ChildFileTypeNotAllowedError,
@@ -84,6 +86,7 @@ export function createChildFileUseCases({
   repository,
   storage,
   childOwnership,
+  childConsent,
   audit,
   encodedEncryptionKey,
 }: ChildFileUseCasesParams): ChildFileUseCases {
@@ -237,6 +240,30 @@ export function createChildFileUseCases({
 
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {
       await assertChildIsOwned(childId, userId);
+
+      /**
+       * O consentimento do art. 14 §1 se checa AQUI: antes do teto de tamanho,
+       * antes de olhar os bytes, antes da linha no banco e antes do objeto no
+       * balde. Recusar depois de guardar deixaria dado de saude de menor
+       * gravado sem base legal, mesmo que por um instante — e nao existe
+       * "instante" numa auditoria: o que foi escrito foi tratado.
+       *
+       * So' o exame passa por aqui. Para a FOTO, o consentimento da conta
+       * basta: ela e' o dado que o pai criou do proprio filho, e nao dado de
+       * saude sensivel (LGPD art. 11). Exigir consentimento especifico para
+       * cada foto transformaria o aviso da lei em ruido, que e' o modo mais
+       * eficaz de ninguem ler nenhum.
+       */
+      if (isHealthData(kind)) {
+        const hasConsent = await childConsent.hasConsent({
+          childId,
+          userId,
+          purpose: CHILD_CONSENT_PURPOSES.HEALTH_DATA,
+        });
+        if (!hasConsent) {
+          throw new ChildExamConsentMissingError(CHILD_CONSENT_PURPOSES.HEALTH_DATA);
+        }
+      }
 
       if (bytes.byteLength > CHILD_FILE_MAX_BYTES) {
         throw new ChildFileTooLargeError(bytes.byteLength);

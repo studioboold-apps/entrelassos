@@ -6,6 +6,7 @@
 
 import { DomainError } from '../shared/errors/app.error';
 import { ERROR_CODES } from '../shared/errors/codes';
+import { HTTP_STATUS } from '../shared/http/http.constant';
 import { CHILD_FILE_MAX_BYTES } from '../shared/shared.constant';
 
 /** Formulario chegou, arquivo nao. E' erro de quem enviou: 400. */
@@ -76,6 +77,31 @@ export class ChildFileTypeNotAllowedError extends DomainError {
       code: ERROR_CODES.childFile.CHILD_FILE_TYPE_NOT_ALLOWED,
       message: `Este arquivo (${params.contentType}) nao serve como ${params.kind}.`,
       statusCode: 415,
+    });
+  }
+}
+
+/**
+ * 403 e nao 400: o pedido esta bem formado, os bytes sao um PDF de verdade, e o
+ * que falta nao e' dado — e' AUTORIZACAO LEGAL. O art. 14 §1 da LGPD exige
+ * consentimento especifico e em destaque de um dos pais para tratar dado de
+ * crianca, e exame e' dado de saude (art. 11).
+ *
+ * A recusa acontece ANTES do primeiro byte chegar ao balde. Aceitar e recusar
+ * depois deixaria dado de saude de menor guardado sem base legal, ainda que por
+ * um instante — e um instante de dado sensivel sem base legal e' exatamente o
+ * que o artigo proibe.
+ *
+ * O codigo e' estavel porque a TELA depende dele: e' por ele que `H5.3` sabe
+ * mostrar o aviso de consentimento em vez de "nao foi possivel enviar".
+ */
+export class ChildExamConsentMissingError extends DomainError {
+  constructor(purpose: string) {
+    super({
+      code: ERROR_CODES.childFile.CHILD_EXAM_CONSENT_MISSING,
+      message: 'Antes do primeiro exame, registre o consentimento para dados de saude.',
+      statusCode: HTTP_STATUS.FORBIDDEN,
+      details: [{ field: 'consent', message: purpose }],
     });
   }
 }

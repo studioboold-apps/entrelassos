@@ -13,6 +13,9 @@ import { createActivityUseCases } from './modules/Activity/activity.use-case';
 import { buildChatMessageRoutes } from './modules/ChatMessage/chat-message.controller';
 import { createChatMessageRepository } from './modules/ChatMessage/chat-message.repository';
 import { createChatMessageUseCases } from './modules/ChatMessage/chat-message.use-case';
+import { buildChildConsentRoutes } from './modules/ChildConsent/child-consent.controller';
+import { createChildConsentRepository } from './modules/ChildConsent/child-consent.repository';
+import { createChildConsentUseCases } from './modules/ChildConsent/child-consent.use-case';
 import { buildChildFileRoutes } from './modules/ChildFile/child-file.controller';
 import { createChildFileRepository } from './modules/ChildFile/child-file.repository';
 import { createChildFileUseCases } from './modules/ChildFile/child-file.use-case';
@@ -74,6 +77,17 @@ export function buildApplicationRoutes({
   media,
 }: BuildApplicationRoutesParams): readonly RouteDefinition[] {
   const childRepository = createChildRepository(database);
+  /**
+   * UMA instancia, dois papeis: ela ATENDE as rotas de consentimento e RESPONDE
+   * a pergunta que o upload de exame faz. Montar duas faria a pergunta e a
+   * resposta virem de codigos diferentes que concordam so' ate a primeira
+   * edicao (`code-standart.md` §16).
+   */
+  const childConsentUseCases = createChildConsentUseCases({
+    repository: createChildConsentRepository(database),
+    childOwnership: adaptChildOwnership(childRepository),
+    audit: { record: (entry) => recordAuditEntry({ executor: database, entry }) },
+  });
   const communityPostRepository = createCommunityPostRepository(database);
   const activityRepository = createActivityRepository(database);
   const insightRatingRepository = createInsightRatingRepository(database);
@@ -92,6 +106,7 @@ export function buildApplicationRoutes({
         repository: createChildFileRepository(database),
         storage: createMediaStorage(media),
         childOwnership: adaptChildOwnership(childRepository),
+        childConsent: childConsentUseCases,
         /**
          * A trilha do arquivo NAO pega carona em transacao: a escrita no balde
          * acontece fora dela, e uma linha de trilha que rola junto com o insert
@@ -101,6 +116,7 @@ export function buildApplicationRoutes({
         encodedEncryptionKey: media.encryptionKey,
       }),
     ),
+    ...buildChildConsentRoutes(childConsentUseCases),
     ...buildInsightRatingRoutes(createInsightRatingUseCases(insightRatingRepository)),
     ...buildCommunityPostRoutes(createCommunityPostUseCases(communityPostRepository)),
     ...buildCommunityCommentRoutes(

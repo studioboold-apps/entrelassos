@@ -72,3 +72,23 @@ todos são a mesma coisa: componente `shadcn/ui` em `.jsx` sem tipo de prop, ent
 fase — é o preço de tipar JavaScript com JSDoc — e `src/components/ui` já está
 fora do `include` do `jsconfig.json` justamente por isso. Mexer aqui é migrar
 `.jsx` para `.tsx`, que é outro trabalho e outra decisão.
+
+---
+
+## O bundle sai sem compressão — medido em 07/09/2026
+
+O servidor estático em `apps/frontend-pai-presente/server/` não comprime nada.
+Medido contra a produção, com `Accept-Encoding: br, gzip` no pedido: a resposta
+volta **sem `content-encoding`**, e `index-DTEqLmyi.js` são 1.138.972 bytes de
+JavaScript cru na rede. `gzip -9` sobre os dois `assets` baixados dá 348.359
+bytes contra 1.213.146 — **864.787 bytes por primeira visita, 71%.**
+
+Em dinheiro é pouco hoje (US$ 0,04 por mil primeiras visitas, ver `CUSTO.md`
+§2), porque hoje quase ninguém visita. O que dói é 1,1 MB contra 340 KB no
+celular do pai na primeira abertura, e isso não espera haver usuário.
+
+Fica aqui e não foi corrigido junto porque a correção é no servidor estático —
+outra aplicação, outro teste (`server/web.server.test.js`), e o `Vary:
+Accept-Encoding` tem de entrar junto com o cabeçalho para não envenenar cache de
+proxy. **Quem mexer em `server/web.server.js` por qualquer outro motivo paga
+esta na mesma passada.**

@@ -93,24 +93,24 @@ enviada. Sem isso, digitalizar um álbum antigo empilha vinte anos num sábado.
 
 ## 4. PRONTO quando
 
-- [ ] `P1` — o pai sobe uma foto na ficha do filho e ela aparece na linha do
+- [x] `P1` — o pai sobe uma foto na ficha do filho e ela aparece na linha do
       tempo, na data em que foi tirada, ao lado da atividade daquele dia
-- [ ] `P2` — o pai sobe um exame, é avisado uma vez do que isso significa,
+- [x] `P2` — o pai sobe um exame, é avisado uma vez do que isso significa,
       consente, e o arquivo fica guardado **cifrado** — provado lendo o objeto
       cru do balde e não achando o conteúdo original
-- [ ] `P3` — toda leitura de exame grava trilha de auditoria com ator, alvo, IP
+- [x] `P3` — toda leitura de exame grava trilha de auditoria com ator, alvo, IP
       e hora
-- [ ] `P4` — o pai de outra conta recebe `404` na foto e no exame deste filho,
+- [x] `P4` — o pai de outra conta recebe `404` na foto e no exame deste filho,
       provado por teste negativo (BOLA, `security.md` §2)
-- [ ] `P5` — apagar o arquivo, apagar o filho e apagar a conta remove os bytes
+- [x] `P5` — apagar o arquivo, apagar o filho e apagar a conta remove os bytes
       do balde, cada um com seu teste
-- [ ] `P6` — o `.exe` renomeado para `.jpg` é recusado na fronteira
-- [ ] `P7` — o prompt da IA não carrega arquivo nem nome de arquivo, afirmado
+- [x] `P6` — o `.exe` renomeado para `.jpg` é recusado na fronteira
+- [x] `P7` — o prompt da IA não carrega arquivo nem nome de arquivo, afirmado
       por teste
-- [ ] `P8` — a exportação de dados do art. 18 inclui os arquivos
-- [ ] `P9` — existe teto de bytes por arquivo, por filho e por conta, e o pai vê
+- [x] `P8` — a exportação de dados do art. 18 inclui os arquivos
+- [x] `P9` — existe teto de bytes por arquivo, por filho e por conta, e o pai vê
       quanto já usou
-- [ ] `P10` — o relatório de custo passa a dizer o gasto de balde e de saída de
+- [x] `P10` — o relatório de custo passa a dizer o gasto de balde e de saída de
       rede, medido e não estimado
 
 ---

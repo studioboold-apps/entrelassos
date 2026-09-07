@@ -45,6 +45,13 @@ const router = createRouter({
       apiKey: environment.LLM_API_KEY,
       model: environment.LLM_MODEL,
     },
+    media: {
+      destination: environment.MEDIA_DESTINATION,
+      directory: environment.MEDIA_DIRECTORY,
+      bucket: environment.MEDIA_S3_BUCKET,
+      endpoint: environment.MEDIA_S3_ENDPOINT,
+      encryptionKey: environment.MEDIA_ENCRYPTION_KEY,
+    },
   }),
   publicRoutes: auth.publicRoutes,
   authenticatedUserResolver: auth.authenticatedUserResolver,

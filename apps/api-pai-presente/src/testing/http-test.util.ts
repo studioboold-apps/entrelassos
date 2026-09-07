@@ -51,13 +51,17 @@ export function createTestClient(params: CreateTestClientParams): TestClient {
   return {
     async send({ method, path, body, headers }: SendParams): Promise<TestResponse> {
       const requestHeaders = new Headers(headers);
-      if (body !== undefined) requestHeaders.set('content-type', 'application/json');
+      // `FormData` passa INTEIRO, sem `content-type` nosso: quem escreve o
+      // cabecalho com a fronteira certa e' o `Request`. Forcar json aqui fazia o
+      // upload chegar ao controlador como a string "[object FormData]".
+      const isFormData = body instanceof FormData;
+      if (body !== undefined && !isFormData) requestHeaders.set('content-type', 'application/json');
       const init: RequestInit =
         body === undefined
           ? { method, headers: requestHeaders }
           : {
               method,
-              body: typeof body === 'string' ? body : JSON.stringify(body),
+              body: isFormData || typeof body === 'string' ? (body as RequestInit['body']) : JSON.stringify(body),
               headers: requestHeaders,
             };
       const response = await router.handle(new Request(`http://localhost${path}`, init));

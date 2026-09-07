@@ -10,10 +10,12 @@ import { buildAiModule } from './modules/Ai/ai.module';
 import type { LlmProviderName } from './modules/Ai/ai.constant';
 import { createActivityRepository } from './modules/Activity/activity.repository';
 import { createActivityUseCases } from './modules/Activity/activity.use-case';
-import type { ChildOwnershipPort } from './modules/Activity/types/activity.types';
 import { buildChatMessageRoutes } from './modules/ChatMessage/chat-message.controller';
 import { createChatMessageRepository } from './modules/ChatMessage/chat-message.repository';
 import { createChatMessageUseCases } from './modules/ChatMessage/chat-message.use-case';
+import { buildChildFileRoutes } from './modules/ChildFile/child-file.controller';
+import { createChildFileRepository } from './modules/ChildFile/child-file.repository';
+import { createChildFileUseCases } from './modules/ChildFile/child-file.use-case';
 import { buildChildRoutes } from './modules/Child/child.controller';
 import { createChildRepository } from './modules/Child/child.repository';
 import { createChildUseCases } from './modules/Child/child.use-case';
@@ -28,7 +30,10 @@ import type { CommunityPostRepository } from './modules/CommunityPost/types/comm
 import { buildInsightRatingRoutes } from './modules/InsightRating/insight-rating.controller';
 import { createInsightRatingRepository } from './modules/InsightRating/insight-rating.repository';
 import { createInsightRatingUseCases } from './modules/InsightRating/insight-rating.use-case';
+import { recordAuditEntry } from './modules/Audit/audit.repository';
+import { createMediaStorage, type CreateMediaStorageParams } from './modules/Media/media-storage.factory';
 import type { PostExistencePort } from './modules/CommunityComment/types/community-comment.types';
+import type { ChildOwnershipPort } from './modules/shared/child-ownership.interface';
 import type { RouteDefinition } from './modules/shared/http/route.types';
 import { buildUserRoutes } from './modules/User/user.controller';
 import { createUserRepository } from './modules/User/user.repository';
@@ -48,6 +53,13 @@ function adaptPostExistence(repository: CommunityPostRepository): PostExistenceP
 
 export type BuildApplicationRoutesParams = {
   readonly database: Database;
+  /**
+   * Onde a foto e o exame ficam, e com que chave o exame e' fechado. A chave
+   * chega codificada e nao e' lida aqui: quem a le' e' o use case, e so' quando
+   * um exame aparece (`MEDIA_ENCRYPTION_KEY` ausente nao pode derrubar a API
+   * para quem so' sobe foto).
+   */
+  readonly media: CreateMediaStorageParams & { readonly encryptionKey: string };
   /** Chave do provedor de IA: vive so aqui dentro, nunca sai numa resposta. */
   readonly llm: {
     readonly providerName: LlmProviderName;
@@ -59,6 +71,7 @@ export type BuildApplicationRoutesParams = {
 export function buildApplicationRoutes({
   database,
   llm,
+  media,
 }: BuildApplicationRoutesParams): readonly RouteDefinition[] {
   const childRepository = createChildRepository(database);
   const communityPostRepository = createCommunityPostRepository(database);
@@ -72,6 +85,20 @@ export function buildApplicationRoutes({
       createActivityUseCases({
         repository: activityRepository,
         childOwnership: adaptChildOwnership(childRepository),
+      }),
+    ),
+    ...buildChildFileRoutes(
+      createChildFileUseCases({
+        repository: createChildFileRepository(database),
+        storage: createMediaStorage(media),
+        childOwnership: adaptChildOwnership(childRepository),
+        /**
+         * A trilha do arquivo NAO pega carona em transacao: a escrita no balde
+         * acontece fora dela, e uma linha de trilha que rola junto com o insert
+         * diria "guardou" antes de haver byte guardado.
+         */
+        audit: { record: (entry) => recordAuditEntry({ executor: database, entry }) },
+        encodedEncryptionKey: media.encryptionKey,
       }),
     ),
     ...buildInsightRatingRoutes(createInsightRatingUseCases(insightRatingRepository)),

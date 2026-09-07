@@ -4,12 +4,12 @@
  * Licenca: proprietaria.
  */
 
+import type { ChildOwnershipPort } from '../shared/child-ownership.interface';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { ResourceNotFoundError, ResourceNotOwnedError } from '../shared/errors/shared.error';
 import type {
   ActivityRepository,
   ActivityView,
-  ChildOwnershipPort,
   CreateActivityParams,
   FindActivityParams,
   ListActivitiesParams,

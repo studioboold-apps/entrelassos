@@ -42,10 +42,6 @@ export type UpdateActivityParams = {
   readonly values: UpdateActivityBody;
 };
 
-export type ChildOwnershipPort = {
-  isOwnedByUser(params: { readonly childId: string; readonly userId: string }): Promise<boolean>;
-};
-
 export type ActivityMonthDigestParams = {
   readonly userId: string;
   /** `YYYY-MM`. */

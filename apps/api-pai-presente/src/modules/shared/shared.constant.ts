@@ -89,3 +89,22 @@ export const UNKNOWN_CLIENT_IP = 'desconhecido';
 
 /** IPv6 com zona cabe folgado; o corte existe contra cabecalho hostil. */
 export const CLIENT_IP_LENGTH = 64;
+
+/**
+ * Teto por arquivo. 15 MiB cobre foto de celular (4 a 8 MiB em HEIC) e PDF de
+ * exame com imagem dentro, e recusa o video que alguem tentaria mandar como
+ * "foto" — este produto nao sabe servir video.
+ *
+ * O teto e' UM numero, checado duas vezes: o `Content-Length` antes de ler o
+ * corpo (para nao guardar 2 GB na memoria so' para depois recusar) e o tamanho
+ * REAL dos bytes, que e' o que decide. O cabecalho e' escrito pelo cliente.
+ */
+export const CHILD_FILE_MAX_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Folga do envelope multipart na checagem previa: as linhas de fronteira e os
+ * cabecalhos de parte fazem o `Content-Length` passar do tamanho do arquivo.
+ * Sem esta folga, a checagem barata seria MAIS severa que a regra, e um arquivo
+ * de 15 MiB exatos seria recusado por causa de duzentos bytes de moldura.
+ */
+export const CHILD_FILE_ENVELOPE_ALLOWANCE_BYTES = 8 * 1024;

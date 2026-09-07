@@ -18,11 +18,12 @@ import {
   type TestClient,
 } from '../../testing/http-test.util';
 import { applyOverrides, buildIdentity, type RowOverrides } from '../../testing/row.factory';
+import type { ChildOwnershipPort } from '../shared/child-ownership.interface';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { HTTP_METHODS } from '../shared/http/http.constant';
 import { buildActivityRoutes } from './activity.controller';
 import { createActivityUseCases } from './activity.use-case';
-import type { ActivityRepository, ActivityView, ChildOwnershipPort } from './types/activity.types';
+import type { ActivityRepository, ActivityView } from './types/activity.types';
 
 const ACTIVITIES_PATH = '/v1/activities';
 const CREATED_ID = '66666666-6666-4666-8666-666666666666';

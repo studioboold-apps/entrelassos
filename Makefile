@@ -202,6 +202,9 @@ typecheck: ## checagem de tipos
 
 test: ## testes
 	bun test
+	@# `.railway/` comeca com ponto, e `bun test` nao entra em pasta oculta: sem
+	@# esta linha o teste da infraestrutura existe e nunca roda.
+	bun test ./.railway/railway.test.ts
 
 test-e2e: ## fumaca ponta a ponta na API de verdade, no banco de env.test.e2e
 	$(MAKE) up ENV=test.e2e

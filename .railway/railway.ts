@@ -15,7 +15,7 @@
  * em terminal. `LLM_API_KEY` fica `preserve()` — o valor vive no provedor, e
  * este arquivo so afirma que a variavel existe.
  */
-import { defineRailway, empty, postgres, preserve, project, service } from 'railway/iac';
+import { defineRailway, empty, postgres, preserve, project, service, volume } from 'railway/iac';
 
 /**
  * Medido em 05/09/2026 (`railway api '{ regions { name country } }'`): o Railway
@@ -35,8 +35,42 @@ const WEB_PORT = 8080;
  */
 const WEB_DOMAIN = 'web-production-1d6f.up.railway.app';
 
+/**
+ * A midia do historico (foto e exame) mora em DISCO, e o disco do container
+ * morre com ele. Medido em 07/09/2026: sem volume, `MEDIA_DIRECTORY` valia o
+ * padrao relativo `.media`, a API tentava `mkdir '/app/.media'` — pasta da
+ * imagem, sem escrita para `bun` — e a subida respondia erro.
+ *
+ * O nome e' o que o Railway cunhou quando o volume foi criado. Ele fica aqui
+ * porque volume clicado no painel nao se refaz num ambiente novo, e este
+ * arquivo e' o que descreve a producao.
+ *
+ * O sufixo feio NAO e' enfeite, e nem foi escolhido: mover volume de regiao e'
+ * APAGAR E RECRIAR (`volumeInstanceUpdate` aceita so `mountPath`, `serviceId` e
+ * `state`; regiao so entra em `volumeCreate`), `volumeCreate` NAO aceita nome —
+ * o Railway cunha —, e o volume apagado SEGURA o nome por dois dias de
+ * carencia. Foi o que aconteceu em 07/09/2026: `api-volume` -> `api-volume-cs8b`
+ * -> `api-volume-_R9v`, tres nomes para o mesmo disco, porque a regiao errada
+ * so se conserta recriando. Entre esperar a carencia para ganhar um nome bonito
+ * e declarar o nome que a producao tem hoje, este arquivo declara o que existe:
+ * ele vale por descrever a verdade, nao por ser agradavel de ler.
+ */
+const MEDIA_VOLUME = 'api-volume-_R9v';
+const MEDIA_MOUNT_PATH = '/data';
+
+/**
+ * Medido em 07/09/2026 (`volumeInstances { region sizeMB }`): o volume do
+ * postgres nasceu em `us-east4-eqdc4a`, o da midia em `sfo` — costa oposta do
+ * banco e da API. Nenhuma escolha: `railway volume add` NAO tem `--region`, e o
+ * padrao dele ignora a regiao do projeto. Declarar aqui e' o unico caminho que
+ * coloca o disco da foto ao lado de quem a le, e o tamanho entra junto porque
+ * omiti-lo pede ao plano para zerar os 5 GB que o volume ja tem.
+ */
+const MEDIA_VOLUME_SIZE_MB = 5000;
+
 export default defineRailway(() => {
   const database = postgres('postgres', { region: REGION });
+  const media = volume(MEDIA_VOLUME, { region: REGION, sizeMB: MEDIA_VOLUME_SIZE_MB });
 
   /**
    * `empty()`: a imagem sobe por `railway up` a partir da RAIZ do monorepo, que
@@ -58,7 +92,39 @@ export default defineRailway(() => {
      * inalcancavel — e e' este endereco que decide se o deploy e' promovido.
      */
     healthcheck: '/health',
+    /**
+     * A regiao aqui nao e' preferencia, e' pre-requisito do volume: disco e
+     * conteiner tem de estar na MESMA regiao, ou o Railway nao consegue montar.
+     * Medido em 07/09/2026 no `meta` do deploy que falhou duas vezes:
+     * `deploy.region: null` com `multiRegionConfig: { sfo: { numReplicas: 1 } }`
+     * enquanto o volume novo estava em `us-east4-eqdc4a` — o volume ficou
+     * `ERROR`, `currentSizeMB 0`, e `mount | grep /data` no conteiner nao
+     * achava nada: `/data` era pasta do overlay, gravavel e efemera. O
+     * `/health` respondia 200 o tempo todo, que e' o que torna esta falha
+     * perigosa — ela nao aparece em nada que o deploy verifica.
+     *
+     * Quem conserta o conflito e' o VOLUME, nao o servico. `serviceInstanceUpdate`
+     * respondeu `true` duas vezes sem mover o conteiner (o `meta` do deploy
+     * seguinte continuava `{ sfo: ... }`), e o Railway resolveu por conta dele
+     * puxando o volume para `sfo` — o que remonta o disco e devolve o pulo de
+     * costa a costa ate o banco (~65 ms por consulta medidos em 06/09 contra
+     * ~1-3 ms na rede interna da mesma regiao). O caminho que funcionou foi
+     * apagar o volume e recria-lo com `region` no leste, ao lado do banco.
+     */
     deploy: { region: REGION, restartPolicyType: 'ON_FAILURE' },
+    /**
+     * O volume nasce com dono root, e a API roda como `bun`. Quem ajusta o dono
+     * e' o entrypoint da imagem, que sobe como root e cai para `bun` — ver
+     * `apps/api-pai-presente/docker-entrypoint.sh`. Montar o volume sem isso
+     * troca "sem lugar para gravar" por "sem permissao para gravar".
+     *
+     * A CHAVE e' o ponto de montagem e o VALOR e' o volume, nunca o contrario:
+     * so essa forma vira `volumeAttachments` (`normalizeVolumeMounts`). Escrito
+     * ao contrario, o plano compilou sem erro e propos DESLIGAR o volume
+     * (`volumeAttachments.api-volume.mountPath ("/data" -> null)`) — a midia
+     * voltaria para o disco que morre com o conteiner.
+     */
+    volumeMounts: { [MEDIA_MOUNT_PATH]: media },
     env: {
       DATABASE_URL: database.env.DATABASE_URL,
       API_PORT: String(API_PORT),
@@ -94,6 +160,20 @@ export default defineRailway(() => {
        * trocar esta linha pelo client_id de verdade — nada mais muda.
        */
       GOOGLE_CLIENT_ID: '',
+      /**
+       * Dentro do volume, e nao na raiz dele: `lost+found` do ext4 vive em
+       * `/data`, e pasta de midia com dono proprio e' o que o entrypoint
+       * consegue ajustar sem tocar no que o sistema de arquivos reserva.
+       */
+      MEDIA_DIRECTORY: `${MEDIA_MOUNT_PATH}/media`,
+      /**
+       * A chave do exame (`security.md` §5: dado sensivel em repouso). Fica
+       * `preserve()` pelo mesmo motivo da chave da IA — o valor vive no
+       * provedor, e este arquivo so afirma que a variavel existe. Ela entrou
+       * por `railway variable set --stdin`, que nao deixa o valor em linha de
+       * comando, em transcricao nem em lista de processo.
+       */
+      MEDIA_ENCRYPTION_KEY: preserve(),
     },
   });
 
@@ -134,5 +214,5 @@ export default defineRailway(() => {
     },
   });
 
-  return project('pai-presente', { resources: [database, api, web] });
+  return project('pai-presente', { resources: [database, media, api, web] });
 });

@@ -24,6 +24,7 @@ import { createCommunityPostUseCases } from '../modules/CommunityPost/community-
 import { createLogger } from '../modules/shared/logger/logger';
 import { createUserRepository } from '../modules/User/user.repository';
 import { createUserUseCases } from '../modules/User/user.use-case';
+import type { ChildFilePurgePort } from '../modules/shared/child-file-purge.interface';
 import { createDatabaseClient, type Database } from './client';
 import { SEED_LIST_LIMIT } from './seed.constant';
 import { runSeed } from './seed.service';
@@ -63,22 +64,23 @@ export function buildSeedPorts({
     tokenService: createTokenService(jwtSecret),
   });
 
-  const users = createUserUseCases(createUserRepository(database));
-  const childRepository = createChildRepository(database);
-  const children = createChildUseCases({
-    repository: childRepository,
-    /**
-     * O seed semeia, nunca apaga: nao ha' filho para varrer nem balde montado
-     * aqui. A porta recusa em voz alta em vez de devolver sucesso — varredura
-     * que nao varre deixaria byte de exame para tras no dia em que alguem
-     * chamasse `remove` a partir do seed.
-     */
-    childFiles: {
-      purgeByChild: async () => {
-        throw new Error('o seed nao apaga arquivo de filho');
-      },
+  /**
+   * O seed semeia, nunca apaga: nao ha' balde montado aqui. A porta recusa em
+   * voz alta em vez de devolver sucesso — varredura que nao varre deixaria byte
+   * de exame para tras no dia em que alguem apagasse a partir do seed.
+   */
+  const childFiles: ChildFilePurgePort = {
+    purgeByChild: async () => {
+      throw new Error('o seed nao apaga arquivo de filho');
     },
-  });
+    purgeByUser: async () => {
+      throw new Error('o seed nao apaga arquivo de filho');
+    },
+  };
+
+  const users = createUserUseCases({ repository: createUserRepository(database), childFiles });
+  const childRepository = createChildRepository(database);
+  const children = createChildUseCases({ repository: childRepository, childFiles });
   const activities = createActivityUseCases({
     repository: createActivityRepository(database),
     childOwnership: {

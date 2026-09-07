@@ -27,7 +27,10 @@ import {
   ChildFileTypeNotAllowedError,
   ChildFileTypeUnknownError,
 } from './child-file.error';
-import type { PurgeChildFilesParams } from '../shared/child-file-purge.interface';
+import type {
+  PurgeChildFilesParams,
+  PurgeUserFilesParams,
+} from '../shared/child-file-purge.interface';
 import type {
   ChildFileContent,
   ChildFileUseCasesParams,
@@ -57,6 +60,12 @@ export function toChildFileView(row: ChildFileRow): ChildFileView {
   };
 }
 
+type SweepParams = {
+  readonly rows: readonly ChildFileRow[];
+  readonly userId: string;
+  readonly clientIp: string;
+};
+
 type FindOwnedFileParams = {
   readonly childId: string;
   readonly fileId: string;
@@ -69,6 +78,7 @@ export type ChildFileUseCases = {
   readContent(params: ReadChildFileContentParams): Promise<ChildFileContent>;
   remove(params: DeleteChildFileParams): Promise<void>;
   purgeByChild(params: PurgeChildFilesParams): Promise<void>;
+  purgeByUser(params: PurgeUserFilesParams): Promise<void>;
 };
 
 /**
@@ -105,6 +115,45 @@ export function createChildFileUseCases({
     const isOwned = await childOwnership.isOwnedByUser({ childId, userId });
     if (isOwned) return;
     throw new ResourceNotFoundError(ERROR_CODES.child.CHILD_NOT_FOUND, 'Filho nao encontrado.');
+  }
+
+  /**
+   * A varredura do balde, numa funcao SO': o filho apagado e a conta apagada
+   * fazem exatamente o mesmo servico, e o que os separa e' apenas a consulta
+   * que diz quais linhas entram. Duas copias concordariam ate' a primeira
+   * edicao (`code-standart.md` §16) — e a edicao que faltasse numa delas
+   * deixaria byte de exame no balde.
+   *
+   * Nao apaga LINHA nenhuma: as linhas saem com a cascata do banco. E' a
+   * metade que a cascata nao sabe fazer, porque o Postgres nao conhece o balde.
+   */
+  async function sweep({ rows, userId, clientIp }: SweepParams): Promise<void> {
+    if (rows.length === 0) return;
+
+    /**
+     * Apagar byte que nao existe e' sucesso, entao repetir a varredura e'
+     * seguro: se o balde cair no meio, o dono continua no banco e as linhas que
+     * sobraram ainda nomeiam as chaves que faltam.
+     */
+    await Promise.all(rows.map((row) => storage.delete(row.objectKey)));
+
+    /**
+     * Trilha do EXAME, e nao de cada foto: o art. 46 pergunta o que houve com
+     * dado de saude, e um album de trezentas fotos afogaria a resposta em
+     * trezentas linhas que ninguem le'.
+     */
+    const exams = rows.filter((row) => isHealthData(row.kind));
+    await Promise.all(
+      exams.map((row) =>
+        audit.record({
+          actorId: userId,
+          action: AUDIT_ACTIONS.CHILD_EXAM_DELETED,
+          targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+          targetId: row.id,
+          clientIp,
+        }),
+      ),
+    );
   }
 
   /**
@@ -252,33 +301,20 @@ export function createChildFileUseCases({
      * seu proprio.
      */
     async purgeByChild({ childId, userId, clientIp }) {
-      const rows = await repository.listAllByChild({ childId, userId });
-      if (rows.length === 0) return;
+      await sweep({ rows: await repository.listAllByChild({ childId, userId }), userId, clientIp });
+    },
 
-      /**
-       * Apagar byte que nao existe e' sucesso, entao repetir a varredura e'
-       * seguro: se o balde cair no meio, o filho continua no banco e as linhas
-       * que sobraram ainda nomeiam as chaves que faltam.
-       */
-      await Promise.all(rows.map((row) => storage.delete(row.objectKey)));
-
-      /**
-       * Trilha do EXAME, e nao de cada foto: o art. 46 pergunta o que houve com
-       * dado de saude, e um album de trezentas fotos afogaria a resposta em
-       * trezentas linhas que ninguem le'.
-       */
-      const exams = rows.filter((row) => isHealthData(row.kind));
-      await Promise.all(
-        exams.map((row) =>
-          audit.record({
-            actorId: userId,
-            action: AUDIT_ACTIONS.CHILD_EXAM_DELETED,
-            targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
-            targetId: row.id,
-            clientIp,
-          }),
-        ),
-      );
+    /**
+     * O outro dono da varredura: a conta inteira (LGPD art. 18 VI). Tambem sem
+     * checagem de existencia — o `userId` da sessao esta no `where`, entao
+     * conta que nao existe varre o proprio nada.
+     *
+     * Nao e' um laco de `purgeByChild`: uma consulta escopada por dono ja traz
+     * o album de todos os filhos, e um laco por filho faria N+1 consultas e
+     * ainda perderia o filho criado entre a listagem e a varredura.
+     */
+    async purgeByUser({ userId, clientIp }) {
+      await sweep({ rows: await repository.listByUser({ userId }), userId, clientIp });
     },
 
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {

@@ -8,11 +8,11 @@ import { ERROR_CODES } from '../shared/errors/codes';
 import { ResourceNotFoundError } from '../shared/errors/shared.error';
 import type {
   AccountExport,
+  CreateUserUseCasesParams,
   DeleteUserParams,
   ExportUserParams,
   FindUserParams,
   UpdateUserParams,
-  UserRepository,
 } from './types/user.types';
 import type { UserRow } from './user.table';
 
@@ -30,7 +30,7 @@ function userNotFound(): never {
   );
 }
 
-export function createUserUseCases(repository: UserRepository): UserUseCases {
+export function createUserUseCases({ repository, childFiles }: CreateUserUseCasesParams): UserUseCases {
   return {
     async findMe(params: FindUserParams): Promise<UserRow> {
       return (await repository.findById(params)) ?? userNotFound();
@@ -44,9 +44,25 @@ export function createUserUseCases(repository: UserRepository): UserUseCases {
      * Apagar duas vezes responde 404 na segunda. `DELETE` e idempotente no
      * EFEITO (a conta segue inexistente), mas responder 204 para uma conta que
      * nunca existiu esconderia id trocado — e o titular acharia que apagou.
+     *
+     * Os BYTES saem antes da linha, e nao depois: `ON DELETE CASCADE` apaga
+     * linha e nao apaga byte, e `MediaStorage` nao tem `list()` de proposito —
+     * quem sabe quais arquivos existem e' o Postgres. Objeto cuja linha a
+     * cascata levou e' objeto que ninguem consegue mais nomear para apagar, e
+     * eliminacao (art. 18 VI) com exame de crianca no balde nao e' eliminacao.
+     *
+     * Nesta ordem, a metade que sobra e' a recuperavel: se o balde cair, a
+     * conta continua no banco e as linhas ainda nomeiam as chaves que faltam.
+     *
+     * A varredura roda ANTES de saber se a conta existe, e de proposito: ela e'
+     * escopada pelo `userId` da sessao, entao conta inexistente varre o proprio
+     * nada. Checar antes seria uma segunda copia da regra que o repositorio ja
+     * aplica no `where`.
      */
-    async deleteMe(params: DeleteUserParams): Promise<void> {
-      const removed = await repository.deleteById(params);
+    async deleteMe({ userId, clientIp }: DeleteUserParams): Promise<void> {
+      await childFiles.purgeByUser({ userId, clientIp });
+
+      const removed = await repository.deleteById({ userId, clientIp });
       if (!removed) userNotFound();
     },
 

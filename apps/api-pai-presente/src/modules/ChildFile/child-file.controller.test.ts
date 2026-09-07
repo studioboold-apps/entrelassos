@@ -1257,40 +1257,44 @@ describe('o exame exige o consentimento do art. 14 §1', () => {
  * `MediaStorage` nao tem `list()` de proposito, entao um objeto cuja linha
  * sumiu e' um objeto que ninguem consegue mais nomear para apagar.
  */
+type SeedParams = {
+  readonly fakes: Fakes;
+  readonly childId: string;
+  readonly userId?: string;
+};
+
+/**
+ * Linha posta a mao: as rotas so' aceitam `OWNED_CHILD_ID`, e o que se afirma
+ * nas varreduras e' justamente o arquivo que NAO e' daquele filho.
+ */
+function seedFile({ fakes, childId, userId = TEST_USER_ID }: SeedParams): string {
+  const objectKey = `criancas/${childId}/objeto-${fakes.rows.length}`;
+  fakes.objects.set(objectKey, { objectKey, bytes: JPEG, contentType: 'image/jpeg' });
+  fakes.rows.push({
+    ...buildIdentity(''),
+    userId,
+    childId,
+    kind: 'foto',
+    objectKey,
+    contentType: 'image/jpeg',
+    byteSize: JPEG.byteLength,
+    checksum: sha256(JPEG),
+    isEncrypted: false,
+    caption: null,
+    takenOn: null,
+  });
+  return objectKey;
+}
+
+function purge(fakes: Fakes, childId = OWNED_CHILD_ID, userId = TEST_USER_ID) {
+  return fakes.useCases.purgeByChild({ childId, userId, clientIp: CLIENT_IP });
+}
+
+function purgeUser(fakes: Fakes, userId = TEST_USER_ID) {
+  return fakes.useCases.purgeByUser({ userId, clientIp: CLIENT_IP });
+}
+
 describe('purgeByChild — apagar o filho leva os BYTES', () => {
-  type SeedParams = {
-    readonly fakes: Fakes;
-    readonly childId: string;
-    readonly userId?: string;
-  };
-
-  /**
-   * Linha posta a mao: as rotas so' aceitam `OWNED_CHILD_ID`, e o que se afirma
-   * aqui e' justamente o arquivo que NAO e' daquele filho.
-   */
-  function seedFile({ fakes, childId, userId = TEST_USER_ID }: SeedParams): string {
-    const objectKey = `criancas/${childId}/objeto-${fakes.rows.length}`;
-    fakes.objects.set(objectKey, { objectKey, bytes: JPEG, contentType: 'image/jpeg' });
-    fakes.rows.push({
-      ...buildIdentity(''),
-      userId,
-      childId,
-      kind: 'foto',
-      objectKey,
-      contentType: 'image/jpeg',
-      byteSize: JPEG.byteLength,
-      checksum: sha256(JPEG),
-      isEncrypted: false,
-      caption: null,
-      takenOn: null,
-    });
-    return objectKey;
-  }
-
-  function purge(fakes: Fakes, childId = OWNED_CHILD_ID, userId = TEST_USER_ID) {
-    return fakes.useCases.purgeByChild({ childId, userId, clientIp: CLIENT_IP });
-  }
-
   test('foto e exame do filho saem do balde', async () => {
     const fakes = buildFakes();
     const client = createClient(fakes.useCases);
@@ -1375,5 +1379,79 @@ describe('purgeByChild — apagar o filho leva os BYTES', () => {
     await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
 
     await expect(purge(fakes)).rejects.toThrow();
+  });
+});
+
+/**
+ * O outro dono da porta: apagar a CONTA. O art. 18 VI e' eliminacao, e conta
+ * apagada com exame de crianca ainda no balde nao e' eliminacao — e' um objeto
+ * que ninguem mais consegue nomear, porque a linha que sabia a chave foi com a
+ * cascata.
+ */
+describe('purgeByUser — apagar a conta leva os bytes de TODOS os filhos', () => {
+  test('o album de cada filho sai do balde', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+    seedFile({ fakes, childId: SIBLING_CHILD_ID });
+    expect(fakes.objects.size).toBe(2);
+
+    await purgeUser(fakes);
+
+    expect(fakes.objects.size).toBe(0);
+  });
+
+  /**
+   * Ninguem varre balde alheio: o `userId` esta no `where`, e a conta apagada
+   * nao alcanca o filho de outro pai (BOLA, OWASP API1).
+   */
+  test('o arquivo de outro pai continua no balde', async () => {
+    const fakes = buildFakes();
+    const alheio = seedFile({ fakes, childId: SIBLING_CHILD_ID, userId: OTHER_USER_ID });
+    seedFile({ fakes, childId: OWNED_CHILD_ID });
+
+    await purgeUser(fakes);
+
+    expect(fakes.objects.has(alheio)).toBe(true);
+    expect(fakes.objects.size).toBe(1);
+  });
+
+  test('as linhas ficam para a cascata da conta', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    await purgeUser(fakes);
+
+    expect(fakes.rows).toHaveLength(1);
+  });
+
+  /** Mesma escolha da varredura do filho: o art. 46 pergunta pelo dado de saude. */
+  test('a trilha registra o exame apagado, e nenhuma foto', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    await upload(client, { kind: 'foto', bytes: JPEG });
+    const exame = readDataRecord(await upload(client, { kind: 'exame', bytes: PDF }));
+    fakes.trail.length = 0;
+
+    await purgeUser(fakes);
+
+    expect(fakes.trail).toHaveLength(1);
+    expect(fakes.trail[0]).toMatchObject({
+      action: AUDIT_ACTIONS.CHILD_EXAM_DELETED,
+      targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+      targetId: exame.id,
+      clientIp: CLIENT_IP,
+    });
+  });
+
+  /**
+   * Balde fora do ar ESTOURA, e a conta continua no banco. Responder 204 com
+   * byte de exame para tras diria ao titular que ele foi eliminado — e nao ha'
+   * segunda chance: sem a linha, a chave do objeto e' inominavel.
+   */
+  test('balde fora do ar estoura, e nao apaga a conta pela metade', async () => {
+    const fakes = buildFakes({ failOnDelete: true });
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    await expect(purgeUser(fakes)).rejects.toThrow();
   });
 });

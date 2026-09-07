@@ -111,7 +111,9 @@ export function buildApplicationRoutes({
   const insightRatingRepository = createInsightRatingRepository(database);
 
   return [
-    ...buildUserRoutes(createUserUseCases(createUserRepository(database))),
+    ...buildUserRoutes(
+      createUserUseCases({ repository: createUserRepository(database), childFiles: childFileUseCases }),
+    ),
     ...buildChildRoutes(createChildUseCases({ repository: childRepository, childFiles: childFileUseCases })),
     ...buildActivityRoutes(
       createActivityUseCases({

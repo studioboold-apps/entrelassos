@@ -110,6 +110,10 @@ beforeEach(() => {
   const rows = [buildChildRow(), buildChildRow({ ...buildIdentity(MISSING_ID), userId: OTHER_USER_ID })];
   purgeCalls = [];
   const childFiles: ChildFilePurgePort = {
+    /** Apagar UM filho nunca varre a conta inteira: quem faz isso e' `DELETE /v1/me`. */
+    purgeByUser: async () => {
+      throw new Error('apagar um filho nao varre a conta');
+    },
     purgeByChild: async ({ childId, userId, clientIp }) => {
       purgeCalls.push({ childId, userId, clientIp, rowWasStillThere: rows.some((row) => row.id === childId) });
     },

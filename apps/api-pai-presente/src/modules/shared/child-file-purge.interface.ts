@@ -24,6 +24,22 @@ export type PurgeChildFilesParams = {
  * quem apaga a conta inteira (`User`). O implementador e' `ChildFile`, o unico
  * modulo que ja' tem repositorio, balde e trilha na mesma mao.
  */
+export type PurgeUserFilesParams = {
+  readonly userId: string;
+  /** Vai para a trilha do exame apagado, nao para o log (`security.md` §1). */
+  readonly clientIp: string;
+};
+
 export type ChildFilePurgePort = {
   purgeByChild(params: PurgeChildFilesParams): Promise<void>;
+  /**
+   * "Tire do balde tudo o que e' desta conta."
+   *
+   * Nao e' `purgeByChild` num laco: quem apaga a conta nao tem a lista de
+   * filhos na mao, e busca-la para depois varrer um por um faria N+1 consultas
+   * pelo mesmo resultado de uma consulta escopada por dono. E se um filho fosse
+   * criado entre a listagem e a varredura, o album dele ficaria no balde sem a
+   * linha que o nomeia.
+   */
+  purgeByUser(params: PurgeUserFilesParams): Promise<void>;
 };

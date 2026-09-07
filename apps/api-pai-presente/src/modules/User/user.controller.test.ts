@@ -23,6 +23,7 @@ import { buildUserRoutes } from './user.controller';
 import { ME_EXPORT_PATH, ME_PATH } from './user.constant';
 import { createUserUseCases } from './user.use-case';
 import type { UserRow } from './user.table';
+import type { ChildFilePurgePort } from '../shared/child-file-purge.interface';
 import type { AccountExport, DeleteUserParams, UserRepository } from './types/user.types';
 
 type RecordedRemoval = { readonly userId: string; readonly clientIp: string };
@@ -78,18 +79,42 @@ function createFakeUserRepository(rows: UserRow[], removals: RecordedRemoval[]):
   };
 }
 
-function buildClient(rows: UserRow[], removals: RecordedRemoval[]): TestClient {
+type PurgeCall = {
+  readonly userId: string;
+  readonly clientIp: string;
+  /**
+   * Se a conta ainda estava no banco na hora da varredura, os BYTES sairam
+   * antes dela. E' a unica forma de afirmar a ORDEM sem espiar o codigo: uma
+   * dupla que so' contasse chamadas ficaria verde com a ordem invertida — e a
+   * ordem invertida e' justamente a que deixa objeto inominavel no balde.
+   */
+  readonly accountWasStillThere: boolean;
+};
+
+function buildClient(rows: UserRow[], removals: RecordedRemoval[], purgeCalls: PurgeCall[]): TestClient {
+  const childFiles: ChildFilePurgePort = {
+    purgeByChild: async () => {
+      throw new Error('apagar a conta nao varre filho por filho');
+    },
+    purgeByUser: async ({ userId, clientIp }) => {
+      purgeCalls.push({ userId, clientIp, accountWasStillThere: rows.some((row) => row.id === userId) });
+    },
+  };
   return createTestClient({
-    routes: buildUserRoutes(createUserUseCases(createFakeUserRepository(rows, removals))),
+    routes: buildUserRoutes(
+      createUserUseCases({ repository: createFakeUserRepository(rows, removals), childFiles }),
+    ),
   });
 }
 
 let client: TestClient;
 let removals: RecordedRemoval[];
+let purgeCalls: PurgeCall[];
 
 beforeEach(() => {
   removals = [];
-  client = buildClient([buildUserRow()], removals);
+  purgeCalls = [];
+  client = buildClient([buildUserRow()], removals, purgeCalls);
 });
 
 describe('GET /v1/me', () => {
@@ -100,7 +125,7 @@ describe('GET /v1/me', () => {
   });
 
   test('sessao apontando para usuario inexistente responde 404', async () => {
-    const orphan = buildClient([{ ...buildUserRow(), ...buildIdentity(MISSING_ID) }], removals);
+    const orphan = buildClient([{ ...buildUserRow(), ...buildIdentity(MISSING_ID) }], removals, purgeCalls);
     const response = await orphan.send({ method: HTTP_METHODS.GET, path: ME_PATH });
     expect(response.status).toBe(404);
     expect(readErrorCode(response)).toBe(ERROR_CODES.user.USER_NOT_FOUND);
@@ -193,6 +218,40 @@ describe('DELETE /v1/me', () => {
     await client.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
 
     expect(removals[0]?.clientIp).toBe(UNKNOWN_CLIENT_IP);
+  });
+
+  /**
+   * `ON DELETE CASCADE` leva as LINHAS dos arquivos e nenhum byte: o Postgres
+   * nao sabe que o balde existe. E como `MediaStorage` nao tem `list()` de
+   * proposito, byte cuja linha a cascata levou e' byte que ninguem consegue
+   * mais NOMEAR para apagar. Por isso a varredura vem antes do `DELETE`.
+   */
+  test('os bytes do balde saem ANTES da conta', async () => {
+    const response = await client.send({
+      method: HTTP_METHODS.DELETE,
+      path: ME_PATH,
+      headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' },
+    });
+
+    expect(response.status).toBe(204);
+    expect(purgeCalls).toEqual([
+      { userId: TEST_USER_ID, clientIp: '203.0.113.7', accountWasStillThere: true },
+    ]);
+  });
+
+  /**
+   * Conta que nao existe varre o proprio nada e ainda assim responde 404: a
+   * varredura e' escopada pelo `userId` da sessao, entao ela nao alcanca dado
+   * de ninguem. Checar a existencia primeiro seria segunda copia da regra que o
+   * repositorio ja tem.
+   */
+  test('conta inexistente responde 404 depois de varrer o proprio nada', async () => {
+    const orphan = buildClient([], removals, purgeCalls);
+
+    const response = await orphan.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
+
+    expect(response.status).toBe(404);
+    expect(purgeCalls[0]?.userId).toBe(TEST_USER_ID);
   });
 });
 

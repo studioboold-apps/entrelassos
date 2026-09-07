@@ -14,6 +14,7 @@ import type {
   CommunityPostRow,
 } from '../../CommunityPost/community-post.table';
 import type { InsightRatingRow } from '../../InsightRating/insight-rating.table';
+import type { ChildFilePurgePort } from '../../shared/child-file-purge.interface';
 import type { UpdateUserBody } from '../user.schema';
 import type { UserRow } from '../user.table';
 
@@ -64,6 +65,15 @@ export type AccountExport = {
   readonly communityPostLikes: readonly CommunityPostLikeRow[];
   readonly communityComments: readonly CommunityCommentRow[];
   readonly chatMessages: readonly ChatMessageRow[];
+};
+
+export type CreateUserUseCasesParams = {
+  readonly repository: UserRepository;
+  /**
+   * A cascata do banco leva as LINHAS dos arquivos e nenhum byte. Porta, e nao
+   * consulta propria: quem conhece o balde e' `ChildFile`.
+   */
+  readonly childFiles: ChildFilePurgePort;
 };
 
 export type UserRepository = {

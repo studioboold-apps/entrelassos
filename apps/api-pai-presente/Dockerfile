@@ -51,7 +51,14 @@ WORKDIR /app
 COPY --from=build /repo/apps/api-pai-presente/dist ./dist
 COPY --from=build /repo/apps/api-pai-presente/drizzle ./drizzle
 
-# `bun` ja existe na imagem oficial e nao e root.
-USER bun
+# O volume do Railway e montado com dono root, e `bun` (uid 1000) nao escreve
+# nele. Medido em producao: `503 MEDIA_DIRECTORY_NOT_WRITABLE` em /data/media,
+# com `drwxr-xr-x root root /data`. So root muda dono, entao o entrypoint sobe
+# como root, ajusta a pasta e cai para `bun` com `su-exec` — a API nunca atende
+# requisicao como root, e `USER bun` aqui impediria o ajuste.
+RUN apk add --no-cache su-exec
+COPY apps/api-pai-presente/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 EXPOSE 3000
 CMD ["bun", "dist/main.js"]

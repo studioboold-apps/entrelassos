@@ -86,4 +86,19 @@ describe('o estagio padrao da imagem e o que ATENDE', () => {
     expect(stages.map((stage) => stage.name)).toContain('backup');
     expect(stages.at(-1)?.name).not.toBe('backup');
   });
+
+  /**
+   * `USER bun` no estagio que atende parece endurecimento e derruba a midia: o
+   * volume do Railway nasce de root, e quem entra como bun nao muda o dono dele.
+   * Quem larga o privilegio e' o entrypoint, DEPOIS de ajustar a pasta — e a
+   * sequencia esta afirmada em `container-entrypoint.test.ts`.
+   */
+  test('api: o estagio que atende sobe pelo entrypoint, sem USER fixo', () => {
+    const last = readStages(DOCKERFILES.api.path).at(-1);
+
+    const directives = (last?.body ?? '').split('\n').map((line) => line.trim());
+
+    expect(last?.body).toContain('docker-entrypoint.sh');
+    expect(directives.filter((line) => line.startsWith('USER '))).toHaveLength(0);
+  });
 });

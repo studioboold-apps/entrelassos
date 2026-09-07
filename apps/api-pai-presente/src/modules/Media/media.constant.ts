@@ -19,5 +19,13 @@ export const MEDIA_OBJECT_ROOT = 'children';
  */
 export const DEFAULT_PRESIGN_TTL_SECONDS = 300;
 
+/**
+ * Magica propria, diferente da do backup: envelope de proposito diferente nunca
+ * deve abrir como se fosse o outro, mesmo que a cifra seja a mesma.
+ */
+export const MEDIA_ENVELOPE_MAGIC = 'PPMD1';
+
+export const MEDIA_KEY_VARIABLE = 'MEDIA_ENCRYPTION_KEY';
+
 export const MEDIA_DIRECTORY_VARIABLE = 'MEDIA_DIRECTORY';
 export const MEDIA_BUCKET_VARIABLE = 'MEDIA_S3_BUCKET';

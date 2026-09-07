@@ -104,6 +104,13 @@ const mediaShape = {
   MEDIA_DIRECTORY: z.string().default('.media'),
   MEDIA_S3_BUCKET: z.string().default(''),
   MEDIA_S3_ENDPOINT: z.string().default(''),
+  /**
+   * Base64 de 32 bytes. Vazia por padrao seguindo o `LLM_API_KEY`: exigir no
+   * boot mataria a API inteira por falta de uma chave que so o exame usa. Quem
+   * tentar guardar exame sem ela recebe 503 `MEDIA_KEY_INVALID` — ver
+   * `Media/media-cipher.ts`.
+   */
+  MEDIA_ENCRYPTION_KEY: z.string().default(''),
   /** Vida do link da foto. Curta por design — ver `DEFAULT_PRESIGN_TTL_SECONDS`. */
   MEDIA_PRESIGN_TTL_SECONDS: z.coerce.number().default(DEFAULT_PRESIGN_TTL_SECONDS),
 } as const;

@@ -23,6 +23,13 @@ export const AUDIT_ACTIONS = {
    * pergunta procura.
    */
   CHILD_EXAM_READ: 'child_exam_read',
+  /**
+   * Apagar deixa trilha, e as duas metades do art. 18 explicam por que: o pai
+   * tem direito a eliminacao E direito a saber o que foi feito com o dado. A
+   * linha da tabela desaparece; sem esta, nada no sistema sabe que ela existiu.
+   */
+  CHILD_PHOTO_DELETED: 'child_photo_deleted',
+  CHILD_EXAM_DELETED: 'child_exam_deleted',
 } as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 

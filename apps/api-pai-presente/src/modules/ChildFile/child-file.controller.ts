@@ -15,7 +15,7 @@ import {
   SECURITY_HEADERS,
 } from '../shared/http/http.constant';
 import { parsePagination, parseWithSchema, readClientIp } from '../shared/http/request.util';
-import { respondWithData, respondWithList } from '../shared/http/response.util';
+import { respondWithData, respondWithList, respondWithNoContent } from '../shared/http/response.util';
 import type { RouteDefinition } from '../shared/http/route.types';
 import { ValidationError } from '../shared/errors/shared.error';
 import {
@@ -30,6 +30,7 @@ import {
   CHILD_FILE_CONTENT_PATH,
   CHILD_FILE_DELIVERIES,
   CHILD_FILE_FORM_FIELDS,
+  CHILD_FILE_PATH,
   CHILD_FILE_REDIRECT_STATUS,
 } from './child-file.constant';
 import type { ChildFileContent } from './types/child-file.types';
@@ -172,6 +173,21 @@ export function buildChildFileRoutes(useCases: ChildFileUseCases): readonly Rout
         });
 
         return respondWithContent(content);
+      },
+    },
+    {
+      method: HTTP_METHODS.DELETE,
+      path: CHILD_FILE_PATH,
+      summary: 'Apaga os bytes no balde e depois a linha do arquivo.',
+      handle: async ({ request, pathParams, authenticatedUser }) => {
+        await useCases.remove({
+          childId: parseWithSchema(uuidSchema, pathParams.childId),
+          fileId: parseWithSchema(uuidSchema, pathParams.fileId),
+          userId: authenticatedUser.userId,
+          clientIp: readClientIp(request),
+        });
+
+        return respondWithNoContent();
       },
     },
   ];

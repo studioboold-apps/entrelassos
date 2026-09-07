@@ -91,6 +91,8 @@ type Fakes = {
 type BuildFakesParams = {
   readonly encodedEncryptionKey?: string;
   readonly failOnPut?: boolean;
+  /** Balde fora do ar na HORA de apagar — a metade que decide a ordem de `D5`. */
+  readonly failOnDelete?: boolean;
   /**
    * Balde que sabe assinar declara `presignRead`; o que nao sabe simplesmente
    * NAO declara — capacidade opcional por ausencia, como o balde de arquivo
@@ -151,6 +153,7 @@ function createFakeRepository(rows: ChildFileRow[]): ChildFileRepository {
 type CreateFakeStorageParams = {
   readonly objects: Map<string, MediaObject>;
   readonly failOnPut: boolean;
+  readonly failOnDelete: boolean;
   readonly canPresign: boolean;
   readonly presignCalls: PresignReadParams[];
 };
@@ -158,6 +161,7 @@ type CreateFakeStorageParams = {
 function createFakeStorage({
   objects,
   failOnPut,
+  failOnDelete,
   canPresign,
   presignCalls,
 }: CreateFakeStorageParams): MediaStorage {
@@ -172,6 +176,7 @@ function createFakeStorage({
       return found.bytes;
     },
     delete: async (objectKey) => {
+      if (failOnDelete) throw new Error('balde fora do ar');
       objects.delete(objectKey);
     },
   };
@@ -190,6 +195,7 @@ function createFakeStorage({
 function buildFakes({
   encodedEncryptionKey = KEY,
   failOnPut = false,
+  failOnDelete = false,
   canPresign = false,
 }: BuildFakesParams = {}): Fakes {
   const rows: ChildFileRow[] = [];
@@ -204,7 +210,7 @@ function buildFakes({
 
   const useCases = createChildFileUseCases({
     repository: createFakeRepository(rows),
-    storage: createFakeStorage({ objects, failOnPut, canPresign, presignCalls }),
+    storage: createFakeStorage({ objects, failOnPut, failOnDelete, canPresign, presignCalls }),
     childOwnership,
     audit,
     encodedEncryptionKey,
@@ -277,6 +283,14 @@ function contentBytes(client: RawTestClient, { fileId, childId = OWNED_CHILD_ID 
   return client.sendRaw({
     method: HTTP_METHODS.GET,
     path: contentPath(fileId, childId),
+    headers: PROXY_HEADERS,
+  });
+}
+
+function remove(client: TestClient, { fileId, childId = OWNED_CHILD_ID }: ContentParams) {
+  return client.send({
+    method: HTTP_METHODS.DELETE,
+    path: `/v1/children/${childId}/files/${fileId}`,
     headers: PROXY_HEADERS,
   });
 }
@@ -1003,5 +1017,145 @@ describe('conteudo de outro dono nao tem como voltar', () => {
 
     expect(response.status).toBe(404);
     expect(fakes.objects.size).toBe(0);
+  });
+});
+
+describe('apagar tira os BYTES, e nao so a linha (D5)', () => {
+  test('a foto sai do balde e sai da tabela', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+    expect(fakes.objects.size).toBe(1);
+
+    const response = await remove(client, { fileId });
+
+    expect(response.status).toBe(204);
+    /**
+     * As DUAS afirmacoes, e nao uma: `ON DELETE CASCADE` limparia a linha e
+     * deixaria o objeto — que e' exatamente a violacao que nao quebra teste
+     * nenhum se o teste so olhar a tabela.
+     */
+    expect(fakes.objects.size).toBe(0);
+    expect(fakes.rows).toHaveLength(0);
+  });
+
+  test('o exame tambem, e o balde fica vazio', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+
+    expect((await remove(client, { fileId })).status).toBe(204);
+    expect(fakes.objects.size).toBe(0);
+    expect(fakes.rows).toHaveLength(0);
+  });
+
+  /**
+   * O art. 18 da' ao pai o direito a eliminacao E o direito a saber o que foi
+   * feito com o dado. A linha da tabela desaparece; sem a trilha, nada no
+   * sistema sabe que ela existiu.
+   */
+  test('apagar exame deixa trilha propria', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+    await remove(client, { fileId });
+
+    const deletions = fakes.trail.filter((entry) => entry.action === AUDIT_ACTIONS.CHILD_EXAM_DELETED);
+    expect(deletions).toHaveLength(1);
+    expect(deletions[0]).toMatchObject({
+      actorId: TEST_USER_ID,
+      targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+      targetId: fileId,
+      clientIp: CLIENT_IP,
+    });
+  });
+
+  /** A foto nao deixa trilha de LEITURA, mas deixa de apagamento: e' o mesmo art. 18. */
+  test('apagar foto deixa trilha, com acao propria', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+    await remove(client, { fileId });
+
+    const deletions = fakes.trail.filter((entry) => entry.action === AUDIT_ACTIONS.CHILD_PHOTO_DELETED);
+    expect(deletions).toHaveLength(1);
+    expect(deletions[0]?.targetId).toBe(fileId);
+  });
+
+  test('apagar duas vezes o mesmo arquivo responde 404 na segunda', async () => {
+    const fakes = buildFakes();
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client);
+
+    expect((await remove(client, { fileId })).status).toBe(204);
+    const second = await remove(client, { fileId });
+
+    expect(second.status).toBe(404);
+    expect(readErrorCode(second)).toBe(ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND);
+  });
+
+  /**
+   * Falhando o balde, a LINHA fica — de proposito. Linha apontando para nada
+   * aparece na listagem e se apaga de novo; objeto sem linha e' dado de saude
+   * sem dono, e ninguem consegue mais nomea-lo para eliminar.
+   */
+  test('balde fora do ar nao apaga a linha, e nao deixa trilha', async () => {
+    const fakes = buildFakes({ failOnDelete: true });
+    const client = createClient(fakes.useCases);
+    const fileId = await uploadAndReadId(client, { kind: 'exame', bytes: PDF });
+    const trailBefore = fakes.trail.length;
+
+    const response = await remove(client, { fileId });
+
+    expect(response.status).toBe(500);
+    expect(fakes.rows).toHaveLength(1);
+    expect(fakes.objects.size).toBe(1);
+    expect(fakes.trail).toHaveLength(trailBefore);
+  });
+});
+
+describe('ninguem apaga arquivo que nao e seu', () => {
+  test('arquivo de outro pai responde 404, e o balde fica intacto', async () => {
+    const fakes = buildFakes();
+    const objectKey = `children/${OWNED_CHILD_ID}/vizinho`;
+    seed(fakes.rows, { id: MISSING_ID, userId: OTHER_USER_ID, objectKey });
+    fakes.objects.set(objectKey, { objectKey, bytes: JPEG, contentType: 'image/jpeg' });
+
+    const response = await remove(createClient(fakes.useCases), { fileId: MISSING_ID });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND);
+    expect(fakes.objects.size).toBe(1);
+    expect(fakes.rows).toHaveLength(1);
+  });
+
+  /** O `userId` blinda contra o pai vizinho; a comparacao de `childId`, contra a troca de segmento. */
+  test('arquivo de outro filho pelo caminho deste filho responde 404', async () => {
+    const fakes = buildFakes();
+    seed(fakes.rows, { id: MISSING_ID, childId: FOREIGN_CHILD_ID });
+
+    const response = await remove(createClient(fakes.useCases), { fileId: MISSING_ID });
+
+    expect(response.status).toBe(404);
+    expect(fakes.rows).toHaveLength(1);
+  });
+
+  test('filho de outro pai responde 404, nunca 403', async () => {
+    const fakes = buildFakes();
+    const response = await remove(createClient(fakes.useCases), {
+      fileId: MISSING_ID,
+      childId: FOREIGN_CHILD_ID,
+    });
+
+    expect(response.status).toBe(404);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.child.CHILD_NOT_FOUND);
+  });
+
+  test('id que nao e uuid nao chega ao balde', async () => {
+    const fakes = buildFakes();
+    const response = await remove(createClient(fakes.useCases), { fileId: 'nao-e-uuid' });
+
+    expect(response.status).toBe(400);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.shared.VALIDATION_FAILED);
   });
 });

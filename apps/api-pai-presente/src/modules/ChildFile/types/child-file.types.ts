@@ -92,6 +92,19 @@ export type ReadChildFileContentParams = {
 };
 
 /**
+ * Mesma forma do parametro de leitura, e ainda assim um tipo proprio: a §10 do
+ * `code-standart.md` nomeia o tipo pela funcao, e um `ChildFileScopeParams`
+ * compartilhado faria a proxima operacao herdar campo que ela nao usa.
+ */
+export type DeleteChildFileParams = {
+  readonly childId: string;
+  readonly fileId: string;
+  readonly userId: string;
+  /** Vai para a trilha do apagamento, nao para o log (`security.md` §1). */
+  readonly clientIp: string;
+};
+
+/**
  * Uniao discriminada, e nao um objeto com `url?` e `bytes?`: com os dois
  * opcionais, o controlador precisaria escolher qual olhar primeiro, e o dia em
  * que os dois viessem preenchidos ele serviria o exame E emitiria link.

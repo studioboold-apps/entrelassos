@@ -31,6 +31,7 @@ import type {
   ChildFileView,
   ListChildFilesParams,
   ListChildFilesView,
+  DeleteChildFileParams,
   ReadChildFileContentParams,
   UploadChildFileParams,
 } from './types/child-file.types';
@@ -53,10 +54,17 @@ export function toChildFileView(row: ChildFileRow): ChildFileView {
   };
 }
 
+type FindOwnedFileParams = {
+  readonly childId: string;
+  readonly fileId: string;
+  readonly userId: string;
+};
+
 export type ChildFileUseCases = {
   upload(params: UploadChildFileParams): Promise<ChildFileView>;
   list(params: ListChildFilesParams): Promise<ListChildFilesView>;
   readContent(params: ReadChildFileContentParams): Promise<ChildFileContent>;
+  remove(params: DeleteChildFileParams): Promise<void>;
 };
 
 /**
@@ -94,6 +102,28 @@ export function createChildFileUseCases({
     throw new ResourceNotFoundError(ERROR_CODES.child.CHILD_NOT_FOUND, 'Filho nao encontrado.');
   }
 
+  /**
+   * A busca escopada e' UMA, usada por ler e por apagar. Duas copias da mesma
+   * checagem concordam ate' a primeira edicao, e foi assim que L-032 aconteceu.
+   */
+  async function findOwnedFile({ childId, fileId, userId }: FindOwnedFileParams): Promise<ChildFileRow> {
+    await assertChildIsOwned(childId, userId);
+
+    const row = await repository.findById({ fileId, userId });
+    /**
+     * O arquivo tambem tem de ser DESTE filho. Sem esta comparacao, o caminho
+     * de um filho serviria arquivo de outro — o `userId` blindaria contra o pai
+     * vizinho, e nao contra a troca de segmento na propria URL.
+     */
+    if (row === undefined || row.childId !== childId) {
+      throw new ResourceNotFoundError(
+        ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND,
+        'Arquivo nao encontrado.',
+      );
+    }
+    return row;
+  }
+
   return {
     /**
      * Metadado, nunca byte. A lista e' o que a ficha do filho desenha e o que a
@@ -128,20 +158,7 @@ export function createChildFileUseCases({
      * de exame.
      */
     async readContent({ childId, fileId, userId, clientIp }) {
-      await assertChildIsOwned(childId, userId);
-
-      const row = await repository.findById({ fileId, userId });
-      /**
-       * O arquivo tambem tem de ser DESTE filho. Sem esta comparacao, o caminho
-       * de um filho serviria arquivo de outro — o `userId` blindaria contra o
-       * pai vizinho, e nao contra a troca de segmento na propria URL.
-       */
-      if (row === undefined || row.childId !== childId) {
-        throw new ResourceNotFoundError(
-          ERROR_CODES.childFile.CHILD_FILE_NOT_FOUND,
-          'Arquivo nao encontrado.',
-        );
-      }
+      const row = await findOwnedFile({ childId, fileId, userId });
 
       if (!isHealthData(row.kind) && storage.presignRead !== undefined) {
         const url = await storage.presignRead({
@@ -183,6 +200,39 @@ export function createChildFileUseCases({
       }
 
       return { delivery: CHILD_FILE_DELIVERIES.BYTES, bytes, contentType: row.contentType };
+    },
+
+    /**
+     * BYTE primeiro, linha depois — o contrario do envio, e pelo mesmo motivo.
+     *
+     * `ON DELETE CASCADE` nao apaga byte nenhum (`D5`): quem apaga so' a linha
+     * deixa no balde um objeto que ninguem consegue mais nomear, porque a
+     * `objectKey` morreu com ela e a interface de midia nao tem `list()` de
+     * proposito. Isso e' dado de saude de crianca sem dono e sem caminho para
+     * ser eliminado — a violacao do art. 18 que nao quebra teste nenhum.
+     *
+     * Falhando entre os dois, sobra linha apontando para nada: ela aparece na
+     * listagem e se apaga de novo. Das duas metades possiveis, e' a recuperavel.
+     */
+    async remove({ childId, fileId, userId, clientIp }) {
+      const row = await findOwnedFile({ childId, fileId, userId });
+
+      await storage.delete(row.objectKey);
+      await repository.remove({ fileId, userId });
+
+      /**
+       * A trilha e' a ULTIMA coisa, como no envio: trilha que afirma um
+       * apagamento que nao aconteceu e' pior que trilha nenhuma.
+       */
+      await audit.record({
+        actorId: userId,
+        action: isHealthData(row.kind)
+          ? AUDIT_ACTIONS.CHILD_EXAM_DELETED
+          : AUDIT_ACTIONS.CHILD_PHOTO_DELETED,
+        targetType: AUDIT_TARGET_TYPES.CHILD_FILE,
+        targetId: fileId,
+        clientIp,
+      });
     },
 
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {

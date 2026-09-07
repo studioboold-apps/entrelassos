@@ -14,6 +14,8 @@ export const CHILD_FILES_PATH = '/v1/children/:childId/files';
  * que vai dentro de um `<img src>` e de um visualizador de PDF, e e' o unico
  * lugar por onde byte de arquivo de filho sai.
  */
+export const CHILD_FILE_PATH = '/v1/children/:childId/files/:fileId';
+
 export const CHILD_FILE_CONTENT_PATH = '/v1/children/:childId/files/:fileId/content';
 
 /**

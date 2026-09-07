@@ -7,14 +7,15 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  BACKUP_ENVELOPE_MAGIC,
-  BACKUP_IV_BYTES,
-  BACKUP_KEY_BYTES,
-} from './backup.constant';
+  ENVELOPE_IV_BYTES,
+  ENVELOPE_KEY_BYTES,
+} from '../shared/crypto/envelope-cipher.constant';
+
+import { BACKUP_ENVELOPE_MAGIC } from './backup.constant';
 import { decryptBackup, encryptBackup, readBackupKey } from './backup-cipher.util';
 
-const KEY = Buffer.alloc(BACKUP_KEY_BYTES, 7);
-const OUTRA_KEY = Buffer.alloc(BACKUP_KEY_BYTES, 9);
+const KEY = Buffer.alloc(ENVELOPE_KEY_BYTES, 7);
+const OUTRA_KEY = Buffer.alloc(ENVELOPE_KEY_BYTES, 9);
 
 /** O dump de verdade tem nome de crianca em quase toda linha. */
 const DUMP = Buffer.from("COPY children (id, name) FROM stdin;\nc-1\tJoaquim Girassol\n\\.\n", 'utf8');
@@ -23,7 +24,7 @@ describe('a chave vem do ambiente, e nunca do balde', () => {
   test('base64 de 32 bytes vira chave', () => {
     const key = readBackupKey(KEY.toString('base64'));
 
-    expect(key.byteLength).toBe(BACKUP_KEY_BYTES);
+    expect(key.byteLength).toBe(ENVELOPE_KEY_BYTES);
   });
 
   /**
@@ -72,9 +73,9 @@ describe('o envelope guarda o que o decifrador precisa, e nada do conteudo', () 
 
     expect(primeiro.equals(segundo)).toBe(false);
     expect(
-      primeiro.subarray(BACKUP_ENVELOPE_MAGIC.length, BACKUP_ENVELOPE_MAGIC.length + BACKUP_IV_BYTES),
+      primeiro.subarray(BACKUP_ENVELOPE_MAGIC.length, BACKUP_ENVELOPE_MAGIC.length + ENVELOPE_IV_BYTES),
     ).not.toEqual(
-      segundo.subarray(BACKUP_ENVELOPE_MAGIC.length, BACKUP_ENVELOPE_MAGIC.length + BACKUP_IV_BYTES),
+      segundo.subarray(BACKUP_ENVELOPE_MAGIC.length, BACKUP_ENVELOPE_MAGIC.length + ENVELOPE_IV_BYTES),
     );
   });
 });

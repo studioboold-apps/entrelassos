@@ -6,13 +6,13 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import { BACKUP_KEY_BYTES } from './backup.constant';
+import { ENVELOPE_KEY_BYTES } from '../shared/crypto/envelope-cipher.constant';
 import { decryptBackup } from './backup-cipher.util';
 import { createBackup } from './create-backup.use-case';
 import { restoreBackup } from './restore-backup.use-case';
 import type { BackupStorage } from './backup-storage.interface';
 
-const KEY = Buffer.alloc(BACKUP_KEY_BYTES, 3);
+const KEY = Buffer.alloc(ENVELOPE_KEY_BYTES, 3);
 const MARCA = 'Joaquim Girassol';
 const DUMP = Buffer.from(`COPY children FROM stdin;\nc-1\t${MARCA}\n\\.\n`, 'utf8');
 const QUANDO = new Date('2026-09-05T03:14:15.000Z');

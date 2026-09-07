@@ -4,14 +4,6 @@
  * Licenca: proprietaria.
  */
 
-/** AES-256-GCM: cifra e ETIQUETA. Sem a etiqueta, byte trocado volta em silencio. */
-export const BACKUP_CIPHER_ALGORITHM = 'aes-256-gcm';
-
-export const BACKUP_KEY_BYTES = 32;
-/** 96 bits e' o IV recomendado para GCM — outro tamanho degrada a garantia. */
-export const BACKUP_IV_BYTES = 12;
-export const BACKUP_AUTH_TAG_BYTES = 16;
-
 /** Quem acha o arquivo daqui a um ano precisa saber o que ele e' antes de tentar. */
 export const BACKUP_ENVELOPE_MAGIC = 'PPBK1';
 

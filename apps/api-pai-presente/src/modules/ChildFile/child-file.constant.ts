@@ -18,6 +18,21 @@ export const CHILD_FILE_PATH = '/v1/children/:childId/files/:fileId';
 
 export const CHILD_FILE_CONTENT_PATH = '/v1/children/:childId/files/:fileId/content';
 
+type BuildChildFileContentPathParams = {
+  readonly childId: string;
+  readonly fileId: string;
+};
+
+/**
+ * O molde acima e' de ROTA: ele tem `:childId` e `:fileId`, e um caminho com
+ * dois-pontos sobrando nao abre nada. Quem precisa do endereco de verdade —
+ * hoje a exportacao do art. 18, amanha a tela — passa por aqui, e nao remonta
+ * a string ao lado (`code-standart.md` §16).
+ */
+export function buildChildFileContentPath({ childId, fileId }: BuildChildFileContentPathParams): string {
+  return CHILD_FILE_CONTENT_PATH.replace(':childId', childId).replace(':fileId', fileId);
+}
+
 /**
  * Como o arquivo chega ao pai. Sao os DOIS caminhos possiveis, e a escolha nunca
  * e' do cliente:

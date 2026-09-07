@@ -1455,3 +1455,61 @@ describe('purgeByUser — apagar a conta leva os bytes de TODOS os filhos', () =
     await expect(purgeUser(fakes)).rejects.toThrow();
   });
 });
+
+/**
+ * A terceira dona da porta, e a unica que nao apaga nada: a portabilidade do
+ * art. 18 V. Quem monta a secao e' este modulo porque a vista que esconde a
+ * `objectKey` mora aqui — uma consulta propria do `User` seria uma segunda
+ * copia dela (`code-standart.md` §16), e a edicao que faltasse na copia
+ * mandaria a chave do balde dentro de um arquivo que o pai baixa.
+ */
+describe('listForExport — o album inteiro, sem a chave do balde', () => {
+  test('os arquivos de todos os filhos da conta saem juntos', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+    seedFile({ fakes, childId: SIBLING_CHILD_ID });
+
+    const exported = await fakes.useCases.listForExport({ userId: TEST_USER_ID });
+
+    expect(exported).toHaveLength(2);
+    expect(exported.map((file) => file.childId).sort()).toEqual([OWNED_CHILD_ID, SIBLING_CHILD_ID].sort());
+  });
+
+  /** O `userId` esta no `where`: exportar a propria conta nao lista a do vizinho. */
+  test('o arquivo de outro pai nao entra', async () => {
+    const fakes = buildFakes();
+    seedFile({ fakes, childId: SIBLING_CHILD_ID, userId: OTHER_USER_ID });
+    seedFile({ fakes, childId: OWNED_CHILD_ID });
+
+    const exported = await fakes.useCases.listForExport({ userId: TEST_USER_ID });
+
+    expect(exported).toHaveLength(1);
+    expect(exported[0]?.childId).toBe(OWNED_CHILD_ID);
+  });
+
+  /** Quem conhece o desenho da chave consegue adivinhar a chave do vizinho. */
+  test('a chave do balde nao vai no arquivo baixado', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    const exported = await fakes.useCases.listForExport({ userId: TEST_USER_ID });
+
+    expect(JSON.stringify(exported)).not.toContain('objectKey');
+    expect(JSON.stringify(exported)).not.toContain(fakes.rows[0]?.objectKey ?? '');
+  });
+
+  /**
+   * JSON nao carrega byte: o caminho e' o que torna a secao portavel. E ele sai
+   * com os ids DE VERDADE — o molde da rota tem `:childId` e `:fileId`, e um
+   * caminho com dois-pontos sobrando nao abre nada.
+   */
+  test('cada arquivo diz onde buscar os bytes, com os ids de verdade', async () => {
+    const fakes = buildFakes();
+    const fileId = await uploadAndReadId(createClient(fakes.useCases), { kind: 'foto', bytes: JPEG });
+
+    const exported = await fakes.useCases.listForExport({ userId: TEST_USER_ID });
+
+    expect(exported[0]?.contentPath).toBe(contentPath(fileId, OWNED_CHILD_ID));
+    expect(exported[0]?.contentPath).not.toContain(':');
+  });
+});

@@ -30,7 +30,11 @@ function userNotFound(): never {
   );
 }
 
-export function createUserUseCases({ repository, childFiles }: CreateUserUseCasesParams): UserUseCases {
+export function createUserUseCases({
+  repository,
+  childFiles,
+  childFileExport,
+}: CreateUserUseCasesParams): UserUseCases {
   return {
     async findMe(params: FindUserParams): Promise<UserRow> {
       return (await repository.findById(params)) ?? userNotFound();
@@ -66,8 +70,19 @@ export function createUserUseCases({ repository, childFiles }: CreateUserUseCase
       if (!removed) userNotFound();
     },
 
+    /**
+     * Portabilidade (art. 18 V) com o album de fora nao e' portabilidade: as
+     * fotos e os exames sao a parte da historia do filho que o pai nao
+     * consegue redigitar.
+     *
+     * O repositorio vem primeiro porque e' ele quem sabe se a conta existe —
+     * pedir os arquivos de uma conta apagada seria trabalho para jogar fora
+     * junto com o 404.
+     */
     async exportMe(params: ExportUserParams): Promise<AccountExport> {
-      return (await repository.exportAll(params)) ?? userNotFound();
+      const sections = (await repository.exportAll(params)) ?? userNotFound();
+      const childFilesSection = await childFileExport.listForExport({ userId: params.userId });
+      return { ...sections, childFiles: childFilesSection };
     },
   };
 }

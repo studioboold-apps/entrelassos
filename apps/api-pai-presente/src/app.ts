@@ -112,7 +112,11 @@ export function buildApplicationRoutes({
 
   return [
     ...buildUserRoutes(
-      createUserUseCases({ repository: createUserRepository(database), childFiles: childFileUseCases }),
+      createUserUseCases({
+        repository: createUserRepository(database),
+        childFiles: childFileUseCases,
+        childFileExport: childFileUseCases,
+      }),
     ),
     ...buildChildRoutes(createChildUseCases({ repository: childRepository, childFiles: childFileUseCases })),
     ...buildActivityRoutes(

@@ -25,6 +25,7 @@ import { createLogger } from '../modules/shared/logger/logger';
 import { createUserRepository } from '../modules/User/user.repository';
 import { createUserUseCases } from '../modules/User/user.use-case';
 import type { ChildFilePurgePort } from '../modules/shared/child-file-purge.interface';
+import type { ChildFileExportPort } from '../modules/shared/child-file-export.interface';
 import { createDatabaseClient, type Database } from './client';
 import { SEED_LIST_LIMIT } from './seed.constant';
 import { runSeed } from './seed.service';
@@ -78,7 +79,18 @@ export function buildSeedPorts({
     },
   };
 
-  const users = createUserUseCases({ repository: createUserRepository(database), childFiles });
+  /** Mesmo motivo: exportar sem balde montado devolveria album vazio como se fosse a verdade. */
+  const childFileExport: ChildFileExportPort = {
+    listForExport: async () => {
+      throw new Error('o seed nao exporta arquivo de filho');
+    },
+  };
+
+  const users = createUserUseCases({
+    repository: createUserRepository(database),
+    childFiles,
+    childFileExport,
+  });
   const childRepository = createChildRepository(database);
   const children = createChildUseCases({ repository: childRepository, childFiles });
   const activities = createActivityUseCases({

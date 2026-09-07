@@ -18,6 +18,7 @@ import type { ChildFileRow } from './child-file.table';
 import {
   CHILD_FILE_ALLOWED_CONTENT_TYPES,
   CHILD_FILE_DELIVERIES,
+  buildChildFileContentPath,
   isHealthData,
 } from './child-file.constant';
 import {
@@ -31,6 +32,10 @@ import type {
   PurgeChildFilesParams,
   PurgeUserFilesParams,
 } from '../shared/child-file-purge.interface';
+import type {
+  ChildFileExport,
+  ExportUserFilesParams,
+} from '../shared/child-file-export.interface';
 import type {
   ChildFileContent,
   ChildFileUseCasesParams,
@@ -79,6 +84,7 @@ export type ChildFileUseCases = {
   remove(params: DeleteChildFileParams): Promise<void>;
   purgeByChild(params: PurgeChildFilesParams): Promise<void>;
   purgeByUser(params: PurgeUserFilesParams): Promise<void>;
+  listForExport(params: ExportUserFilesParams): Promise<readonly ChildFileExport[]>;
 };
 
 /**
@@ -315,6 +321,19 @@ export function createChildFileUseCases({
      */
     async purgeByUser({ userId, clientIp }) {
       await sweep({ rows: await repository.listByUser({ userId }), userId, clientIp });
+    },
+
+    /**
+     * A mesma consulta escopada por dono da varredura da conta, com o oposto
+     * do proposito: aqui nada e' apagado, o titular esta' levando a historia
+     * embora (art. 18 V).
+     */
+    async listForExport({ userId }) {
+      const rows = await repository.listByUser({ userId });
+      return rows.map((row) => ({
+        ...toChildFileView(row),
+        contentPath: buildChildFileContentPath({ childId: row.childId, fileId: row.id }),
+      }));
     },
 
     async upload({ childId, userId, kind, bytes, caption, takenOn, clientIp }) {

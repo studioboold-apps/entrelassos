@@ -23,8 +23,17 @@ import { buildUserRoutes } from './user.controller';
 import { ME_EXPORT_PATH, ME_PATH } from './user.constant';
 import { createUserUseCases } from './user.use-case';
 import type { UserRow } from './user.table';
+import { CHILD_FILE_KINDS } from '../shared/shared.constant';
+import type {
+  ChildFileExport,
+  ChildFileExportPort,
+} from '../shared/child-file-export.interface';
 import type { ChildFilePurgePort } from '../shared/child-file-purge.interface';
-import type { AccountExport, DeleteUserParams, UserRepository } from './types/user.types';
+import type {
+  AccountExportWithoutFiles,
+  DeleteUserParams,
+  UserRepository,
+} from './types/user.types';
 
 type RecordedRemoval = { readonly userId: string; readonly clientIp: string };
 
@@ -39,7 +48,29 @@ function buildUserRow(): UserRow {
   };
 }
 
-function buildAccountExport(row: UserRow): AccountExport {
+const EXPORTED_CHILD_ID = '00000000-0000-4000-8000-0000000000c1';
+const EXPORTED_FILE_ID = '00000000-0000-4000-8000-0000000000f1';
+
+/**
+ * O que a porta do `ChildFile` devolve. Aqui e' dado de teste: o que se afirma
+ * neste arquivo e' que a secao CHEGA ao titular, nao como ela e' montada — quem
+ * esconde a `objectKey` e monta o caminho do conteudo tem teste no proprio
+ * modulo.
+ */
+const EXPORTED_FILE: ChildFileExport = {
+  id: EXPORTED_FILE_ID,
+  childId: EXPORTED_CHILD_ID,
+  kind: CHILD_FILE_KINDS[0],
+  contentType: 'image/jpeg',
+  byteSize: 12,
+  checksum: 'a'.repeat(64),
+  caption: undefined,
+  takenOn: undefined,
+  createdAt: new Date('2026-09-07T00:00:00.000Z'),
+  contentPath: `/v1/children/${EXPORTED_CHILD_ID}/files/${EXPORTED_FILE_ID}/content`,
+};
+
+function buildAccountExportWithoutFiles(row: UserRow): AccountExportWithoutFiles {
   return {
     user: row,
     authIdentities: [],
@@ -74,7 +105,7 @@ function createFakeUserRepository(rows: UserRow[], removals: RecordedRemoval[]):
     },
     exportAll: async ({ userId }) => {
       const row = rows[indexOf(userId)];
-      return row === undefined ? undefined : buildAccountExport(row);
+      return row === undefined ? undefined : buildAccountExportWithoutFiles(row);
     },
   };
 }
@@ -91,7 +122,25 @@ type PurgeCall = {
   readonly accountWasStillThere: boolean;
 };
 
-function buildClient(rows: UserRow[], removals: RecordedRemoval[], purgeCalls: PurgeCall[]): TestClient {
+type BuildClientParams = {
+  readonly rows: UserRow[];
+  readonly removals: RecordedRemoval[];
+  readonly purgeCalls: PurgeCall[];
+  readonly exportCalls: string[];
+};
+
+function buildClient({ rows, removals, purgeCalls, exportCalls }: BuildClientParams): TestClient {
+  /**
+   * Porta separada da varredura, e nao um metodo a mais nela: `Child` tambem
+   * usa a varredura e nao exporta nada. Numa porta so', ele teria de fingir um
+   * `listForExport` que nunca chama.
+   */
+  const childFileExport: ChildFileExportPort = {
+    listForExport: async ({ userId }) => {
+      exportCalls.push(userId);
+      return [EXPORTED_FILE];
+    },
+  };
   const childFiles: ChildFilePurgePort = {
     purgeByChild: async () => {
       throw new Error('apagar a conta nao varre filho por filho');
@@ -102,7 +151,11 @@ function buildClient(rows: UserRow[], removals: RecordedRemoval[], purgeCalls: P
   };
   return createTestClient({
     routes: buildUserRoutes(
-      createUserUseCases({ repository: createFakeUserRepository(rows, removals), childFiles }),
+      createUserUseCases({
+        repository: createFakeUserRepository(rows, removals),
+        childFiles,
+        childFileExport,
+      }),
     ),
   });
 }
@@ -110,11 +163,13 @@ function buildClient(rows: UserRow[], removals: RecordedRemoval[], purgeCalls: P
 let client: TestClient;
 let removals: RecordedRemoval[];
 let purgeCalls: PurgeCall[];
+let exportCalls: string[];
 
 beforeEach(() => {
   removals = [];
   purgeCalls = [];
-  client = buildClient([buildUserRow()], removals, purgeCalls);
+  exportCalls = [];
+  client = buildClient({ rows: [buildUserRow()], removals, purgeCalls, exportCalls });
 });
 
 describe('GET /v1/me', () => {
@@ -125,7 +180,12 @@ describe('GET /v1/me', () => {
   });
 
   test('sessao apontando para usuario inexistente responde 404', async () => {
-    const orphan = buildClient([{ ...buildUserRow(), ...buildIdentity(MISSING_ID) }], removals, purgeCalls);
+    const orphan = buildClient({
+      rows: [{ ...buildUserRow(), ...buildIdentity(MISSING_ID) }],
+      removals,
+      purgeCalls,
+      exportCalls,
+    });
     const response = await orphan.send({ method: HTTP_METHODS.GET, path: ME_PATH });
     expect(response.status).toBe(404);
     expect(readErrorCode(response)).toBe(ERROR_CODES.user.USER_NOT_FOUND);
@@ -246,7 +306,7 @@ describe('DELETE /v1/me', () => {
    * repositorio ja tem.
    */
   test('conta inexistente responde 404 depois de varrer o proprio nada', async () => {
-    const orphan = buildClient([], removals, purgeCalls);
+    const orphan = buildClient({ rows: [], removals, purgeCalls, exportCalls });
 
     const response = await orphan.send({ method: HTTP_METHODS.DELETE, path: ME_PATH });
 
@@ -276,9 +336,47 @@ describe('GET /v1/me/export', () => {
       'communityPostLikes',
       'communityComments',
       'chatMessages',
+      'childFiles',
     ]) {
       expect(Array.isArray(payload[section])).toBe(true);
     }
+  });
+
+  /**
+   * A secao dos arquivos vem por PORTA, do `ChildFile`: a vista que esconde a
+   * `objectKey` e o caminho por onde os bytes saem moram la'. Uma consulta
+   * propria aqui seria uma segunda copia dessa vista (`code-standart.md` §16),
+   * e a edicao que faltasse nela mandaria a chave do balde dentro de um arquivo
+   * que o pai baixa.
+   */
+  test('os arquivos do filho entram na exportacao', async () => {
+    const response = await client.send({ method: HTTP_METHODS.GET, path: ME_EXPORT_PATH });
+
+    expect(response.status).toBe(200);
+    expect(exportCalls).toEqual([TEST_USER_ID]);
+    const files = readDataRecord(response).childFiles as readonly Record<string, unknown>[];
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatchObject({ id: EXPORTED_FILE_ID, childId: EXPORTED_CHILD_ID });
+  });
+
+  /**
+   * JSON nao carrega byte. Uma secao que lista quarenta fotos sem dizer o
+   * endereco de nenhuma e' catalogo, nao portabilidade: o titular fica sabendo
+   * que os arquivos existem e sem como pega-los. No aplicativo o caminho e'
+   * montado pela tela; num arquivo baixado nao ha tela nenhuma.
+   */
+  test('cada arquivo diz onde buscar os bytes', async () => {
+    const response = await client.send({ method: HTTP_METHODS.GET, path: ME_EXPORT_PATH });
+
+    const files = readDataRecord(response).childFiles as readonly Record<string, unknown>[];
+    expect(files[0]?.contentPath).toBe(EXPORTED_FILE.contentPath);
+  });
+
+  /** A chave do balde e' desenho interno: quem a conhece adivinha a do vizinho. */
+  test('a exportacao nao carrega a chave do balde', async () => {
+    const response = await client.send({ method: HTTP_METHODS.GET, path: ME_EXPORT_PATH });
+
+    expect(JSON.stringify(response.payload)).not.toContain('objectKey');
   });
 
   test('conta ja apagada nao exporta nada', async () => {

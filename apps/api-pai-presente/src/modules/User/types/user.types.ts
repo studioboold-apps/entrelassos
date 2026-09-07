@@ -15,6 +15,10 @@ import type {
 } from '../../CommunityPost/community-post.table';
 import type { InsightRatingRow } from '../../InsightRating/insight-rating.table';
 import type { ChildFilePurgePort } from '../../shared/child-file-purge.interface';
+import type {
+  ChildFileExport,
+  ChildFileExportPort,
+} from '../../shared/child-file-export.interface';
 import type { UpdateUserBody } from '../user.schema';
 import type { UserRow } from '../user.table';
 
@@ -65,7 +69,21 @@ export type AccountExport = {
   readonly communityPostLikes: readonly CommunityPostLikeRow[];
   readonly communityComments: readonly CommunityCommentRow[];
   readonly chatMessages: readonly ChatMessageRow[];
+  /**
+   * Vem por PORTA, do `ChildFile`: a vista que esconde a `objectKey` e o
+   * endereco por onde os bytes saem moram la'. Uma consulta propria aqui seria
+   * uma segunda copia dessa vista, e a edicao que faltasse nela mandaria a
+   * chave do balde dentro de um arquivo que o pai baixa.
+   */
+  readonly childFiles: readonly ChildFileExport[];
 };
+
+/**
+ * O que o repositorio sabe montar: tudo menos os arquivos. A secao dos
+ * arquivos e' de outro modulo, e o tipo diz isso em vez de deixar o
+ * repositorio devolver um `AccountExport` pela metade.
+ */
+export type AccountExportWithoutFiles = Omit<AccountExport, 'childFiles'>;
 
 export type CreateUserUseCasesParams = {
   readonly repository: UserRepository;
@@ -74,11 +92,16 @@ export type CreateUserUseCasesParams = {
    * consulta propria: quem conhece o balde e' `ChildFile`.
    */
   readonly childFiles: ChildFilePurgePort;
+  /**
+   * Porta separada da varredura porque `Child` consome so' a varredura: numa
+   * porta so', ele teria de fingir um `listForExport` que nunca chama.
+   */
+  readonly childFileExport: ChildFileExportPort;
 };
 
 export type UserRepository = {
   findById(params: FindUserParams): Promise<UserRow | undefined>;
   update(params: UpdateUserParams): Promise<UserRow | undefined>;
   deleteById(params: DeleteUserParams): Promise<boolean>;
-  exportAll(params: ExportUserParams): Promise<AccountExport | undefined>;
+  exportAll(params: ExportUserParams): Promise<AccountExportWithoutFiles | undefined>;
 };

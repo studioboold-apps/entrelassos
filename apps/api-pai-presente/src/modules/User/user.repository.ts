@@ -20,7 +20,7 @@ import {
 } from '../CommunityPost/community-post.table';
 import { insightRatingsTable } from '../InsightRating/insight-rating.table';
 import type {
-  AccountExport,
+  AccountExportWithoutFiles,
   DeleteUserParams,
   ExportUserParams,
   FindUserParams,
@@ -32,7 +32,7 @@ import { usersTable, type UserRow } from './user.table';
 async function readAccountSections(
   database: Database,
   userId: string,
-): Promise<Omit<AccountExport, 'user'>> {
+): Promise<Omit<AccountExportWithoutFiles, 'user'>> {
   const [
     authIdentities,
     children,
@@ -120,7 +120,7 @@ export function createUserRepository(database: Database): UserRepository {
       });
     },
 
-    async exportAll({ userId, clientIp }: ExportUserParams): Promise<AccountExport | undefined> {
+    async exportAll({ userId, clientIp }: ExportUserParams): Promise<AccountExportWithoutFiles | undefined> {
       const rows = await database.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
       const user = rows[0];
       if (user === undefined) return undefined;

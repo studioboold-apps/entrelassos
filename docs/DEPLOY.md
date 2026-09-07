@@ -184,12 +184,53 @@ Fosse o contrário, todo `apply` derrubaria a sessão de todos os pais.
 | `GET /health` na URL pública | `200 {"data":{"status":"ok"}}` — o da **web** |
 | `GET /v1/activities` na URL pública | `401 UNAUTHENTICATED`, no envelope da **API** — é isto que prova o repasse pela rede privada |
 | `GET /health` dentro do contêiner da API | `{"data":{"status":"ok","database":"ok"}}` |
-| migrations | 11 tabelas no schema `public`, aplicadas pelo pre-deploy |
+| migrations | 14 tabelas no schema `public` (6 migrations), aplicadas pelo pre-deploy |
+| foto e exame no histórico | `201` no envio, `200` na leitura com sha256 idêntico, e os **mesmos ids** respondendo `200` depois de um redeploy trocar o contêiner (07/09/2026) |
 
 O `/health` público é o da web, não o da API: a web tem o dela e o caminho é o
 mesmo. Quem prova o banco é o health check interno do provedor, que faz
 `select 1` a cada sondagem — e é ele que impede um deploy quebrado de ser
 promovido.
+
+### O disco de mídia, e a região que não é detalhe
+
+Foto e exame moram num **volume** montado em `/data`, e `MEDIA_DIRECTORY` aponta
+para `/data/media`. O disco tem 5 GB provisionados a ≈US$ 0,16/GB/mês — cobra-se
+o provisionado, não o usado.
+
+**Volume e contêiner têm de estar na MESMA região.** O Railway não monta disco de
+outra região: em 07/09/2026 o volume nasceu em `sfo` enquanto a api e o Postgres
+estão em `us-east4-eqdc4a`, e o resultado foi volume `ERROR` com `currentSizeMB 0`,
+dois deploys falhados e `/data` caindo no overlay efêmero do contêiner — o
+histórico gravava num disco que morre no próximo deploy.
+
+O que torna esta falha perigosa é que **`/health` respondeu 200 o tempo todo**.
+Nada do que o deploy verifica olha para o disco. Quem impede a volta é
+`.railway/railway.test.ts`, que afirma volume anexado na região de quem monta e
+banco na região de quem consulta.
+
+Mover volume de região é **apagar e recriar**: `volumeInstanceUpdate` aceita só
+`mountPath`, `serviceId` e `state`, e `region` entra apenas em `volumeCreate` —
+que não aceita nome, o Railway cunha. Como o volume apagado segura o nome por
+dois dias de carência, o mesmo disco passou por três nomes (`api-volume` →
+`api-volume-cs8b` → `api-volume-_R9v`). O arquivo de IaC declara o nome que a
+produção tem hoje: sem isso o `config plan` propõe **desanexar e apagar** o disco.
+
+Mexer no serviço não resolve. `serviceInstanceUpdate` respondeu `true` duas vezes
+sem mover o contêiner, e o Railway desfez o conflito por conta dele puxando o
+*volume* para oeste — o que devolve o pulo de costa a costa até o banco
+(~65 ms por consulta medidos, contra ~1–3 ms na rede interna da mesma região).
+
+### O `ENTRYPOINT` existe por causa do dono do volume
+
+Volume do Railway monta **com o dono `root`**. A imagem do Bun roda como `bun`,
+então sem intervenção o primeiro `write` em `/data/media` falha por permissão —
+e falha *depois* do deploy ser promovido, no primeiro envio de um pai.
+
+O `ENTRYPOINT` da API roda como `root`, cria `MEDIA_DIRECTORY`, faz `chown`, e só
+então entrega o processo com `exec su-exec bun "$@"`. Verificado em produção:
+`/data/media` com dono `bun bun`. Não é conveniência — é o que faz o disco ser
+gravável, e o teste que o cobre é o envio ponta a ponta na tabela de aceite acima.
 
 ### Como se entra hoje, e o que continua fechado
 

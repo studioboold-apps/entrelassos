@@ -11,6 +11,7 @@ import { api } from '@/api/client';
 import { describeApiFailure } from '@/lib/api-error-message';
 import { CHILD_FILE_KINDS } from '@/lib/child-files';
 import { buildChildTimeline } from '@/lib/child-timeline';
+import { needsExamConsent, shouldShowExamNotice } from '@/lib/exam-consent';
 
 const CHILD_FILES_QUERY_KEY = 'childFiles';
 
@@ -30,6 +31,12 @@ export function useChildFiles({ child }) {
   const childId = child?.id;
   const [form, setForm] = useState(EMPTY_FORM);
   const [file, setFile] = useState(null);
+
+  /**
+   * O aceite vive no painel, que nasce e morre com o filho escolhido: aceitar
+   * pelo Joao nao pode liberar o exame da Ana.
+   */
+  const [hasAcceptedExamNotice, setHasAcceptedExamNotice] = useState(false);
 
   const filesQuery = useQuery({
     queryKey: [CHILD_FILES_QUERY_KEY, childId],
@@ -84,6 +91,10 @@ export function useChildFiles({ child }) {
     setFile(event.target.files?.[0] ?? null);
   }
 
+  function handleAcceptExamNotice(isAccepted) {
+    setHasAcceptedExamNotice(isAccepted);
+  }
+
   function handleUpload() {
     uploadMutation.mutate();
   }
@@ -97,14 +108,21 @@ export function useChildFiles({ child }) {
    * copia divergiria da query na primeira gravacao, e o registro novo sumiria
    * da linha do tempo sem ninguem ligar uma coisa a outra.
    */
+  const files = filesQuery.data ?? [];
   const timeline = buildChildTimeline({
     activities: activitiesQuery.data ?? [],
-    files: filesQuery.data ?? [],
+    files,
     childId,
   });
 
   /** Vazia e "deu errado" sao coisas diferentes: qualquer uma das duas listas que recusar tem de falar. */
   const listError = filesQuery.error ?? activitiesQuery.error;
+
+  const isExamConsentPending = needsExamConsent({
+    kind: form.kind,
+    files,
+    hasAccepted: hasAcceptedExamNotice,
+  });
 
   return {
     timeline,
@@ -115,8 +133,12 @@ export function useChildFiles({ child }) {
     form,
     fileName: file?.name ?? '',
     isUploading: uploadMutation.isPending,
-    canUpload: file !== null && !uploadMutation.isPending,
+    showsExamNotice: shouldShowExamNotice(form.kind),
+    isExamConsentPending,
+    hasAcceptedExamNotice,
+    canUpload: file !== null && !uploadMutation.isPending && !isExamConsentPending,
     handleKindChange,
+    handleAcceptExamNotice,
     handleFieldChange,
     handleFileChange,
     handleUpload,

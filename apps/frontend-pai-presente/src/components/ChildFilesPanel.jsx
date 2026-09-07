@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, ShieldCheck, Upload } from 'lucide-react';
 
 import ChildTimeline from '@/components/ChildTimeline';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CHILD_FILE_ACCEPT, CHILD_FILE_KIND_OPTIONS } from '@/lib/child-files';
@@ -31,8 +32,12 @@ export default function ChildFilesPanel({ child }) {
     form,
     fileName,
     isUploading,
+    showsExamNotice,
+    isExamConsentPending,
+    hasAcceptedExamNotice,
     canUpload,
     handleKindChange,
+    handleAcceptExamNotice,
     handleFieldChange,
     handleFileChange,
     handleUpload,
@@ -99,6 +104,34 @@ export default function ChildFilesPanel({ child }) {
           />
         </div>
       </div>
+
+      {showsExamNotice && (
+        <div className="bg-zinc-900 border border-amber-500/40 rounded-xl p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <ShieldCheck aria-hidden="true" className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-white">{t('perfil.childFiles.examNotice.title')}</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('perfil.childFiles.examNotice.body')}</p>
+            </div>
+          </div>
+
+          {isExamConsentPending || hasAcceptedExamNotice ? (
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="exam-consent"
+                checked={hasAcceptedExamNotice}
+                onCheckedChange={(isChecked) => handleAcceptExamNotice(isChecked === true)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="exam-consent" className="text-xs text-zinc-300 leading-snug">
+                {t('perfil.childFiles.examNotice.consent')}
+              </Label>
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-500">{t('perfil.childFiles.examNotice.reminder')}</p>
+          )}
+        </div>
+      )}
 
       <Button
         onClick={handleUpload}

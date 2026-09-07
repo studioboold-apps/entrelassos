@@ -88,6 +88,40 @@ describe('trocar de tipo nao carrega arquivo do tipo anterior', () => {
   });
 });
 
+describe('o aviso vem antes do primeiro exame', () => {
+  /**
+   * Exame e' dado de saude de crianca — sensivel pela LGPD (art. 11), e a base
+   * legal aqui e' o consentimento de quem tem a guarda. Consentimento que a
+   * pessoa nao leu nao e' consentimento: o envio fica BARRADO ate' o aceite, e
+   * a regra mora em `lib/exam-consent.js`, que tem teste proprio.
+   */
+  test('a regra sai do modulo unico, nao de um if na tela', () => {
+    expect(HOOK).toContain('needsExamConsent');
+    expect(HOOK).toContain('shouldShowExamNotice');
+  });
+
+  test('sem aceite, o botao de guardar nao envia', () => {
+    expect(HOOK).toContain('!isExamConsentPending');
+  });
+
+  /** Aceitar pelo Joao nao pode liberar o exame da Ana. */
+  test('o aceite morre com o painel do filho', () => {
+    expect(HOOK).toContain('const [hasAcceptedExamNotice, setHasAcceptedExamNotice] = useState(false)');
+  });
+
+  test('o texto do aviso sai do arquivo de traducao', () => {
+    expect(PANEL).toContain("t('perfil.childFiles.examNotice.title')");
+    expect(PANEL).toContain("t('perfil.childFiles.examNotice.body')");
+    expect(PANEL).toContain("t('perfil.childFiles.examNotice.consent')");
+  });
+
+  /** Caixa sem rotulo ligado nao e' clicavel por teclado nem lida em voz alta. */
+  test('a caixa de aceite tem rotulo ligado a ela', () => {
+    expect(PANEL).toContain('id="exam-consent"');
+    expect(PANEL).toContain('htmlFor="exam-consent"');
+  });
+});
+
 describe('o painel nasce vazio para cada filho', () => {
   /**
    * Mantido montado, o painel guardaria tipo, legenda e data do filho

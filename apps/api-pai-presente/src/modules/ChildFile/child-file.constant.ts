@@ -18,6 +18,43 @@ export const CHILD_FILE_PATH = '/v1/children/:childId/files/:fileId';
 
 export const CHILD_FILE_CONTENT_PATH = '/v1/children/:childId/files/:fileId/content';
 
+/**
+ * Quanto ja' foi usado, do FILHO e da CONTA, na mesma resposta. O total da
+ * conta mora sob o caminho do filho de proposito: a tela mostra os dois juntos
+ * (o pai quer saber se cabe mais uma foto do Joao, e o numero da conta sozinho
+ * nao responde isso), e uma segunda rota por conta seria uma segunda ida a'
+ * rede para desenhar uma unica barra.
+ *
+ * Vem antes de `CHILD_FILE_PATH` na tabela de rotas? Nao precisa: `usage` nao
+ * e' UUID, e o roteador casa o molde exato do segmento.
+ */
+export const CHILD_FILE_USAGE_PATH = '/v1/children/:childId/files/usage';
+
+/**
+ * De QUEM o teto estourou. Sao os dois escopos que existem, e a distincao vai
+ * para a tela: "o album deste filho encheu" e "sua conta encheu" pedem acoes
+ * diferentes do pai — apagar foto daqui, ou apagar de qualquer filho.
+ */
+export const CHILD_FILE_QUOTA_SCOPES = {
+  CHILD: 'filho',
+  ACCOUNT: 'conta',
+} as const;
+export type ChildFileQuotaScope = (typeof CHILD_FILE_QUOTA_SCOPES)[keyof typeof CHILD_FILE_QUOTA_SCOPES];
+
+const BYTES_IN_MIB = 1024 * 1024;
+const MIB_IN_GIB = 1024;
+
+/**
+ * O teto dito em unidade que o pai le'. `Math.floor(x / 1024 / 1024)` apareceria
+ * em tres frases diferentes (`code-standart.md` §16), e a terceira imprimiria
+ * "2048 MB" para o teto da conta — numero certo, frase que ninguem entende.
+ */
+export function formatByteCeiling(byteSize: number): string {
+  const megabytes = Math.floor(byteSize / BYTES_IN_MIB);
+  if (megabytes < MIB_IN_GIB) return `${megabytes} MB`;
+  return `${Math.round((megabytes / MIB_IN_GIB) * 10) / 10} GB`;
+}
+
 type BuildChildFileContentPathParams = {
   readonly childId: string;
   readonly fileId: string;

@@ -107,6 +107,12 @@ function buildChildFileForm({ file, kind, caption, takenOn }) {
 
 const ChildFile = Object.freeze({
   list: (childId) => listAll(buildChildFilesPath(childId)),
+  /**
+   * O quanto ja' foi usado, e os tetos. Vem numa chamada so' porque a tela
+   * mostra os dois numeros juntos — filho e conta —, e duas rotas seriam duas
+   * idas ao servidor para desenhar uma linha.
+   */
+  usage: (childId) => request(HTTP_METHODS.GET, `${buildChildFilesPath(childId)}/usage`),
   upload: ({ childId, file, kind, caption, takenOn }) =>
     requestUpload(buildChildFilesPath(childId), {
       form: buildChildFileForm({ file, kind, caption, takenOn }),

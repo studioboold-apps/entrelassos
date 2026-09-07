@@ -70,6 +70,15 @@
       "body": "O arquivo é cifrado antes de sair do seu celular e só a sua conta consegue abrir. Ninguém da equipe, nenhum anúncio e nenhuma inteligência artificial lê o exame. Apagar aqui apaga do servidor também.",
       "consent": "Entendi e quero guardar o exame do meu filho aqui.",
       "reminder": "Continua cifrado e continua só seu — apagar aqui apaga do servidor."
+    },
+    "usage": {
+      "title": "Espaço usado",
+      "child": "Álbum de {child}",
+      "account": "Sua conta",
+      "fileMax": "Cada arquivo pode ter até {size}.",
+      "fileTooLarge": "Este arquivo passa de {size}. Escolha um menor.",
+      "childQuota": "O álbum deste filho não tem espaço para este arquivo. Apague algo para abrir espaço.",
+      "accountQuota": "Sua conta não tem espaço para este arquivo. Apague algo para abrir espaço."
     }
   }
 }

@@ -7,6 +7,7 @@
 import React from 'react';
 import { Loader2, ShieldCheck, Upload } from 'lucide-react';
 
+import ChildFilesUsage from '@/components/ChildFilesUsage';
 import ChildTimeline from '@/components/ChildTimeline';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +37,8 @@ export default function ChildFilesPanel({ child }) {
     isExamConsentPending,
     isGrantingConsent,
     consentFailure,
+    usage,
+    fit,
     canUpload,
     handleKindChange,
     handleAcceptExamNotice,
@@ -140,6 +143,8 @@ export default function ChildFilesPanel({ child }) {
           )}
         </div>
       )}
+
+      <ChildFilesUsage usage={usage} fit={fit} childName={child.name} />
 
       <Button
         onClick={handleUpload}

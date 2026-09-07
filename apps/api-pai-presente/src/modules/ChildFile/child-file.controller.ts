@@ -32,6 +32,7 @@ import {
   CHILD_FILE_FORM_FIELDS,
   CHILD_FILE_PATH,
   CHILD_FILE_REDIRECT_STATUS,
+  CHILD_FILE_USAGE_PATH,
 } from './child-file.constant';
 import type { ChildFileContent } from './types/child-file.types';
 import { ChildFileMissingError, ChildFileTooLargeError } from './child-file.error';
@@ -158,6 +159,24 @@ export function buildChildFileRoutes(useCases: ChildFileUseCases): readonly Rout
         });
 
         return respondWithList(items, { total, page, perPage });
+      },
+    },
+    /**
+     * ANTES de qualquer rota com `:fileId` nesta posicao: o roteador casa na
+     * ordem de declaracao, e `usage` seria engolido como id de arquivo pela
+     * primeira rota de molde parametrico que aparecesse aqui.
+     */
+    {
+      method: HTTP_METHODS.GET,
+      path: CHILD_FILE_USAGE_PATH,
+      summary: 'Diz quanto o album do filho e a conta ja ocupam, e os tetos.',
+      handle: async ({ pathParams, authenticatedUser }) => {
+        const view = await useCases.measureUsage({
+          childId: parseWithSchema(uuidSchema, pathParams.childId),
+          userId: authenticatedUser.userId,
+        });
+
+        return respondWithData(view);
       },
     },
     {

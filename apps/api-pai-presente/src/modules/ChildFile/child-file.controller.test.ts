@@ -16,7 +16,11 @@ import { ENVELOPE_KEY_BYTES } from '../shared/crypto/envelope-cipher.constant';
 import { ERROR_CODES } from '../shared/errors/codes';
 import type { ChildConsentPort } from '../shared/child-consent.interface';
 import type { ChildOwnershipPort } from '../shared/child-ownership.interface';
-import { CHILD_FILE_MAX_BYTES } from '../shared/shared.constant';
+import {
+  CHILD_FILE_ACCOUNT_QUOTA_BYTES,
+  CHILD_FILE_CHILD_QUOTA_BYTES,
+  CHILD_FILE_MAX_BYTES,
+} from '../shared/shared.constant';
 import {
   CACHE_CONTROL_HEADER,
   CONTENT_DISPOSITION_HEADER,
@@ -30,6 +34,7 @@ import {
   CHILD_FILE_CONTENT_DISPOSITION,
   CHILD_FILE_FORM_FIELDS,
   CHILD_FILE_REDIRECT_STATUS,
+  formatByteCeiling,
 } from './child-file.constant';
 import { buildChildFileRoutes } from './child-file.controller';
 import type { ChildFileRow, NewChildFileRow } from './child-file.table';
@@ -158,6 +163,12 @@ function createFakeRepository(rows: ChildFileRow[]): ChildFileRepository {
     listAllByChild: async ({ childId, userId }) =>
       rows.filter((row) => row.childId === childId && row.userId === userId),
     listByUser: async ({ userId }) => rows.filter((row) => row.userId === userId),
+    sumBytesByChild: async ({ childId, userId }) =>
+      rows
+        .filter((row) => row.childId === childId && row.userId === userId)
+        .reduce((total, row) => total + row.byteSize, 0),
+    sumBytesByUser: async ({ userId }) =>
+      rows.filter((row) => row.userId === userId).reduce((total, row) => total + row.byteSize, 0),
     remove: async ({ fileId, userId }) => {
       const position = indexOf(fileId, userId);
       if (position < 0) return undefined;
@@ -539,6 +550,22 @@ describe('o teto de tamanho e um numero, checado duas vezes', () => {
     expect(fakes.rows).toHaveLength(0);
   });
 
+  /**
+   * A recusa por tamanho nao aponta CAMPO nenhum. Ela apontava `file`, e o front
+   * prefere a lista de campos a' mensagem: o pai lia "Confira: file." em vez do
+   * teto — e `file` nem tem rotulo no mapa de nomes da tela.
+   */
+  test('a recusa por tamanho diz o teto, e nao um campo', async () => {
+    const fakes = buildFakes();
+    const response = await upload(createClient(fakes.useCases), {
+      headers: { 'content-length': String(CHILD_FILE_MAX_BYTES * 20) },
+    });
+    const body = response.payload as { error?: { message?: string; details?: unknown } };
+
+    expect(body.error?.details).toBeUndefined();
+    expect(body.error?.message).toContain(formatByteCeiling(CHILD_FILE_MAX_BYTES));
+  });
+
   /** A checagem barata existe para nao ler 300 MB antes de recusar. */
   test('cabecalho absurdo recusa antes de ler o corpo', async () => {
     const fakes = buildFakes();
@@ -562,6 +589,222 @@ describe('o teto de tamanho e um numero, checado duas vezes', () => {
     });
 
     expect(response.status).toBe(201);
+  });
+});
+
+/**
+ * Planta uma linha com o tamanho desejado direto na tabela falsa. Enviar 500
+ * MiB de verdade num teste mediria a memoria do executor, e nao a regra — e
+ * demoraria o suficiente para ninguem rodar a suite.
+ */
+function fillWith(fakes: Fakes, params: { childId?: string; userId?: string; byteSize: number }): void {
+  const { childId = OWNED_CHILD_ID, userId = TEST_USER_ID, byteSize } = params;
+  fakes.rows.push({
+    id: `${fakes.rows.length}0000000-0000-4000-8000-000000000000`,
+    userId,
+    childId,
+    kind: 'foto',
+    objectKey: `media/${childId}/plantado-${fakes.rows.length}`,
+    contentType: 'image/jpeg',
+    byteSize,
+    checksum: 'x'.repeat(64),
+    isEncrypted: false,
+    caption: null,
+    takenOn: null,
+    createdAt: new Date(),
+  } as ChildFileRow);
+}
+
+describe('o teto do FILHO existe, e o de cada arquivo nao o substitui', () => {
+  /**
+   * O teto por arquivo sozinho nao limita nada: mil arquivos de 15 MiB passam
+   * um por um e somam 15 GiB. Quem paga o balde e' a conta, e ela descobriria
+   * isso na fatura.
+   */
+  test('album cheio recusa a foto seguinte, com codigo proprio', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { byteSize: CHILD_FILE_CHILD_QUOTA_BYTES });
+
+    const response = await upload(createClient(fakes.useCases));
+
+    expect(response.status).toBe(413);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_CHILD_QUOTA_EXCEEDED);
+  });
+
+  /** Recusa nao pode deixar meia escrita: nem linha no banco, nem byte no balde. */
+  test('a recusa nao gasta linha nem objeto', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { byteSize: CHILD_FILE_CHILD_QUOTA_BYTES });
+
+    await upload(createClient(fakes.useCases));
+
+    expect(fakes.rows).toHaveLength(1);
+    expect(fakes.objects.size).toBe(0);
+  });
+
+  /**
+   * O criterio e' `usado + novo > teto`, entao encher a cota EXATAMENTE cabe.
+   * Recusar no limite deixaria o ultimo byte da cota inalcancavel para sempre.
+   */
+  test('encher a cota exatamente ainda cabe', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { byteSize: CHILD_FILE_CHILD_QUOTA_BYTES - JPEG.byteLength });
+
+    const response = await upload(createClient(fakes.useCases));
+
+    expect(response.status).toBe(201);
+  });
+
+  test('um byte alem do teto recusa', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { byteSize: CHILD_FILE_CHILD_QUOTA_BYTES - JPEG.byteLength + 1 });
+
+    const response = await upload(createClient(fakes.useCases));
+
+    expect(response.status).toBe(413);
+  });
+
+  /** O album do irmao e' outro album: o teto e' POR filho, e nao da familia. */
+  test('o album do irmao nao conta no teto deste filho', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { childId: SIBLING_CHILD_ID, byteSize: CHILD_FILE_CHILD_QUOTA_BYTES });
+
+    const response = await upload(createClient(fakes.useCases));
+
+    expect(response.status).toBe(201);
+  });
+});
+
+describe('o teto da CONTA nao e o do filho vezes o numero de filhos', () => {
+  /**
+   * Um pai de seis filhos multiplicaria a fatura por seis sem encostar em teto
+   * nenhum. O balde cobra por conta, entao o limite tambem e' por conta.
+   */
+  test('conta cheia recusa mesmo com o album deste filho vazio', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { childId: SIBLING_CHILD_ID, byteSize: CHILD_FILE_ACCOUNT_QUOTA_BYTES });
+
+    const response = await upload(createClient(fakes.useCases));
+
+    expect(response.status).toBe(413);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.childFile.CHILD_FILE_ACCOUNT_QUOTA_EXCEEDED);
+  });
+
+  /** A soma e' escopada pelo dono: o album do pai vizinho nao pesa aqui. */
+  test('o album de outro pai nao conta na minha conta', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, {
+      childId: FOREIGN_CHILD_ID,
+      userId: OTHER_USER_ID,
+      byteSize: CHILD_FILE_ACCOUNT_QUOTA_BYTES,
+    });
+
+    const response = await upload(createClient(fakes.useCases));
+
+    expect(response.status).toBe(201);
+  });
+
+  /**
+   * A frase que o pai le' diz o teto em MB ou GB, nunca "2048 MB" — e nunca em
+   * bytes crus, que e' o numero que nao responde "cabe mais uma foto?".
+   */
+  test('a recusa diz o teto em unidade que se le', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { childId: SIBLING_CHILD_ID, byteSize: CHILD_FILE_ACCOUNT_QUOTA_BYTES });
+
+    const response = await upload(createClient(fakes.useCases));
+    const body = response.payload as { error?: { message?: string } };
+
+    expect(body.error?.message).toContain(formatByteCeiling(CHILD_FILE_ACCOUNT_QUOTA_BYTES));
+    expect(formatByteCeiling(CHILD_FILE_ACCOUNT_QUOTA_BYTES)).toBe('2 GB');
+  });
+
+  /**
+   * Sem `details`: o front prefere a lista de campos a' mensagem, e um
+   * `{field: 'file'}` aqui trocaria a frase que EXPLICA por um "Confira: file.".
+   * Nao ha' campo errado — o arquivo esta' certo, o album e' que encheu.
+   */
+  test('a recusa por cota nao aponta campo nenhum', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { byteSize: CHILD_FILE_CHILD_QUOTA_BYTES });
+
+    const response = await upload(createClient(fakes.useCases));
+    const body = response.payload as { error?: { details?: unknown } };
+
+    expect(body.error?.details).toBeUndefined();
+  });
+});
+
+describe('quanto ja foi usado aparece ANTES de o pai escolher a foto', () => {
+  /**
+   * Sem este numero o teto so' aparece na recusa, que e' o pior momento
+   * possivel: o pai ja' esperou o envio de um arquivo que nunca ia caber.
+   */
+  test('a medicao devolve os dois escopos e o teto por arquivo', async () => {
+    const fakes = buildFakes();
+    await upload(createClient(fakes.useCases));
+
+    const response = await createClient(fakes.useCases).send({
+      method: HTTP_METHODS.GET,
+      path: `/v1/children/${OWNED_CHILD_ID}/files/usage`,
+    });
+    const usage = readDataRecord(response);
+
+    expect(response.status).toBe(200);
+    expect(usage.child).toEqual({
+      usedBytes: JPEG.byteLength,
+      quotaBytes: CHILD_FILE_CHILD_QUOTA_BYTES,
+      remainingBytes: CHILD_FILE_CHILD_QUOTA_BYTES - JPEG.byteLength,
+    });
+    expect(usage.fileMaxBytes).toBe(CHILD_FILE_MAX_BYTES);
+  });
+
+  /** O total da conta soma os albuns de todos os filhos, e so' os deste pai. */
+  test('a conta soma os albuns dos irmaos, e nao o do pai vizinho', async () => {
+    const fakes = buildFakes();
+    fillWith(fakes, { byteSize: 100 });
+    fillWith(fakes, { childId: SIBLING_CHILD_ID, byteSize: 300 });
+    fillWith(fakes, { childId: FOREIGN_CHILD_ID, userId: OTHER_USER_ID, byteSize: 9000 });
+
+    const response = await createClient(fakes.useCases).send({
+      method: HTTP_METHODS.GET,
+      path: `/v1/children/${OWNED_CHILD_ID}/files/usage`,
+    });
+    const usage = readDataRecord(response);
+
+    expect(usage.account).toEqual({
+      usedBytes: 400,
+      quotaBytes: CHILD_FILE_ACCOUNT_QUOTA_BYTES,
+      remainingBytes: CHILD_FILE_ACCOUNT_QUOTA_BYTES - 400,
+    });
+  });
+
+  /**
+   * `usage` nao e' id de arquivo: o roteador casa na ordem de declaracao, e uma
+   * rota parametrica declarada antes engoliria o segmento.
+   */
+  test('a medicao de filho de outro pai responde 404', async () => {
+    const fakes = buildFakes();
+
+    const response = await createClient(fakes.useCases).send({
+      method: HTTP_METHODS.GET,
+      path: `/v1/children/${FOREIGN_CHILD_ID}/files/usage`,
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  /** Album vazio e' zero, e nao `NaN`: `SUM` de conjunto vazio e' NULO. */
+  test('album vazio mede zero, e nao nada', async () => {
+    const fakes = buildFakes();
+
+    const response = await createClient(fakes.useCases).send({
+      method: HTTP_METHODS.GET,
+      path: `/v1/children/${OWNED_CHILD_ID}/files/usage`,
+    });
+    const usage = readDataRecord(response);
+
+    expect(usage.child).toMatchObject({ usedBytes: 0 });
   });
 });
 

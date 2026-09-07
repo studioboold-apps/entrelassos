@@ -13,17 +13,24 @@ import { decryptMedia, encryptMedia, readMediaKey } from '../Media/media-cipher'
 import { DEFAULT_PRESIGN_TTL_SECONDS, MEDIA_OBJECT_ROOT } from '../Media/media.constant';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { ResourceNotFoundError } from '../shared/errors/shared.error';
-import { CHILD_FILE_MAX_BYTES, type ChildFileKind } from '../shared/shared.constant';
+import {
+  CHILD_FILE_ACCOUNT_QUOTA_BYTES,
+  CHILD_FILE_CHILD_QUOTA_BYTES,
+  CHILD_FILE_MAX_BYTES,
+  type ChildFileKind,
+} from '../shared/shared.constant';
 import type { ChildFileRow } from './child-file.table';
 import {
   CHILD_FILE_ALLOWED_CONTENT_TYPES,
   CHILD_FILE_DELIVERIES,
+  CHILD_FILE_QUOTA_SCOPES,
   buildChildFileContentPath,
   isHealthData,
 } from './child-file.constant';
 import {
   ChildExamConsentMissingError,
   ChildFileCorruptedError,
+  ChildFileQuotaExceededError,
   ChildFileTooLargeError,
   ChildFileTypeNotAllowedError,
   ChildFileTypeUnknownError,
@@ -37,7 +44,10 @@ import type {
   ExportUserFilesParams,
 } from '../shared/child-file-export.interface';
 import type {
+  ChildFileChildScopeParams,
   ChildFileContent,
+  ChildFileQuotaView,
+  ChildFileUsageView,
   ChildFileUseCasesParams,
   ChildFileView,
   ListChildFilesParams,
@@ -71,6 +81,21 @@ type SweepParams = {
   readonly clientIp: string;
 };
 
+type AssertQuotaFitsParams = {
+  readonly childId: string;
+  readonly userId: string;
+  readonly byteSize: number;
+};
+
+/**
+ * O piso em zero tem UM dono, e e' aqui. Teto que baixa um dia deixa album
+ * acima dele, e cada tela que subtraisse por conta propria imprimiria numero
+ * negativo.
+ */
+function toQuotaView(usedBytes: number, quotaBytes: number): ChildFileQuotaView {
+  return { usedBytes, quotaBytes, remainingBytes: Math.max(0, quotaBytes - usedBytes) };
+}
+
 type FindOwnedFileParams = {
   readonly childId: string;
   readonly fileId: string;
@@ -80,6 +105,7 @@ type FindOwnedFileParams = {
 export type ChildFileUseCases = {
   upload(params: UploadChildFileParams): Promise<ChildFileView>;
   list(params: ListChildFilesParams): Promise<ListChildFilesView>;
+  measureUsage(params: ChildFileChildScopeParams): Promise<ChildFileUsageView>;
   readContent(params: ReadChildFileContentParams): Promise<ChildFileContent>;
   remove(params: DeleteChildFileParams): Promise<void>;
   purgeByChild(params: PurgeChildFilesParams): Promise<void>;
@@ -184,7 +210,63 @@ export function createChildFileUseCases({
     return row;
   }
 
+  /**
+   * Os dois tetos, na ORDEM em que o pai entende: o do filho primeiro. "O album
+   * do Joao encheu" e' acionavel — ele sabe qual foto apagar; "sua conta
+   * encheu" manda procurar em seis albuns.
+   *
+   * As duas somas em paralelo (`nodejs.md`: nunca `await` dentro de laco): sao
+   * independentes, e em serie custariam duas idas ao banco onde uma bastava.
+   *
+   * O criterio e' `usado + novo > teto`, entao encher a cota EXATAMENTE cabe.
+   * Recusar no limite deixaria o ultimo byte da cota inalcancavel para sempre.
+   */
+  async function assertQuotaFits({ childId, userId, byteSize }: AssertQuotaFitsParams): Promise<void> {
+    const [childUsed, accountUsed] = await Promise.all([
+      repository.sumBytesByChild({ childId, userId }),
+      repository.sumBytesByUser({ userId }),
+    ]);
+
+    if (childUsed + byteSize > CHILD_FILE_CHILD_QUOTA_BYTES) {
+      throw new ChildFileQuotaExceededError({
+        scope: CHILD_FILE_QUOTA_SCOPES.CHILD,
+        quotaBytes: CHILD_FILE_CHILD_QUOTA_BYTES,
+        usedBytes: childUsed,
+      });
+    }
+
+    if (accountUsed + byteSize > CHILD_FILE_ACCOUNT_QUOTA_BYTES) {
+      throw new ChildFileQuotaExceededError({
+        scope: CHILD_FILE_QUOTA_SCOPES.ACCOUNT,
+        quotaBytes: CHILD_FILE_ACCOUNT_QUOTA_BYTES,
+        usedBytes: accountUsed,
+      });
+    }
+  }
+
   return {
+    /**
+     * O quanto ja' foi usado, para a tela dizer isso ANTES de o pai escolher a
+     * foto. Sem este numero o teto so' aparece na recusa, que e' o pior momento
+     * possivel: ele ja' esperou o envio de um arquivo que nunca ia caber.
+     *
+     * Nao grava trilha: nao ha' dado de saude nenhum aqui, so' tamanho.
+     */
+    async measureUsage({ childId, userId }) {
+      await assertChildIsOwned(childId, userId);
+
+      const [childUsed, accountUsed] = await Promise.all([
+        repository.sumBytesByChild({ childId, userId }),
+        repository.sumBytesByUser({ userId }),
+      ]);
+
+      return {
+        child: toQuotaView(childUsed, CHILD_FILE_CHILD_QUOTA_BYTES),
+        account: toQuotaView(accountUsed, CHILD_FILE_ACCOUNT_QUOTA_BYTES),
+        fileMaxBytes: CHILD_FILE_MAX_BYTES,
+      };
+    },
+
     /**
      * Metadado, nunca byte. A lista e' o que a ficha do filho desenha e o que a
      * linha do tempo do `H5.2` consome: mandar conteudo aqui faria o album de
@@ -368,6 +450,17 @@ export function createChildFileUseCases({
       }
 
       const contentType = readContentType(bytes, kind);
+
+      /**
+       * A cota se checa DEPOIS do tipo, e nao antes: recusa de memoria e' de
+       * graca, e consulta ao banco nao. Um video que alguem manda como "foto"
+       * nao pode custar duas somas antes de ser recusado pelo que ele e'.
+       *
+       * E antes de qualquer escrita: linha inserida e depois removida por cota
+       * gastaria uma sequencia do banco e uma ida ao balde para nada.
+       */
+      await assertQuotaFits({ childId, userId, byteSize: bytes.byteLength });
+
       /** Do texto CLARO, sempre: e' o que permite dizer que o que voltou e' o que subiu. */
       const checksum = createHash('sha256').update(bytes).digest('hex');
 

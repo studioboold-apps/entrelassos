@@ -49,12 +49,16 @@ export const CHILD_FILE_ACCEPT = Object.freeze({
 });
 
 const BYTES_IN_KIB = 1024;
-const SIZE_UNITS = Object.freeze(['B', 'kB', 'MB']);
+/**
+ * `GB` esta' aqui porque o teto da CONTA e' de 2 GiB: sem a unidade, a barra de
+ * uso imprimiria "2048.0 MB" — numero certo, frase que ninguem le'.
+ */
+const SIZE_UNITS = Object.freeze(['B', 'kB', 'MB', 'GB']);
 const SIZE_DECIMALS = 1;
 
 /**
  * `byteSize` chega em bytes crus, e "3512904" nao diz nada a quem so' quer saber
- * se a foto e' grande. O teto por arquivo (H6.1) vai falar na mesma unidade.
+ * se a foto e' grande. O teto por arquivo fala na mesma unidade.
  */
 export function formatByteSize(byteSize) {
   if (typeof byteSize !== 'number' || Number.isNaN(byteSize)) return '';
@@ -68,4 +72,31 @@ export function formatByteSize(byteSize) {
 
   const rounded = unitIndex === 0 ? String(value) : value.toFixed(SIZE_DECIMALS);
   return `${rounded} ${SIZE_UNITS[unitIndex]}`;
+}
+
+/**
+ * Motivos de recusa ANTES de o arquivo subir. A API decide de verdade — estes
+ * tres tetos sao os mesmos numeros que ela cobra —, e a tela repete a conta so'
+ * para nao fazer o pai esperar o envio de um arquivo que nunca ia caber.
+ *
+ * A cota vem do servidor (`ChildFile.usage`), e nao duplicada aqui: um numero
+ * copiado concorda com o da API ate' a primeira edicao.
+ */
+export const CHILD_FILE_FIT = Object.freeze({
+  OK: 'ok',
+  FILE_TOO_LARGE: 'fileTooLarge',
+  CHILD_QUOTA: 'childQuota',
+  ACCOUNT_QUOTA: 'accountQuota',
+});
+
+/**
+ * @param {{file: File | null, usage: {fileMaxBytes: number, child: {remainingBytes: number}, account: {remainingBytes: number}} | undefined}} params
+ * @returns {string}
+ */
+export function checkChildFileFit({ file, usage }) {
+  if (file === null || usage === undefined) return CHILD_FILE_FIT.OK;
+  if (file.size > usage.fileMaxBytes) return CHILD_FILE_FIT.FILE_TOO_LARGE;
+  if (file.size > usage.child.remainingBytes) return CHILD_FILE_FIT.CHILD_QUOTA;
+  if (file.size > usage.account.remainingBytes) return CHILD_FILE_FIT.ACCOUNT_QUOTA;
+  return CHILD_FILE_FIT.OK;
 }

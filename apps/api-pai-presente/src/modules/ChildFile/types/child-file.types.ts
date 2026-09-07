@@ -48,6 +48,30 @@ export type ListUserFilesParams = {
   readonly userId: string;
 };
 
+/**
+ * Um escopo medido: o que ja' foi usado, o teto, e o que sobra.
+ *
+ * `remainingBytes` vem do servidor mesmo sendo derivavel de `quotaBytes` menos
+ * `usedBytes`: quem baixa o teto um dia deixa album acima dele, e a subtracao
+ * feita em cada tela imprimiria "-40 MB restantes". O piso em zero tem UM dono.
+ */
+export type ChildFileQuotaView = {
+  readonly usedBytes: number;
+  readonly quotaBytes: number;
+  readonly remainingBytes: number;
+};
+
+/**
+ * Os tres numeros que decidem se cabe mais um arquivo, na mesma resposta. O
+ * teto por arquivo vem junto porque a tela recusa o arquivo grande ANTES de
+ * gastar o envio — e para isso ela precisa saber o numero, nao repeti-lo.
+ */
+export type ChildFileUsageView = {
+  readonly child: ChildFileQuotaView;
+  readonly account: ChildFileQuotaView;
+  readonly fileMaxBytes: number;
+};
+
 export type ChildFileRepository = {
   insert(row: NewChildFileRow): Promise<ChildFileRow>;
   findById(params: FindChildFileParams): Promise<ChildFileRow | undefined>;
@@ -60,6 +84,13 @@ export type ChildFileRepository = {
    */
   listAllByChild(params: ChildFileChildScopeParams): Promise<readonly ChildFileRow[]>;
   listByUser(params: ListUserFilesParams): Promise<readonly ChildFileRow[]>;
+  /**
+   * Soma de bytes, e nao contagem de linhas: o que enche o balde e' tamanho, e
+   * um teto por quantidade deixaria trezentas fotos de 15 MiB passarem enquanto
+   * recusaria mil miniaturas.
+   */
+  sumBytesByChild(params: ChildFileChildScopeParams): Promise<number>;
+  sumBytesByUser(params: ListUserFilesParams): Promise<number>;
   /**
    * Devolve a LINHA apagada, nao um booleano: quem apaga precisa da
    * `objectKey` para apagar os bytes no balde depois. Cascata de banco nao

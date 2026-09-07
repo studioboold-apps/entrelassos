@@ -9,13 +9,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/api/client';
 import { describeApiFailure } from '@/lib/api-error-message';
-import { CHILD_FILE_KINDS } from '@/lib/child-files';
+import { CHILD_FILE_FIT, CHILD_FILE_KINDS } from '@/lib/child-files';
 import { buildChildTimeline } from '@/lib/child-timeline';
 import {
   CHILD_CONSENT_PURPOSES,
   needsExamConsent,
   shouldShowExamNotice,
 } from '@/lib/exam-consent';
+
+import { useChildFileUsage } from './ChildFilesUsage.hook';
 
 const CHILD_FILES_QUERY_KEY = 'childFiles';
 
@@ -67,8 +69,12 @@ export function useChildFiles({ child }) {
     enabled: childId !== undefined,
   });
 
+  const { usage, fit, refreshUsage } = useChildFileUsage({ childId, file });
+
+  /** Escrever muda a lista E a medicao: refazer so' uma deixaria a barra mentindo. */
   function refreshFiles() {
     queryClient.invalidateQueries({ queryKey: [CHILD_FILES_QUERY_KEY, childId] });
+    refreshUsage();
   }
 
   const uploadMutation = useMutation({
@@ -169,7 +175,18 @@ export function useChildFiles({ child }) {
     showsExamNotice: shouldShowExamNotice(form.kind),
     isExamConsentPending,
     isGrantingConsent: grantConsentMutation.isPending,
-    canUpload: file !== null && !uploadMutation.isPending && !isExamConsentPending,
+    usage,
+    fit,
+    /**
+     * O botao morre quando o arquivo nao cabe. A API decide de verdade — mas
+     * deixar clicar para recusar depois do envio gasta a espera do pai e a saida
+     * de rede da conta pelo mesmo "nao".
+     */
+    canUpload:
+      file !== null &&
+      !uploadMutation.isPending &&
+      !isExamConsentPending &&
+      fit === CHILD_FILE_FIT.OK,
     handleKindChange,
     handleAcceptExamNotice,
     handleFieldChange,

@@ -108,3 +108,23 @@ export const CHILD_FILE_MAX_BYTES = 15 * 1024 * 1024;
  * de 15 MiB exatos seria recusado por causa de duzentos bytes de moldura.
  */
 export const CHILD_FILE_ENVELOPE_ALLOWANCE_BYTES = 8 * 1024;
+
+/**
+ * Teto por FILHO. 500 MiB e' de 60 a 120 fotos de celular mais os exames de um
+ * ano — album de historia, e nao backup de galeria.
+ *
+ * O teto por arquivo sozinho nao limita nada: mil arquivos de 15 MiB passam um
+ * por um e somam 15 GiB. Quem paga o balde e' a conta, e a conta descobriria
+ * isso na fatura.
+ */
+export const CHILD_FILE_CHILD_QUOTA_BYTES = 500 * 1024 * 1024;
+
+/**
+ * Teto por CONTA, e de proposito NAO e' 500 MiB vezes o numero de filhos: um
+ * pai de seis filhos multiplicaria a fatura por seis sem nunca encostar em teto
+ * nenhum. O balde cobra por conta, entao o limite tambem e' por conta.
+ *
+ * 2 GiB deixa quatro filhos usarem o album inteiro deles, que e' a familia que
+ * este produto atende — e ainda assim poe um numero na fatura.
+ */
+export const CHILD_FILE_ACCOUNT_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;

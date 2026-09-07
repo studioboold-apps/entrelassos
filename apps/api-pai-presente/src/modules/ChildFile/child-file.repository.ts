@@ -4,7 +4,7 @@
  * Licenca: proprietaria.
  */
 
-import { and, count, eq, sql, type SQL } from 'drizzle-orm';
+import { and, count, eq, sql, sum, type SQL } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
 import { childFilesTable, type ChildFileRow, type NewChildFileRow } from './child-file.table';
@@ -56,6 +56,18 @@ export function buildUserScope({ userId }: ListUserFilesParams): SQL {
  */
 export const CHILD_FILE_TIMELINE_ORDER = sql`coalesce(${childFilesTable.takenOn}, ${childFilesTable.createdAt}::date) desc, ${childFilesTable.createdAt} desc`;
 
+/**
+ * `SUM` sobre coluna `integer` no Postgres devolve `bigint`, e o driver entrega
+ * `bigint` como STRING — somar isso com o tamanho do arquivo novo daria
+ * concatenacao, e "500123" bytes passaria por qualquer teto.
+ *
+ * `SUM` de conjunto vazio e' NULO, nao zero: album de filho novo cairia em
+ * `NaN` sem este `?? 0`.
+ */
+function readByteTotal(rows: readonly { readonly value: string | null }[]): number {
+  return Number(rows[0]?.value ?? 0);
+}
+
 export function createChildFileRepository(database: Database): ChildFileRepository {
   return {
     async insert(row: NewChildFileRow): Promise<ChildFileRow> {
@@ -98,6 +110,28 @@ export function createChildFileRepository(database: Database): ChildFileReposito
     /** Para a exportacao do art. 18 e para o `DELETE /v1/me`, que precisa das chaves. */
     listByUser(params: ListUserFilesParams): Promise<ChildFileRow[]> {
       return database.select().from(childFilesTable).where(buildUserScope(params));
+    },
+
+    /**
+     * O teto por filho e o teto por conta se perguntam ao BANCO, e nao a uma
+     * coluna de contador na conta: contador e' uma segunda fonte de verdade
+     * (`code-standart.md` §16), e ele erra para sempre na primeira exclusao que
+     * falhar no meio. A soma nunca mente sobre o que existe.
+     */
+    async sumBytesByChild(params: ChildFileChildScopeParams): Promise<number> {
+      const rows = await database
+        .select({ value: sum(childFilesTable.byteSize) })
+        .from(childFilesTable)
+        .where(buildChildScope(params));
+      return readByteTotal(rows);
+    },
+
+    async sumBytesByUser(params: ListUserFilesParams): Promise<number> {
+      const rows = await database
+        .select({ value: sum(childFilesTable.byteSize) })
+        .from(childFilesTable)
+        .where(buildUserScope(params));
+      return readByteTotal(rows);
     },
 
     async remove(params: FindChildFileParams): Promise<ChildFileRow | undefined> {

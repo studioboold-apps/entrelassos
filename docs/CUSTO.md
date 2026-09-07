@@ -25,33 +25,72 @@ em 07/09/2026:
 
 ---
 
-## 1. O que os três serviços consomem hoje
+## 1. O que o projeto custa, pela projeção de faturamento
 
-`railway metrics --all --since 7d`, em 07/09/2026:
+**Fonte: `railway usage` e o campo `estimatedUsage` da API GraphQL da Railway.**
+É o que a Railway vai cobrar; é ela que decide, não o instante.
+
+`railway usage`, em 07/09/2026, para a workspace inteira (que tem **seis**
+projetos — `pai-presente`, `quickcart`, `ada-technology`, `transportada-ops`,
+`transportada` e `financiamento-imobiliario-bot`):
+
+| campo | valor |
+|---|---|
+| ciclo de cobrança | 19/08/2026 a 19/09/2026 |
+| uso até agora | US$ 51,54 |
+| projeção do ciclo | **US$ 96,24** |
+
+O `pai-presente` é **uma fatia** disso, e a fatia se mede por projeto:
+
+```
+railway api 'query { estimatedUsage(projectId: "…", measurements: [
+  MEMORY_USAGE_GB, CPU_USAGE, NETWORK_TX_GB, DISK_USAGE_GB, BACKUP_USAGE_GB
+]) { measurement estimatedValue } }'
+```
+
+| recurso | uso projetado no ciclo | média | tarifa por minuto | US$ no ciclo |
+|---|---|---|---|---|
+| Memória | 995,83 GB·h | 1,338 GB | US$ 0,000231 / GB | **US$ 13,80** |
+| CPU | 12,54 vCPU·h | 0,017 vCPU | US$ 0,000463 / vCPU | **US$ 0,35** |
+| Disco | 1.622,83 GB·h | 2,181 GB | US$ 0,000003472 / GB | **US$ 0,34** |
+| Saída de rede | 0,0170 GB | — | US$ 0,05 / GB | **US$ 0,00** |
+| Backup | 0,0060 GB·h | — | US$ 0,000003472 / GB | **US$ 0,00** |
+| Balde | não existe balde (§3) | — | — | **US$ 0,00** |
+| | | | **total** | **US$ 14,49** |
+
+**A memória é 95% da conta.** Não é o tráfego, não é o banco: é memória de pé.
+
+### O snapshot NÃO é a fatura — e a primeira versão desta página errou nisso
+
+A primeira versão deste relatório leu `railway metrics --all --since 7d`, que
+responde o **instante**:
 
 | serviço | CPU | memória | saída de rede (7 dias) | volume |
 |---|---|---|---|---|
-| `web` | < 0,01 vCPU | 23 MB | **2,7 MB** | — |
+| `web` | < 0,01 vCPU | 24 MB | **2,7 MB** | — |
 | `api` | < 0,01 vCPU | 68 MB | **0** | — |
 | `postgres` | < 0,01 vCPU | 77 MB | — | 155 MB de 4,88 GB |
 
-O que isso custa, ao preço da tabela:
+Somei os 169 MB e usei aquilo como média do mês. Deu US$ 1,64 de memória e a
+conclusão confortável de que o uso caberia no crédito de US$ 5. **A projeção de
+faturamento diz outra coisa:**
 
-| linha | conta | por mês |
-|---|---|---|
-| Memória | 168 MiB = 0,164 GiB × US$ 10 | **US$ 1,64** |
-| CPU | teto de 0,03 vCPU × US$ 20 | **≤ US$ 0,60** |
-| Saída de rede | 2,7 MB em 7 dias ≈ 11,6 MB × US$ 0,05/GiB | **US$ 0,00** |
-| Volume do Postgres | 0,151 GiB × US$ 0,15 | **US$ 0,02** |
-| Balde | não existe balde (§3) | **US$ 0,00** |
-| | **uso somado** | **≤ US$ 2,26** |
+| medida | snapshot | fatura | erro |
+|---|---|---|---|
+| memória | 0,169 GB | 1,338 GB | **7,9x** |
+| disco | 0,155 GB de volume | 2,181 GB | **14,1x** |
 
-O uso somado fica abaixo do crédito de US$ 5 do plano Hobby, então **a fatura
-de hoje é a assinatura: US$ 5/mês.** O uso não aparece nela.
+A diferença são os **contêineres de build** e o **disco efêmero**: a Railway
+cobra por eles, e `railway metrics` não os mostra porque no instante da consulta
+nenhum build está rodando. Cada deploy desta feature — e foram muitos — pagou
+memória de builder que o snapshot nunca viu.
 
-A conta de CPU é **teto**, não medida: a Railway responde `< 0,01 vCPU` por
-serviço, que é o piso da resolução dela. O número real é menor que US$ 0,60, e
-não há comando que diga quanto menor.
+O erro não foi de conta, foi de **fonte**: instante usado como média. E ele era
+confortável, o que é o que o torna perigoso — ninguém confere um número que diz
+que está tudo barato. Está preso em `docs/custo.test.js`.
+
+A CPU segue sem medida fina por serviço: `< 0,01 vCPU` é o piso da resolução do
+`railway metrics`. O valor da tabela acima, esse sim, é de faturamento.
 
 Valor em reais não está aqui de propósito: a Railway cobra em dólar, e a taxa do
 dia não é coisa que este repositório meça.
@@ -163,8 +202,13 @@ e a fatura da saída de rede é inteira nossa.
 
 ## 4. O que não foi medido
 
-- **CPU real dos três serviços.** A Railway responde `< 0,01 vCPU`, que é o piso
-  da resolução dela. O que está na tabela é teto.
+- **CPU por serviço.** O total do projeto é de faturamento (12,54 vCPU·h), mas
+  a divisão entre `web`, `api` e `postgres` não sai: `estimatedUsage` não aceita
+  serviço, e `railway metrics` responde `< 0,01 vCPU` para os três, que é o piso
+  da resolução dele.
+- **Quanto da memória é build e quanto é app.** A diferença de 7,9x entre
+  snapshot e fatura aponta o build como causa, e a causa é coerente com o número
+  de deploys — mas não há comando que separe as duas parcelas.
 - **Custo com usuário de verdade.** Não há usuário de verdade: a saída de rede de
   7 dias é 2,7 MB, e uma primeira visita é 1,27 MB — foram duas visitas na
   semana, e as duas fui eu medindo.

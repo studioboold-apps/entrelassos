@@ -70,8 +70,15 @@ describe('o balde custa zero porque nao existe balde', () => {
   });
 
   /** Custo de balde e' a linha que mais tenta virar estimativa. Ela e' zero, e medida. */
+  /**
+   * A afirmacao e' a LINHA do balde cobrando zero, nao a largura da tabela: a
+   * primeira versao prendia a linha inteira com tres colunas, e ganhar uma
+   * coluna na tabela reprovava um relatorio certo.
+   */
   test('o relatorio nao cobra por um balde que ninguem provisionou', () => {
-    expect(REPORT).toContain('| Balde | não existe balde (§3) | **US$ 0,00** |');
+    const bucketRow = REPORT.split('\n').find((line) => line.startsWith('| Balde |'));
+    expect(bucketRow).toContain('não existe balde (§3)');
+    expect(bucketRow).toContain('**US$ 0,00**');
   });
 });
 
@@ -97,6 +104,37 @@ describe('quem paga a saida de rede depende do caminho de entrega', () => {
     expect(CHILD_FILE_CONSTANT).toContain("BYTES: 'bytes'");
     expect(REPORT).toContain('`LINK`');
     expect(REPORT).toContain('`BYTES`');
+  });
+});
+
+describe('o snapshot nao e a fatura', () => {
+  /**
+   * O DEFEITO que este describe existe para impedir: a primeira versao deste
+   * relatorio leu `railway metrics` — que mostra o instante — e usou aquilo
+   * como media do mes. Medido contra a projecao de faturamento: memoria 1,338
+   * GB de media contra 0,169 GB no snapshot (7,9x) e disco 2,181 GB contra 155
+   * MB de volume (14,1x). A diferenca sao os containers de BUILD e o disco
+   * efemero, que a fatura cobra e o snapshot nao ve. A conclusao errada era
+   * confortavel — "cabe no credito de US$ 5" — e por isso ninguem a checaria.
+   */
+  test('a fonte do numero e a projecao de faturamento, nao o instante', () => {
+    expect(REPORT).toContain('estimatedUsage');
+    expect(REPORT).toContain('railway usage');
+  });
+
+  test('o relatorio avisa que o snapshot subestima, e quanto', () => {
+    expect(REPORT).toContain('7,9x');
+    expect(REPORT).toContain('14,1x');
+  });
+
+  test('a conclusao antiga nao pode voltar em silencio', () => {
+    expect(REPORT).not.toContain('a fatura de hoje é a assinatura');
+    expect(REPORT).not.toContain('≤ US$ 2,26');
+  });
+
+  test('o gasto da workspace aparece com o ciclo a que ele pertence', () => {
+    expect(REPORT).toContain('19/08/2026');
+    expect(REPORT).toContain('US$ 96,24');
   });
 });
 

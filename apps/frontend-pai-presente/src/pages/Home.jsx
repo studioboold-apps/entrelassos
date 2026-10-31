@@ -51,7 +51,10 @@ export default function Home() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-4">
             <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
-            <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
+              <span className="text-zinc-500 text-xs uppercase tracking-wider">{t('common.brandTagline')}</span>
+            </div>
           </div>
           <h1 className="text-2xl font-light text-white">
             {greetingBefore}

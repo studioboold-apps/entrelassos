@@ -1,5 +1,13 @@
 # Publicar o Pai Presente
 
+> **31/10/2026 — projeto novo.** A produção mudou para o workspace da empresa
+> no Railway (projeto `6cb88306…`, ambiente `production`), criada a partir de
+> `.railway/railway.ts` com `railway config apply`. Endereço novo:
+> `https://web-production-7c849.up.railway.app`. Região `iad` e volume de
+> mídia de 500 MB, o teto do plano atual. O deploy agora é pelo GitHub Actions
+> (§7). O que segue abaixo descreve o projeto antigo e continua valendo como
+> registro do desenho.
+
 Estado em 05/09/2026: **está no ar.** `D6` fechou em **Railway**, e o endereço
 público é `https://web-production-1d6f.up.railway.app`. A API não tem endereço
 público de propósito (§1), e as migrations entraram pelo pre-deploy (§2).

@@ -153,6 +153,12 @@ export default defineRailway(() => {
       /** Gerado pelo Railway, 48 caracteres. O minimo do schema e' 32. */
       AUTH_JWT_SECRET: { generator: 'secret(48)' },
       LLM_PROVIDER: 'anthropic',
+      /**
+       * O modelo sai do env, e nao do padrao do codigo (`DEFAULT_MODELS`): o
+       * dono escolheu o Haiku em 31/10/2026, o mais barato e rapido da familia,
+       * para as respostas curtas do app. Trocar de modelo e' trocar esta linha.
+       */
+      LLM_MODEL: 'claude-haiku-5-5',
       LLM_API_KEY: preserve(),
       /**
        * A porta que NAO depende de terceiro. Ela ja e' o padrao do schema; esta

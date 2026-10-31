@@ -6,8 +6,9 @@
 
 import { join, normalize, resolve, sep } from 'node:path';
 
+import { buildAdsTxt } from './advertising.js';
 import { buildHttpsRedirect } from './https-redirect.js';
-import { decorateWithSecurityHeaders } from './security-headers.js';
+import { buildSecurityHeaders, decorateWithSecurityHeaders } from './security-headers.js';
 
 /**
  * O `dist` do Vite e' estatico, mas o navegador precisa de UMA origem so.
@@ -24,6 +25,8 @@ import { decorateWithSecurityHeaders } from './security-headers.js';
  */
 const API_PREFIX = '/v1';
 const HEALTH_PATH = '/health';
+/** O robo do AdSense le na RAIZ do dominio; sem ele o pagamento fica retido. */
+const ADS_TXT_PATH = '/ads.txt';
 const INDEX_FILE = 'index.html';
 
 /** Arquivo com hash no nome nunca muda de conteudo; o resto pode mudar hoje. */
@@ -107,9 +110,13 @@ async function serveApplicationShell(distDirectory) {
 }
 
 /**
- * @param {{ port: number, distDirectory: string, apiOrigin: string }} params
+ * @param {{ port: number, distDirectory: string, apiOrigin: string, adsenseClientId?: string }} params
  */
-export function createWebServer({ port, distDirectory, apiOrigin }) {
+export function createWebServer({ port, distDirectory, apiOrigin, adsenseClientId = '' }) {
+  const advertising = adsenseClientId.length > 0;
+  const securityHeaders = buildSecurityHeaders({ advertising });
+  const decorate = (response) => decorateWithSecurityHeaders(response, securityHeaders);
+
   return Bun.serve({
     hostname: SERVER_BIND_HOSTNAME,
     port,
@@ -130,19 +137,29 @@ export function createWebServer({ port, distDirectory, apiOrigin }) {
           return await forwardToApi({ request, apiOrigin });
         } catch {
           /** A API fora do ar e' 502 aqui, nao 500: quem falhou foi o de tras. */
-          return decorateWithSecurityHeaders(new Response(undefined, { status: HTTP_BAD_GATEWAY }));
+          return decorate(new Response(undefined, { status: HTTP_BAD_GATEWAY }));
         }
       }
 
       if (pathname === HEALTH_PATH) {
-        return decorateWithSecurityHeaders(Response.json({ data: { status: 'ok' } }));
+        return decorate(Response.json({ data: { status: 'ok' } }));
+      }
+
+      /** Desligado, 404 de verdade — e nao o shell da SPA fingindo ser texto. */
+      if (pathname === ADS_TXT_PATH) {
+        if (!advertising) return decorate(new Response('', { status: HTTP_NOT_FOUND }));
+        return decorate(
+          new Response(buildAdsTxt(adsenseClientId), {
+            headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': REVALIDATE_CACHE },
+          }),
+        );
       }
 
       const response =
         (await serveStatic({ distDirectory, pathname })) ??
         (await serveApplicationShell(distDirectory));
 
-      return decorateWithSecurityHeaders(response);
+      return decorate(response);
     },
   });
 }

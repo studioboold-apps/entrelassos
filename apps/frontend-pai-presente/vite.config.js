@@ -39,7 +39,18 @@ function requireEnvironment(name) {
  * `APP_ENV` entra pela mesma porta: e' o ambiente do build, e a tela precisa
  * dele para decidir se mostra a faixa de aviso (`web.md` §12).
  */
-const PUBLIC_ENVIRONMENT_NAMES = ['GOOGLE_CLIENT_ID', 'APPLE_CLIENT_ID', 'APP_ENV'];
+/*
+ * `ADSENSE_CLIENT_ID` e `ADSENSE_SLOT_ID` tambem sao publicos (saem no HTML de
+ * todo site com anuncio). Nenhum anuncio e' desenhado sem `ADS_ENABLED=1`.
+ */
+const PUBLIC_ENVIRONMENT_NAMES = [
+  'GOOGLE_CLIENT_ID',
+  'APPLE_CLIENT_ID',
+  'APP_ENV',
+  'ADS_ENABLED',
+  'ADSENSE_CLIENT_ID',
+  'ADSENSE_SLOT_ID',
+];
 
 function definePublicEnvironment() {
   return Object.fromEntries(

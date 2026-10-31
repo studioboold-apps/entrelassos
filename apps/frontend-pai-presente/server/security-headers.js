@@ -4,6 +4,8 @@
  * Licenca: proprietaria.
  */
 
+import { ADVERTISING_POLICY_SOURCES } from './advertising.js';
+
 /** Um ano, com subdominio (security.md §3). Sem `preload`: nao ha volta rapida. */
 const HSTS = 'max-age=31536000; includeSubDomains';
 
@@ -42,20 +44,45 @@ const POLICY_DIRECTIVES = [
   'upgrade-insecure-requests',
 ];
 
-export const CONTENT_SECURITY_POLICY = POLICY_DIRECTIVES.join('; ');
+/**
+ * Anuncio LIGADO acrescenta origens a diretivas que ja existem — nunca cria
+ * diretiva nova nem tira o que havia. Desligado, a politica e' a de sempre.
+ *
+ * @param {{ advertising?: boolean }} [options]
+ */
+export function buildPolicyDirectives({ advertising = false } = {}) {
+  if (!advertising) return POLICY_DIRECTIVES;
 
-export const WEB_SECURITY_HEADERS = Object.freeze({
-  'Content-Security-Policy': CONTENT_SECURITY_POLICY,
-  'Strict-Transport-Security': HSTS,
-  'X-Frame-Options': 'DENY',
-  'X-Content-Type-Options': 'nosniff',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-});
+  return POLICY_DIRECTIVES.map((directive) => {
+    const extra = ADVERTISING_POLICY_SOURCES[directive.split(' ')[0]];
+    return extra ? `${directive} ${extra.join(' ')}` : directive;
+  });
+}
+
+/** @param {{ advertising?: boolean }} [options] */
+export function buildContentSecurityPolicy(options) {
+  return buildPolicyDirectives(options).join('; ');
+}
+
+/** @param {{ advertising?: boolean }} [options] */
+export function buildSecurityHeaders(options) {
+  return Object.freeze({
+    'Content-Security-Policy': buildContentSecurityPolicy(options),
+    'Strict-Transport-Security': HSTS,
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  });
+}
+
+export const CONTENT_SECURITY_POLICY = buildContentSecurityPolicy();
+
+export const WEB_SECURITY_HEADERS = buildSecurityHeaders();
 
 /** Le uma diretiva pelo nome — o teste afirma a diretiva, nao a linha inteira. */
-export function readPolicyDirective(name) {
-  return POLICY_DIRECTIVES.find(directive => directive.split(' ')[0] === name);
+export function readPolicyDirective(name, options) {
+  return buildPolicyDirectives(options).find(directive => directive.split(' ')[0] === name);
 }
 
 /**
@@ -63,9 +90,9 @@ export function readPolicyDirective(name) {
  * aqui: ela ja traz os cabecalhos dela, e uma CSP de documento em cima de JSON
  * so confundiria quem for depurar.
  */
-export function decorateWithSecurityHeaders(response) {
+export function decorateWithSecurityHeaders(response, securityHeaders = WEB_SECURITY_HEADERS) {
   const headers = new Headers(response.headers);
-  for (const [name, value] of Object.entries(WEB_SECURITY_HEADERS)) headers.set(name, value);
+  for (const [name, value] of Object.entries(securityHeaders)) headers.set(name, value);
 
   return new Response(response.body, { status: response.status, headers });
 }

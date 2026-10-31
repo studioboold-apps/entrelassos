@@ -147,6 +147,7 @@ describe('o ambiente e conferido no boot', () => {
       apiOrigin: 'http://api',
       port: 8080,
       distDirectory: 'dist',
+      adsenseClientId: '',
     });
   });
 });

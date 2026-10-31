@@ -229,6 +229,19 @@ export default defineRailway(() => {
        * carregamento pela metade.
        */
       GOOGLE_CLIENT_ID: '',
+      /**
+       * Anuncio (AdSense). `ADS_ENABLED` e' o interruptor geral: sem `1`, nada
+       * liga — nenhum bloco na tela, CSP fechada como antes e `/ads.txt` em
+       * 404 —, mesmo com os ids preenchidos. Assim os ids entram primeiro, se
+       * valida em homologacao, e so depois se liga aqui.
+       *
+       * Nenhum id e' segredo — sai no HTML de todo site com anuncio. O servidor
+       * le no BOOT (CSP e `ads.txt`) e o Vite grava no BUILD (o bloco na tela):
+       * mudar qualquer um pede deploy novo, nao so restart.
+       */
+      ADS_ENABLED: '0',
+      ADSENSE_CLIENT_ID: '',
+      ADSENSE_SLOT_ID: '',
     },
   });
 

@@ -164,6 +164,10 @@ O que o workflow precisa, e que não mora no repositório:
 |---|---|
 | Railway → projeto → *Settings* → *Tokens* | um **token de projeto** no ambiente `production` |
 | GitHub → *Settings* → *Environments* | ambiente `production` com o segredo `RAILWAY_TOKEN` |
+| idem, em *Variables* | `RAILWAY_PUBLIC_URL`, o endereço público da web (opcional: sem ela a fumaça não roda) |
+
+O token decide em qual conta/workspace do Railway o app sobe. O projeto precisa
+ter os serviços `api` e `web` (e o Postgres) — `.railway/railway.ts` os descreve.
 
 O `railway config plan/apply` continua manual: mudança de infraestrutura passa
 por revisão humana antes de tocar a produção.

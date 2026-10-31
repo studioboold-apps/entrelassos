@@ -61,11 +61,16 @@ jobs:
     # Ambiente do GitHub: guarda o segredo e permite exigir aprovacao manual.
     environment:
       name: production
-      url: https://web-production-1d6f.up.railway.app
+      url: ${{ vars.RAILWAY_PUBLIC_URL }}
     env:
       # Token de PROJETO do Railway (Project Settings -> Tokens), preso ao
-      # ambiente `production`. Com ele o CLI ja sabe projeto e ambiente.
+      # ambiente `production`. Com ele o CLI ja sabe workspace, projeto e
+      # ambiente: e' o token que decide em QUAL conta o app sobe, e nada mais
+      # neste arquivo precisa mudar se o projeto trocar de conta.
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      # Endereco publico da web (variavel do ambiente `production` no GitHub).
+      # Muda junto com a conta: dominio do Railway e' cunhado por projeto.
+      PUBLIC_URL: ${{ vars.RAILWAY_PUBLIC_URL }}
     steps:
       - uses: actions/checkout@v4
       - name: falta o token?
@@ -83,9 +88,10 @@ jobs:
       - name: web
         run: railway up --service web --ci
       - name: fumaca na URL publica
+        if: env.PUBLIC_URL != ''
         run: |
           for i in $(seq 1 30); do
-            curl -fsS https://web-production-1d6f.up.railway.app/health && exit 0
+            curl -fsS "$PUBLIC_URL/health" && exit 0
             sleep 10
           done
           echo "::error::a web nao respondeu /health em 5 minutos"

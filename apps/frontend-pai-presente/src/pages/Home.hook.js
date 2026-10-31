@@ -60,7 +60,12 @@ export function useHome() {
   /** Sincronizar com o roteador e' efeito legitimo — sistema externo. */
   useEffect(() => {
     if (user && !user.onboarding_completed) {
-      navigate(createPageUrl('Onboarding'));
+      /**
+       * `replace`: a Home sem cadastro nao e' lugar para onde se volta. Com
+       * `push`, o "voltar" do celular caia na Home, que mandava de novo para o
+       * cadastro — o pai ficava preso entre as duas.
+       */
+      navigate(createPageUrl('Onboarding'), { replace: true });
     }
   }, [user, navigate]);
 

@@ -1,0 +1,98 @@
+# Portao de qualidade em todo PR, e deploy no Railway a cada push na `main`.
+#
+# O deploy e' o mesmo de `docs/DEPLOY.md` §7 (`railway up --service ... --ci`),
+# so que rodado pelo CI e nao pelo terminal de alguem: a imagem sobe a partir da
+# RAIZ do monorepo, que e' o contexto que os dois Dockerfiles esperam.
+#
+# A api vai ANTES da web: o pre-deploy da api roda as migrations, e a web nova
+# nao pode chegar antes do schema que ela pressupoe.
+name: ci-deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Dois deploys ao mesmo tempo na producao disputam o mesmo servico. O segundo
+# espera o primeiro, e nenhum e' cancelado no meio de uma migration.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # A mesma do `ARG BUN_VERSION` dos Dockerfiles: o CI testa o que a imagem roda.
+  BUN_VERSION: 1.3.14
+
+jobs:
+  validate:
+    name: typecheck + testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      # `ENV=test`: o Makefile inclui `envs/env.test`, que existe no repo e nao
+      # carrega segredo nenhum.
+      - run: make validate ENV=test
+
+  images:
+    name: imagens docker constroem
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # Imagem que nao constroi so apareceria no Railway, depois do merge.
+      - run: docker build -f apps/api-pai-presente/Dockerfile -t ci-api .
+      - run: docker build -f apps/frontend-pai-presente/Dockerfile --build-arg APP_ENV=production -t ci-web .
+
+  deploy:
+    name: deploy no Railway
+    needs: [validate, images]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Ambiente do GitHub: guarda o segredo e permite exigir aprovacao manual.
+    environment:
+      name: production
+      url: ${{ vars.RAILWAY_PUBLIC_URL }}
+    env:
+      # Token de PROJETO do Railway (Project Settings -> Tokens), preso ao
+      # ambiente `production`. Com ele o CLI ja sabe workspace, projeto e
+      # ambiente: e' o token que decide em QUAL conta o app sobe, e nada mais
+      # neste arquivo precisa mudar se o projeto trocar de conta.
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      # Endereco publico da web (variavel do ambiente `production` no GitHub).
+      # Muda junto com a conta: dominio do Railway e' cunhado por projeto.
+      PUBLIC_URL: ${{ vars.RAILWAY_PUBLIC_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: falta o token?
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::Segredo RAILWAY_TOKEN ausente no ambiente 'production' do GitHub."
+            exit 1
+          fi
+      - run: npm install -g @railway/cli
+      # `--ci` acompanha o build e sai com erro se ele falhar. O pre-deploy
+      # (migrations) e o healthcheck em /health continuam sendo do Railway:
+      # versao que nao migra ou nao responde nao e' promovida.
+      - name: api
+        run: railway up --service api --ci
+      - name: web
+        run: railway up --service web --ci
+      - name: fumaca na URL publica
+        if: env.PUBLIC_URL != ''
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS "$PUBLIC_URL/health" && exit 0
+            sleep 10
+          done
+          echo "::error::a web nao respondeu /health em 5 minutos"
+          exit 1

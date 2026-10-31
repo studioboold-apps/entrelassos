@@ -101,8 +101,13 @@ describe('nome do projeto no docker', () => {
    * com "invalid project name" — que foi exatamente o que aconteceu.
    */
   test.each([...ENVIRONMENT_NAMES])('env.%s vira nome que o docker aceita', (name: EnvironmentName) => {
+    /**
+     * `--no-print-directory`: rodando DENTRO de `make test` (como no CI), este
+     * `make` e' um sub-make e o GNU make liga o `-w` sozinho — a saida ganha
+     * `make[1]: Entering directory ...` e o nome deixa de ser a unica linha.
+     */
     const printed = Bun.spawnSync({
-      cmd: ['make', 'compose-project', `ENV=${name}`],
+      cmd: ['make', '--no-print-directory', 'compose-project', `ENV=${name}`],
       cwd: REPOSITORY_ROOT,
     });
 

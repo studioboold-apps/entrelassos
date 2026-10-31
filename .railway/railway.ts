@@ -40,6 +40,13 @@ const WEB_PORT = 8080;
  * constante porque e' o endereco que a documentacao, o `redirect_uri` do Google
  * (`D7`) e o teste de fumaca precisam citar pelo mesmo nome.
  */
+/**
+ * Client ID OAuth do Google (`D7`), criado em 31/10/2026 no console do Google
+ * com a origem JavaScript da web. E' publico por natureza: o navegador le no
+ * bundle. A chave secreta do cliente NAO e' usada — o login e' por ID token.
+ */
+const GOOGLE_CLIENT_ID = '863649157799-3q8k5a26st7258jfmpse48to75vsr79r.apps.googleusercontent.com';
+
 const WEB_DOMAIN = 'web-production-7c849.up.railway.app';
 
 /**
@@ -173,7 +180,8 @@ export default defineRailway(() => {
        */
       AUTH_PASSWORD_SIGN_IN: '1',
       /**
-       * `D7` ainda aberta: nao existe client_id do Google, e VAZIO e' a unica
+       * `D7` FECHOU em 31/10/2026 (ver `GOOGLE_CLIENT_ID` no topo). Historico:
+       * `D7` estava aberta: nao existia client_id do Google, e VAZIO e' a unica
        * forma honesta de dizer isso. Ate 06/09 havia aqui um marcador
        * (`AGUARDANDO-D7`) so para o boot fail-closed (`security.md` §2) achar
        * ALGUM provedor — e o preco era o login recusar todo mundo, com a tela
@@ -183,7 +191,7 @@ export default defineRailway(() => {
        * (`verifier-registry.test.ts`). O dia em que `D7` chegar, o unico passo e'
        * trocar esta linha pelo client_id de verdade — nada mais muda.
        */
-      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_ID,
       /**
        * Dentro do volume, e nao na raiz dele: `lost+found` do ext4 vive em
        * `/data`, e pasta de midia com dono proprio e' o que o entrypoint
@@ -228,13 +236,14 @@ export default defineRailway(() => {
       /** O Vite ASSA no bundle (`web.md` §12): tem de existir no BUILD. */
       APP_ENV: 'production',
       /**
-       * Vazio ESCONDE o botao do Google; qualquer valor manda a tela tentar
+       * Com o client_id real (31/10/2026) o botao aparece. Historico:
+       * vazio ESCONDE o botao do Google; qualquer valor manda a tela tentar
        * desenha-lo. O marcador que ficava aqui era truthy: o SDK do Google era
        * baixado, recusava o client_id invalido, e a tela ficava com um buraco
        * onde devia haver botao — pior que nao ter botao nenhum, porque parece
        * carregamento pela metade.
        */
-      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_ID,
     },
   });
 

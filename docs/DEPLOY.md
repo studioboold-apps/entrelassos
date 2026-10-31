@@ -150,6 +150,24 @@ railway up --service api --ci
 railway up --service web --ci
 ```
 
+### O deploy automático (GitHub Actions)
+
+`.github/workflows/deploy.yml` faz, a cada push na `main`, o mesmo que os
+comandos acima: `make validate ENV=test`, constrói as duas imagens e roda
+`railway up --service api --ci` e depois `--service web --ci`. Em PR roda só a
+validação e as imagens. A api vai antes porque o pre-deploy dela aplica as
+migrations.
+
+O que o workflow precisa, e que não mora no repositório:
+
+| onde | o quê |
+|---|---|
+| Railway → projeto → *Settings* → *Tokens* | um **token de projeto** no ambiente `production` |
+| GitHub → *Settings* → *Environments* | ambiente `production` com o segredo `RAILWAY_TOKEN` |
+
+O `railway config plan/apply` continua manual: mudança de infraestrutura passa
+por revisão humana antes de tocar a produção.
+
 ### Três defeitos que só o deploy encontrou
 
 Nenhum deles aparece em teste local, e nenhuma das três mensagens de erro

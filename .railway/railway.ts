@@ -191,7 +191,7 @@ export default defineRailway(() => {
        * (`verifier-registry.test.ts`). O dia em que `D7` chegar, o unico passo e'
        * trocar esta linha pelo client_id de verdade — nada mais muda.
        */
-      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
       /**
        * Dentro do volume, e nao na raiz dele: `lost+found` do ext4 vive em
        * `/data`, e pasta de midia com dono proprio e' o que o entrypoint
@@ -243,7 +243,7 @@ export default defineRailway(() => {
        * onde devia haver botao — pior que nao ter botao nenhum, porque parece
        * carregamento pela metade.
        */
-      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
     },
   });
 

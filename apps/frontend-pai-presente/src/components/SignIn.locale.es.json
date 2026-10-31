@@ -1,0 +1,32 @@
+{
+  "title": "Pai Presente",
+  "subtitle": "Inicia sesión para acompañar el tiempo con tus hijos.",
+  "footer": "Usamos tu cuenta solo para identificarte.",
+  "submitting": "Iniciando sesión…",
+  "passwordHint": "Al menos {count} caracteres.",
+  "dividerOtherWays": "o inicia sesión con",
+  "apple": "Continuar con Apple",
+  "noProvider": "Google y Apple todavía no están configurados en este entorno.",
+  "modes": {
+    "signIn": "Iniciar sesión",
+    "register": "Crear cuenta"
+  },
+  "fields": {
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "fullName": "Tu nombre (opcional)"
+  },
+  "submit": {
+    "signIn": "Iniciar sesión",
+    "register": "Crear cuenta"
+  },
+  "errors": {
+    "email": "Escribe un correo válido, con @ y dominio.",
+    "passwordRequired": "Escribe tu contraseña.",
+    "passwordShort": "La contraseña necesita al menos {count} caracteres.",
+    "emailTaken": "Este correo ya tiene una cuenta. Vuelve a Iniciar sesión.",
+    "failed": "El correo o la contraseña no coinciden. Revísalos e inténtalo de nuevo.",
+    "registerFailed": "No pudimos crear la cuenta ahora. Inténtalo de nuevo en unos instantes.",
+    "server": "No pudimos comunicarnos con el servidor ahora. Inténtalo de nuevo en unos instantes."
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "maritalStatus": {
+    "solteiro": "Soltero",
+    "casado": "Casado",
+    "divorciado": "Divorciado",
+    "viuvo": "Viudo",
+    "uniao_estavel": "Unión de hecho"
+  },
+  "gender": {
+    "masculino": "Masculino",
+    "feminino": "Femenino",
+    "outro": "Otro"
+  },
+  "childGender": {
+    "masculino": "Niño",
+    "feminino": "Niña",
+    "outro": "Otro"
+  },
+  "childSummary": "{age} años • {gender}",
+  "childFields": {
+    "name": { "label": "Nombre", "placeholder": "Nombre del hijo" },
+    "age": { "label": "Edad", "placeholder": "Edad" },
+    "gender": { "label": "Sexo", "placeholder": "Selecciona..." },
+    "favorite_hobby": { "label": "Pasatiempo favorito", "placeholder": "Ej: fútbol, dibujo..." },
+    "favorite_color": { "label": "Color favorito", "placeholder": "Ej: azul, rojo..." },
+    "favorite_food": { "label": "Comida favorita", "placeholder": "Ej: pizza, pasta..." },
+    "favorite_movie_genre": { "label": "Género de película favorito", "placeholder": "Ej: animación, aventura..." }
+  }
+}

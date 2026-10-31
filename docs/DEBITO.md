@@ -29,6 +29,18 @@ de atividade**, que existiam em `Juntinhos.jsx` e em `Boletim.jsx`, e as
 
 ---
 
+## O que o suporte a idiomas pagou — 31/10/2026
+
+O app passou a falar português (origem), inglês e espanhol. Para isso nenhum
+texto podia continuar cravado: `CommunityPostCard.jsx`, `CommunityCreatePost.jsx`
+e as duas frases da faixa de `lib/environment.js` foram para `*.locale.json`, e
+as quatro categorias de post viraram `lib/community-categories.js` +
+`locales/community.locale.json`. **A seção abaixo fica como registro do que foi
+medido em 05/09; os 14 textos e a duplicação das categorias estão pagos.** As
+mutations que moram nos dois componentes da comunidade (§4) continuam devendo.
+
+---
+
 ## O que continua devendo
 
 Quatro componentes que a Fase 2 não tocou. Nenhum deles tem `*.locale.json`, e

@@ -1,0 +1,16 @@
+{
+  "greeting": "Hola, {name}",
+  "fallbackFirstName": "Papá",
+  "subtitle": "Insights personalizados para tu camino",
+  "quickAccess": "Acceso Rápido",
+  "shortcuts": {
+    "juntinhos": {
+      "title": "Juntinhos",
+      "subtitle": "Planifica actividades"
+    },
+    "chat": {
+      "title": "Resuelve Dudas",
+      "subtitle": "Chat de apoyo"
+    }
+  }
+}

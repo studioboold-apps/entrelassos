@@ -1,0 +1,14 @@
+{
+  "brandLogoAlt": "Entre Nós",
+  "brandName": "Entre Nós",
+  "dateFormats": {
+    "dayMonth": "MMM d",
+    "dayMonthLong": "MMMM d",
+    "dayMonthTime": "MMM d 'at' h:mm a",
+    "monthYear": "MMMM yyyy"
+  },
+  "environment": {
+    "local": "Local environment — nothing here is real data",
+    "staging": "Staging — nothing here is real data"
+  }
+}

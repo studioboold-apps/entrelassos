@@ -6,7 +6,8 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import { APP_ENVIRONMENTS, environmentBannerLabel, resolveAppEnvironment } from './environment';
+import { translate } from './i18n';
+import { APP_ENVIRONMENTS, environmentBannerLabelKey, resolveAppEnvironment } from './environment';
 
 describe('resolveAppEnvironment', () => {
   test('reconhece os tres ambientes declarados', () => {
@@ -32,13 +33,13 @@ describe('resolveAppEnvironment', () => {
   });
 });
 
-describe('environmentBannerLabel', () => {
+describe('environmentBannerLabelKey', () => {
   /** `web.md` §12: a faixa existe fora de producao, e so fora dela. */
   test.each([APP_ENVIRONMENTS.LOCAL, APP_ENVIRONMENTS.STAGING])('%s tem aviso', (environment) => {
-    expect(environmentBannerLabel(environment)).toMatch(/dado de verdade/);
+    expect(translate(environmentBannerLabelKey(environment))).toMatch(/dado de verdade/);
   });
 
   test('producao nao tem aviso nenhum', () => {
-    expect(environmentBannerLabel(APP_ENVIRONMENTS.PRODUCTION)).toBeUndefined();
+    expect(environmentBannerLabelKey(APP_ENVIRONMENTS.PRODUCTION)).toBeUndefined();
   });
 });

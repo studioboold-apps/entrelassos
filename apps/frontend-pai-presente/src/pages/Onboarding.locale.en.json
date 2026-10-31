@@ -1,0 +1,30 @@
+{
+  "progress": "Step {current} of {total}",
+  "welcome": {
+    "lead": "Welcome to the journey of being a present, mindful dad.",
+    "body": "Let's personalize your experience to help you in the mission of raising your children with purpose."
+  },
+  "about": {
+    "title": "About you",
+    "subtitle": "Tell us a little about yourself",
+    "ageLabel": "Your age",
+    "agePlaceholder": "E.g. 35"
+  },
+  "preferences": {
+    "title": "Your preferences",
+    "subtitle": "Only what the app actually stores",
+    "maritalStatusLabel": "Marital Status",
+    "maritalStatusPlaceholder": "Select..."
+  },
+  "children": {
+    "title": "Your children",
+    "subtitle": "Add your children for personalized insights",
+    "addTitle": "Add child",
+    "add": "Add",
+    "remove": "Remove child"
+  },
+  "saving": "Saving...",
+  "finish": "Start my journey",
+  "continue": "Continue",
+  "back": "Back"
+}

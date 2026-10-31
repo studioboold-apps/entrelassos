@@ -1,0 +1,44 @@
+{
+  "sectionLabel": "Report card",
+  "title": "My Progress",
+  "subtitle": "Follow your growth as a dad",
+  "previousMonth": "Previous month",
+  "currentMonth": "Current month",
+  "completedInMonth": "{count} activities done",
+  "stats": {
+    "activities": "Activities",
+    "averageRating": "Average Rating",
+    "noRating": "no rating",
+    "insightsRead": "Insights Read",
+    "completionRate": "Completion Rate"
+  },
+  "charts": {
+    "engagement": "Engagement by Area",
+    "ratingSeries": "Rating",
+    "activitiesByType": "Activities by Type"
+  },
+  "generate": "Generate This Month's Report",
+  "generating": "Generating Report...",
+  "report": {
+    "overallScore": "Overall Score",
+    "strengths": "Strengths",
+    "improvements": "Areas to Develop",
+    "nextGoal": "Goal for Next Month"
+  },
+  "score": {
+    "excellent": "Excellent",
+    "veryGood": "Very Good",
+    "good": "Good",
+    "fair": "Fair",
+    "needsWork": "Needs Work"
+  },
+  "emptyTitle": "No data this month",
+  "emptyBody": "Do activities and read insights to generate your report card",
+  "quickAccess": {
+    "title": "Quick Access",
+    "juntinhos": "Juntinhos",
+    "juntinhosHint": "Plan activities",
+    "chat": "Ask Questions",
+    "chatHint": "Support chat"
+  }
+}

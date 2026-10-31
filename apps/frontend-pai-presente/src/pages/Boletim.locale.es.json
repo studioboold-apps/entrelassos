@@ -1,0 +1,44 @@
+{
+  "sectionLabel": "Boletín",
+  "title": "Mi Desempeño",
+  "subtitle": "Sigue tu evolución como padre",
+  "previousMonth": "Mes anterior",
+  "currentMonth": "Mes actual",
+  "completedInMonth": "{count} actividades realizadas",
+  "stats": {
+    "activities": "Actividades",
+    "averageRating": "Valoración Media",
+    "noRating": "sin valoración",
+    "insightsRead": "Insights Leídos",
+    "completionRate": "Tasa de Finalización"
+  },
+  "charts": {
+    "engagement": "Participación por Área",
+    "ratingSeries": "Valoración",
+    "activitiesByType": "Actividades por Tipo"
+  },
+  "generate": "Generar Boletín del Mes",
+  "generating": "Generando Boletín...",
+  "report": {
+    "overallScore": "Nota General",
+    "strengths": "Puntos Fuertes",
+    "improvements": "Áreas a Desarrollar",
+    "nextGoal": "Meta para el Próximo Mes"
+  },
+  "score": {
+    "excellent": "Excelente",
+    "veryGood": "Muy Bien",
+    "good": "Bien",
+    "fair": "Regular",
+    "needsWork": "Necesita Mejorar"
+  },
+  "emptyTitle": "Sin datos este mes",
+  "emptyBody": "Realiza actividades y lee insights para generar tu boletín",
+  "quickAccess": {
+    "title": "Acceso Rápido",
+    "juntinhos": "Juntinhos",
+    "juntinhosHint": "Planifica actividades",
+    "chat": "Resuelve Dudas",
+    "chatHint": "Chat de apoyo"
+  }
+}

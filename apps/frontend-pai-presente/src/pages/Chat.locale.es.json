@@ -1,0 +1,18 @@
+{
+  "brandLogoAlt": "Entre Nós",
+  "title": "Mentor Entre Nós",
+  "subtitle": "Resuelve tus dudas sobre crianza",
+  "emptyTitle": "¿Cómo puedo ayudarte?",
+  "emptyBody": "Estoy aquí para orientarte sobre comunicación positiva y crianza consciente.",
+  "suggestionsLabel": "Sugerencias",
+  "suggestions": {
+    "positiveReinforcement": "¿Cómo aplicar el refuerzo positivo?",
+    "tantrums": "Manejar las rabietas de forma constructiva",
+    "money": "Hablar de dinero con los niños",
+    "weekend": "Actividades en familia el fin de semana"
+  },
+  "inputPlaceholder": "Escribe tu duda...",
+  "send": "Enviar pregunta",
+  "assistantAvatarLabel": "Mentor",
+  "userAvatarLabel": "Tú"
+}

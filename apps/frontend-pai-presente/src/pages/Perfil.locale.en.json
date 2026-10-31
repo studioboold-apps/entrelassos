@@ -1,0 +1,88 @@
+{
+  "fallbackName": "Dad",
+  "fallbackInitial": "D",
+  "emptyValue": "-",
+  "stats": {
+    "children": "Children",
+    "activities": "Activities",
+    "average": "Average",
+    "noAverage": "—"
+  },
+  "profileSection": {
+    "title": "My Profile",
+    "edit": "Edit profile",
+    "age": "Age",
+    "ageValue": "{age} years old",
+    "maritalStatus": "Marital Status"
+  },
+  "childrenSection": {
+    "title": "My Children",
+    "add": "Add",
+    "empty": "No children added",
+    "edit": "Edit child",
+    "delete": "Delete child",
+    "files": "History"
+  },
+  "logout": "Sign out",
+  "editProfile": {
+    "title": "Edit Profile",
+    "ageLabel": "Age",
+    "maritalStatusLabel": "Marital Status",
+    "maritalStatusPlaceholder": "Select..."
+  },
+  "childDialog": {
+    "editTitle": "Edit Child",
+    "addTitle": "Add Child"
+  },
+  "deleteDialog": {
+    "title": "Delete {child}?",
+    "body": "The profile and everything you filled in about this child will be deleted. This can't be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete"
+  },
+  "saving": "Saving...",
+  "save": "Save",
+  "childFiles": {
+    "title": "{child}'s history",
+    "subtitle": "Activities, photos and medical tests in the order they happened — and only you can see them.",
+    "kindLabel": "What you are saving",
+    "kinds": {
+      "photo": "Photo",
+      "exam": "Medical test",
+      "activity": "Activity"
+    },
+    "fileLabel": "File",
+    "chosen": "Selected: {file}",
+    "captionLabel": "Caption",
+    "captionPlaceholder": "First day of school",
+    "takenOnLabel": "Date",
+    "upload": "Save to history",
+    "uploading": "Uploading...",
+    "listTitle": "{child}'s history",
+    "loading": "Loading...",
+    "empty": "Nothing in the history yet.",
+    "noDate": "no date",
+    "rowMeta": "{kind} · {date} · {size}",
+    "remove": "Delete file",
+    "activityMeta": "{kind} · {date}",
+    "examNotice": {
+      "title": "A medical test is your child's health data",
+      "body": "The file is encrypted before it leaves your phone and only your account can open it. No one on the team, no ad and no artificial intelligence reads the test. Deleting it here deletes it from the server too.",
+      "consent": "I understand and I want to save my child's medical test here.",
+      "reminder": "It stays encrypted and it stays yours — deleting it here deletes it from the server."
+    },
+    "usage": {
+      "title": "Storage used",
+      "child": "{child}'s album",
+      "account": "Your account",
+      "fileMax": "Each file can be up to {size}.",
+      "fileTooLarge": "This file is larger than {size}. Choose a smaller one.",
+      "childQuota": "This child's album has no room for this file. Delete something to make room.",
+      "accountQuota": "Your account has no room for this file. Delete something to make room."
+    }
+  },
+  "languageSection": {
+    "title": "Language",
+    "hint": "The app shows in this language on this device."
+  }
+}

@@ -10,6 +10,7 @@ import { LogOut, Pencil, User } from 'lucide-react';
 
 import ChildDeleteDialog from '@/components/ChildDeleteDialog';
 import ChildEditDialog from '@/components/ChildEditDialog';
+import LanguagePicker from '@/components/LanguagePicker';
 import PerfilChildrenSection from '@/components/PerfilChildrenSection';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
 import { Button } from '@/components/ui/button';
@@ -113,6 +114,8 @@ export default function Perfil() {
       </div>
 
       <PerfilChildrenSection perfil={perfil} />
+
+      <LanguagePicker />
 
       <div className="px-4 mt-8">
         <Button

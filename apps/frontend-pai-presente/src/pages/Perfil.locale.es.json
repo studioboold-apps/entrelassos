@@ -1,0 +1,88 @@
+{
+  "fallbackName": "Papá",
+  "fallbackInitial": "P",
+  "emptyValue": "-",
+  "stats": {
+    "children": "Hijos",
+    "activities": "Actividades",
+    "average": "Media",
+    "noAverage": "—"
+  },
+  "profileSection": {
+    "title": "Mi Perfil",
+    "edit": "Editar perfil",
+    "age": "Edad",
+    "ageValue": "{age} años",
+    "maritalStatus": "Estado Civil"
+  },
+  "childrenSection": {
+    "title": "Mis Hijos",
+    "add": "Añadir",
+    "empty": "Ningún hijo registrado",
+    "edit": "Editar hijo",
+    "delete": "Eliminar hijo",
+    "files": "Historial"
+  },
+  "logout": "Cerrar sesión",
+  "editProfile": {
+    "title": "Editar Perfil",
+    "ageLabel": "Edad",
+    "maritalStatusLabel": "Estado Civil",
+    "maritalStatusPlaceholder": "Selecciona..."
+  },
+  "childDialog": {
+    "editTitle": "Editar Hijo",
+    "addTitle": "Añadir Hijo"
+  },
+  "deleteDialog": {
+    "title": "¿Eliminar a {child}?",
+    "body": "El registro y todo lo que completaste sobre él se eliminará. No se puede deshacer.",
+    "cancel": "Cancelar",
+    "confirm": "Eliminar"
+  },
+  "saving": "Guardando...",
+  "save": "Guardar",
+  "childFiles": {
+    "title": "Historial de {child}",
+    "subtitle": "Actividades, fotos y exámenes en el orden en que ocurrieron — y solo tú los ves.",
+    "kindLabel": "Qué estás guardando",
+    "kinds": {
+      "photo": "Foto",
+      "exam": "Examen",
+      "activity": "Actividad"
+    },
+    "fileLabel": "Archivo",
+    "chosen": "Elegido: {file}",
+    "captionLabel": "Leyenda",
+    "captionPlaceholder": "Primer día de clase",
+    "takenOnLabel": "Fecha",
+    "upload": "Guardar en el historial",
+    "uploading": "Enviando...",
+    "listTitle": "El historial de {child}",
+    "loading": "Cargando...",
+    "empty": "Todavía no hay nada en el historial.",
+    "noDate": "sin fecha",
+    "rowMeta": "{kind} · {date} · {size}",
+    "remove": "Eliminar archivo",
+    "activityMeta": "{kind} · {date}",
+    "examNotice": {
+      "title": "Un examen es un dato de salud de tu hijo",
+      "body": "El archivo se cifra antes de salir de tu teléfono y solo tu cuenta puede abrirlo. Nadie del equipo, ningún anuncio y ninguna inteligencia artificial lee el examen. Eliminarlo aquí también lo elimina del servidor.",
+      "consent": "Entiendo y quiero guardar aquí el examen de mi hijo.",
+      "reminder": "Sigue cifrado y sigue siendo solo tuyo — eliminarlo aquí lo elimina del servidor."
+    },
+    "usage": {
+      "title": "Espacio usado",
+      "child": "Álbum de {child}",
+      "account": "Tu cuenta",
+      "fileMax": "Cada archivo puede tener hasta {size}.",
+      "fileTooLarge": "Este archivo supera {size}. Elige uno más pequeño.",
+      "childQuota": "El álbum de este hijo no tiene espacio para este archivo. Elimina algo para liberar espacio.",
+      "accountQuota": "Tu cuenta no tiene espacio para este archivo. Elimina algo para liberar espacio."
+    }
+  },
+  "languageSection": {
+    "title": "Idioma",
+    "hint": "La app se muestra en este idioma en este dispositivo."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "categories": {
+    "aventura": "Aventura",
+    "educativa": "Educativa",
+    "esportiva": "Deportiva",
+    "criativa": "Creativa",
+    "natureza": "Naturaleza",
+    "culinaria": "Cocina",
+    "jogos": "Juegos",
+    "escolar": "Escolar",
+    "cursos": "Cursos",
+    "oficinas": "Talleres"
+  }
+}

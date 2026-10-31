@@ -1,0 +1,18 @@
+{
+  "categories": {
+    "experiencia": "Experiencia",
+    "dica": "Consejo",
+    "duvida": "Duda",
+    "conquista": "Logro"
+  },
+  "post": {
+    "comment": "Comentar",
+    "commentPlaceholder": "Escribe un comentario...",
+    "sendComment": "Enviar comentario",
+    "fallbackInitial": "P"
+  },
+  "create": {
+    "placeholder": "Comparte tu experiencia, consejo o duda con la comunidad...",
+    "publish": "Publicar"
+  }
+}

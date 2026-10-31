@@ -36,11 +36,12 @@ export const isProductionEnvironment = appEnvironment === APP_ENVIRONMENTS.PRODU
  * Producao nao tem rotulo, e e' isso que decide se a faixa aparece: uma segunda
  * condicao em outro arquivo divergiria dela na primeira edicao.
  */
-const ENVIRONMENT_BANNER_LABELS = Object.freeze({
-  [APP_ENVIRONMENTS.LOCAL]: 'Ambiente local — nada aqui é dado de verdade',
-  [APP_ENVIRONMENTS.STAGING]: 'Homologação — nada aqui é dado de verdade',
+const ENVIRONMENT_BANNERS = Object.freeze({
+  [APP_ENVIRONMENTS.LOCAL]: { labelKey: 'common.environment.local' },
+  [APP_ENVIRONMENTS.STAGING]: { labelKey: 'common.environment.staging' },
 });
 
-export function environmentBannerLabel(environment) {
-  return ENVIRONMENT_BANNER_LABELS[environment];
+/** Devolve a CHAVE da frase: quem desenha a faixa traduz no idioma da tela. */
+export function environmentBannerLabelKey(environment) {
+  return ENVIRONMENT_BANNERS[environment]?.labelKey;
 }

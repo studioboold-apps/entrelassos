@@ -4,6 +4,7 @@
  * Licenca: proprietaria.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,6 +28,7 @@ const EMPTY_CHILD = Object.freeze({
 
 export function useOnboarding() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [userData, setUserData] = useState({ age: '', marital_status: '' });
@@ -81,6 +83,16 @@ export function useOnboarding() {
         await api.entities.Child.create(child);
       }
 
+      /**
+       * A Home le `['currentUser']` do CACHE antes de refazer a busca, e o
+       * cache ainda dizia `onboarding_completed: false` — ela mandava o pai de
+       * volta para ca na mesma hora, com tudo ja salvo (medido em producao em
+       * 31/10/2026). `invalidate` nao basta: so marca como velho, e a Home
+       * desenharia o valor velho mesmo assim. Remover obriga a Home a esperar
+       * o servidor. Os filhos entram pelo mesmo motivo.
+       */
+      queryClient.removeQueries({ queryKey: ['currentUser'] });
+      queryClient.removeQueries({ queryKey: ['children'] });
       navigate(createPageUrl('Home'));
     } catch (error) {
       /**

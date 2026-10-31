@@ -3,7 +3,7 @@
 > **31/10/2026 — projeto novo.** A produção mudou para o workspace da empresa
 > no Railway (projeto `6cb88306…`, ambiente `production`), criada a partir de
 > `.railway/railway.ts` com `railway config apply`. Endereço novo:
-> `https://web-production-7c849.up.railway.app`. Região `iad` e volume de
+> `https://entrelassos.up.railway.app` (era `web-production-7c849` até a troca de nome). Região `iad` e volume de
 > mídia de 500 MB, o teto do plano atual. O deploy agora é pelo GitHub Actions
 > (§7). O que segue abaixo descreve o projeto antigo e continua valendo como
 > registro do desenho.

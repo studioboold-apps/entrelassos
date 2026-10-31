@@ -47,7 +47,7 @@ const WEB_PORT = 8080;
  */
 const GOOGLE_CLIENT_ID = '863649157799-3q8k5a26st7258jfmpse48to75vsr79r.apps.googleusercontent.com';
 
-const WEB_DOMAIN = 'web-production-7c849.up.railway.app';
+const WEB_DOMAIN = 'entrelassos.up.railway.app';
 
 /**
  * A midia do historico (foto e exame) mora em DISCO, e o disco do container

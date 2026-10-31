@@ -14,5 +14,16 @@
   "inputPlaceholder": "Escribe tu duda...",
   "send": "Enviar pregunta",
   "assistantAvatarLabel": "Mentor",
-  "userAvatarLabel": "Tú"
+  "userAvatarLabel": "Tú",
+  "photoAttach": "Enviar foto",
+  "photoRemove": "Quitar la foto",
+  "photoPreviewAlt": "Foto enviada al mentor",
+  "photoPrivacy": "La foto va solo al mentor para responder y no se guarda en la app.",
+  "photoOnly": "Foto",
+  "photoUnreadable": "No pudimos abrir esa foto. Prueba otra, en JPG o PNG.",
+  "voiceStart": "Grabar audio",
+  "voiceStop": "Detener y transcribir",
+  "recording": "Grabando… toca el cuadrado para detener.",
+  "transcribing": "Transcribiendo el audio…",
+  "micDenied": "No pudimos usar el micrófono. Permite el acceso en los permisos del navegador."
 }

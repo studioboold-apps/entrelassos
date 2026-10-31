@@ -14,5 +14,16 @@
   "inputPlaceholder": "Type your question...",
   "send": "Send question",
   "assistantAvatarLabel": "Mentor",
-  "userAvatarLabel": "You"
+  "userAvatarLabel": "You",
+  "photoAttach": "Send photo",
+  "photoRemove": "Remove photo",
+  "photoPreviewAlt": "Photo sent to the mentor",
+  "photoPrivacy": "The photo goes only to the mentor to answer and isn't stored in the app.",
+  "photoOnly": "Photo",
+  "photoUnreadable": "We couldn't open that photo. Try another one, in JPG or PNG.",
+  "voiceStart": "Record audio",
+  "voiceStop": "Stop and transcribe",
+  "recording": "Recording… tap the square to stop.",
+  "transcribing": "Transcribing the audio…",
+  "micDenied": "We couldn't use the microphone. Allow access in your browser permissions."
 }

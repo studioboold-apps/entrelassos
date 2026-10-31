@@ -304,3 +304,20 @@ quem opera, não minha.
 4. Redeploy da API para pegar o valor novo, e conferir por `/health` — que já
    dá um `select 1` no banco, então ele responde a pergunta certa.
 5. Conferir que `railway config plan` continua sem acusar deriva.
+
+## Decisão de 31/10/2026 — foto e áudio no chat do mentor
+
+O pai pediu para mandar **foto** e **áudio** ao mentor. A regra `D2` (arquivo
+do filho nunca vai para a IA) continua de pé: `ai.file-boundary.test.ts` segue
+reprovando qualquer caminho do histórico do filho (`ChildFile`, mídia cifrada)
+até o prompt. O que entrou é outra coisa, e com limites escritos:
+
+| o quê | vai para | fica guardado? |
+|---|---|---|
+| foto anexada no chat | provedor de IA (`LLM_PROVIDER`), só na pergunta em que foi anexada | **não**. O app reencoda em JPEG ≤ 1568 px (o que também tira o EXIF com a localização) e grava na conversa só o texto com a marca `📷` |
+| áudio gravado no chat | OpenAI (`TRANSCRIPTION_API_KEY`), para virar texto | **não**. O texto volta para a caixa de pergunta e o pai confere antes de enviar |
+| conversa anterior | provedor de IA, as últimas 20 falas | já estava em `chat_messages`; agora o mentor a lê para ter memória |
+
+É o pai quem escolhe, foto a foto, o que mandar — nada sai do álbum do filho
+sozinho. O tipo da foto e do áudio é decidido pelos **bytes** na API, e o
+corpo nunca entra em log (`security.md` §1).

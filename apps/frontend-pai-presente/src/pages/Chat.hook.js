@@ -9,8 +9,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/api/client';
 import { useAuth } from '@/lib/AuthContext';
+import {
+  appendTranscript,
+  isVoiceRecordingSupported,
+  prepareChatImage,
+  startVoiceRecording,
+  toStoredContent,
+  VOICE_MAX_SECONDS,
+} from '@/lib/chat-attachments';
 import { toConversationId, toScreenMessages } from '@/lib/chat-history';
 import { describeApiFailure } from '@/lib/api-error-message';
+import { useTranslation } from '@/lib/i18n';
 
 const CHAT_HISTORY_QUERY_KEY = 'chat-messages';
 
@@ -30,11 +39,19 @@ export const MESSAGE_ROLES = Object.freeze({ USER: 'user', ASSISTANT: 'assistant
  */
 export function useChat() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const conversationId = toConversationId(user.id);
   const [question, setQuestion] = useState('');
+  /** Foto escolhida e ainda nao enviada: `{ mediaType, data, previewUrl }`. */
+  const [image, setImage] = useState(null);
+  const [attachmentFailure, setAttachmentFailure] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const photoInputRef = useRef(null);
+  const recordingRef = useRef(null);
+  const recordingTimerRef = useRef(null);
 
   const historyQuery = useQuery({
     queryKey: [CHAT_HISTORY_QUERY_KEY, conversationId],
@@ -55,18 +72,24 @@ export function useChat() {
      * §1). A tela manda a pergunta, so.
      *
      * `POST /v1/chat` responde e NAO grava: as duas pontas da conversa sao
-     * escritas aqui, na ordem em que foram ditas.
+     * escritas aqui, na ordem em que foram ditas. E' dessa gravacao que a API
+     * tira a memoria do mentor: ela le as ultimas falas antes de responder.
      *
-     * @param {string} text
+     * A foto vai so' para a IA. O que fica gravado e' a marca `📷` com o texto:
+     * guardar foto de crianca exigiria cifra, trilha e remocao em cascata, e o
+     * mentor ja respondeu sobre ela — a resposta e' o que fica.
+     *
+     * @param {{ text: string, image: { mediaType: string, data: string, previewUrl: string } | null }} variables
      */
-    mutationFn: async (text) => {
+    mutationFn: async ({ text, image: attached }) => {
       await api.entities.ChatMessage.create({
         conversationId,
         role: MESSAGE_ROLES.USER,
-        content: text,
+        content: attached ? toStoredContent(text, t('chat.photoOnly')) : text,
       });
 
-      const reply = await api.ai.chat(text);
+      const images = attached ? [{ mediaType: attached.mediaType, data: attached.data }] : [];
+      const reply = await api.ai.chat(text, { images });
 
       await api.entities.ChatMessage.create({
         conversationId,
@@ -90,7 +113,13 @@ export function useChat() {
    * duas listas da mesma conversa divergem na primeira recarga.
    */
   const pendingMessages = sendMutation.isPending
-    ? [{ role: MESSAGE_ROLES.USER, content: sendMutation.variables }]
+    ? [
+        {
+          role: MESSAGE_ROLES.USER,
+          content: sendMutation.variables.text,
+          imageUrl: sendMutation.variables.image?.previewUrl,
+        },
+      ]
     : [];
 
   const messages = [...history, ...pendingMessages];
@@ -102,6 +131,16 @@ export function useChat() {
    */
   const sendFailure = sendMutation.isError ? describeApiFailure(sendMutation.error) : null;
 
+  /** O ditado nao envia sozinho: o texto volta para a caixa e o pai confere. */
+  const transcribeMutation = useMutation({
+    mutationFn: (audio) => api.ai.transcribe(audio),
+    onSuccess: (text) => {
+      setQuestion((current) => appendTranscript(current, text));
+      inputRef.current?.focus();
+    },
+    onError: (error) => setAttachmentFailure(describeApiFailure(error).message),
+  });
+
   /**
    * `messages` e' derivado, entao e' um array novo a cada render: depender dele
    * mandaria a tela rolar sem parar. Quem manda rolar e' a conversa ter crescido.
@@ -110,12 +149,69 @@ export function useChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
+  /** Se o pai sair da tela gravando, o microfone desliga junto. */
+  useEffect(
+    () => () => {
+      clearTimeout(recordingTimerRef.current);
+      recordingRef.current?.cancel();
+    },
+    [],
+  );
+
   /** @param {string} text */
   function sendQuestion(text) {
-    if (!text.trim() || sendMutation.isPending) return;
+    if ((!text.trim() && !image) || sendMutation.isPending) return;
 
     setQuestion('');
-    sendMutation.mutate(text);
+    setImage(null);
+    setAttachmentFailure(null);
+    sendMutation.mutate({ text, image });
+  }
+
+  function openPhotoPicker() {
+    photoInputRef.current?.click();
+  }
+
+  async function handlePhotoChange(event) {
+    const [file] = event.target.files ?? [];
+    // Limpar o campo deixa escolher a MESMA foto de novo depois de remove-la.
+    event.target.value = '';
+    if (!file) return;
+    setAttachmentFailure(null);
+    try {
+      setImage(await prepareChatImage(file));
+    } catch {
+      setAttachmentFailure(t('chat.photoUnreadable'));
+    }
+  }
+
+  function removePhoto() {
+    setImage(null);
+  }
+
+  async function stopRecording() {
+    clearTimeout(recordingTimerRef.current);
+    const recording = recordingRef.current;
+    recordingRef.current = null;
+    setIsRecording(false);
+    if (!recording) return;
+    const audio = await recording.stop();
+    if (audio.size > 0) transcribeMutation.mutate(audio);
+  }
+
+  async function toggleRecording() {
+    if (isRecording) {
+      await stopRecording();
+      return;
+    }
+    setAttachmentFailure(null);
+    try {
+      recordingRef.current = await startVoiceRecording();
+      setIsRecording(true);
+      recordingTimerRef.current = setTimeout(stopRecording, VOICE_MAX_SECONDS * 1000);
+    } catch {
+      setAttachmentFailure(t('chat.micDenied'));
+    }
   }
 
   function handleQuestionChange(event) {
@@ -131,12 +227,26 @@ export function useChat() {
     question,
     messages,
     sendFailure,
+    attachmentFailure,
     isSending: sendMutation.isPending,
-    canSend: question.trim().length > 0 && !sendMutation.isPending,
+    canSend: (question.trim().length > 0 || image !== null) && !sendMutation.isPending,
     messagesEndRef,
     inputRef,
     handleQuestionChange,
     handleSubmit,
     sendQuestion,
+    photo: {
+      previewUrl: image?.previewUrl ?? null,
+      inputRef: photoInputRef,
+      open: openPhotoPicker,
+      handleChange: handlePhotoChange,
+      remove: removePhoto,
+    },
+    voice: {
+      isSupported: isVoiceRecordingSupported(),
+      isRecording,
+      isTranscribing: transcribeMutation.isPending,
+      toggle: toggleRecording,
+    },
   };
 }

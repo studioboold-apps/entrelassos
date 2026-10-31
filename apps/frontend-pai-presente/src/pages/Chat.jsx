@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Send, Bot, User, Loader2, Lightbulb } from 'lucide-react';
+import { Bot, User, Loader2, Lightbulb } from 'lucide-react';
+import ChatComposer from '@/components/ChatComposer';
 import ReactMarkdown from 'react-markdown';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
@@ -14,6 +13,7 @@ export default function Chat() {
     question,
     messages,
     sendFailure,
+    attachmentFailure,
     isSending,
     canSend,
     messagesEndRef,
@@ -21,6 +21,8 @@ export default function Chat() {
     handleQuestionChange,
     handleSubmit,
     sendQuestion,
+    photo,
+    voice,
   } = useChat();
 
   return (
@@ -88,6 +90,13 @@ export default function Chat() {
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-200'
                     }`}
                   >
+                    {message.imageUrl && (
+                      <img
+                        src={message.imageUrl}
+                        alt={t('chat.photoPreviewAlt')}
+                        className="mb-2 max-h-48 rounded-lg object-cover"
+                      />
+                    )}
                     {message.role === MESSAGE_ROLES.USER ? (
                       <p className="text-sm">{message.content}</p>
                     ) : (
@@ -129,34 +138,18 @@ export default function Chat() {
         )}
       </div>
 
-      {/* Input */}
-      <div className="fixed bottom-20 left-0 right-0 bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-800 px-4 py-3">
-        {sendFailure && (
-          <p role="alert" className="text-sm text-red-400 mb-2">
-            {sendFailure.message}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            ref={inputRef}
-            value={question}
-            onChange={handleQuestionChange}
-            placeholder={t('chat.inputPlaceholder')}
-            className="flex-1 h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-            disabled={isSending}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            aria-label={t('chat.send')}
-            className="h-12 w-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
-            disabled={!canSend}
-          >
-            <Send aria-hidden="true" className="w-5 h-5" />
-          </Button>
-        </form>
-      </div>
+      <ChatComposer
+        question={question}
+        sendFailure={sendFailure}
+        attachmentFailure={attachmentFailure}
+        isSending={isSending}
+        canSend={canSend}
+        inputRef={inputRef}
+        handleQuestionChange={handleQuestionChange}
+        handleSubmit={handleSubmit}
+        photo={photo}
+        voice={voice}
+      />
     </div>
   );
 }

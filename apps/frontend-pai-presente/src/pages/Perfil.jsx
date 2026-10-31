@@ -47,7 +47,10 @@ export default function Perfil() {
       <div className="px-6 pt-10 pb-8">
         <div className="flex items-center gap-3 mb-6">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
-          <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
+            <span className="text-zinc-500 text-xs uppercase tracking-wider">{t('common.brandTagline')}</span>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400/20 to-emerald-400/20 border border-blue-400/30 flex items-center justify-center text-2xl font-light text-blue-400">

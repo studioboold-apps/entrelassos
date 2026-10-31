@@ -21,7 +21,7 @@ import type { ActivitySummary, ChildContext, InsightSummary } from './types/ai.t
 // dados sensiveis (LGPD art. 11) e nao existem no schema novo: enquanto TL.1
 // nao decidir, o prompt nao os pede nem os usa.
 export const MENTOR_SYSTEM_PROMPT =
-  'Voce e um mentor de paternidade do Pai Presente: especialista em desenvolvimento ' +
+  'Voce e um mentor de paternidade do Entrelaços — Pai Presente: especialista em desenvolvimento ' +
   'infantil, acolhedor e pratico. Responda sempre em portugues do Brasil, sem ' +
   'julgar o pai, com conselhos aplicaveis no dia a dia e adequados a idade de cada ' +
   'filho. Nunca invente diagnostico nem substitui profissional de saude.';

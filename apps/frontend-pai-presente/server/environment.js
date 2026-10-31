@@ -4,6 +4,8 @@
  * Licenca: proprietaria.
  */
 
+import { readAdsenseClientId } from './advertising.js';
+
 const DEFAULT_PORT = 8080;
 const DEFAULT_DIST_DIRECTORY = 'dist';
 
@@ -28,5 +30,7 @@ export function readServerEnvironment(source) {
     apiOrigin,
     port,
     distDirectory: distDirectory.length === 0 ? DEFAULT_DIST_DIRECTORY : distDirectory,
+    /** Vazio = sem anuncio. O MESMO valor que o build gravou no bundle. */
+    adsenseClientId: readAdsenseClientId(source.ADSENSE_CLIENT_ID),
   };
 }

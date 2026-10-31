@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { Calendar, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import AdSlot from '@/components/AdSlot';
 import InsightCard from '@/components/InsightCard';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
@@ -176,6 +177,8 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <AdSlot className="px-6" />
     </div>
   );
 }

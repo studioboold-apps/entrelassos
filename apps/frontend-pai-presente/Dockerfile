@@ -22,9 +22,14 @@ COPY apps/frontend-pai-presente apps/frontend-pai-presente
 ARG APP_ENV
 ARG GOOGLE_CLIENT_ID
 ARG APPLE_CLIENT_ID
+# Anuncio (AdSense): publicos tambem. Vazios, nenhum anuncio aparece.
+ARG ADSENSE_CLIENT_ID
+ARG ADSENSE_SLOT_ID
 ENV APP_ENV=${APP_ENV} \
     GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} \
     APPLE_CLIENT_ID=${APPLE_CLIENT_ID} \
+    ADSENSE_CLIENT_ID=${ADSENSE_CLIENT_ID} \
+    ADSENSE_SLOT_ID=${ADSENSE_SLOT_ID} \
     NODE_ENV=production
 
 WORKDIR /repo/apps/frontend-pai-presente

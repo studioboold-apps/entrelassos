@@ -211,6 +211,16 @@ export default defineRailway(() => {
        * carregamento pela metade.
        */
       GOOGLE_CLIENT_ID: '',
+      /**
+       * Anuncio (AdSense). Vazios DESLIGAM tudo: nenhum bloco na tela, CSP
+       * fechada como antes e `/ads.txt` em 404. Nenhum dos dois e' segredo — o
+       * id sai no HTML de todo site com anuncio. O dia em que a conta for
+       * aprovada, o passo e' trocar estas duas linhas pelos ids do painel
+       * (`ca-pub-…` e o numero do bloco). O servidor le o cliente no BOOT (CSP e
+       * `ads.txt`) e o Vite o grava no BUILD (o bloco na tela).
+       */
+      ADSENSE_CLIENT_ID: '',
+      ADSENSE_SLOT_ID: '',
     },
   });
 

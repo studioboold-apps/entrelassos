@@ -180,6 +180,13 @@ export default defineRailway(() => {
        */
       AUTH_PASSWORD_SIGN_IN: '1',
       /**
+       * A origem publica da web, e NAO e' opcional mesmo sendo mesma origem: o
+       * navegador manda `Origin` em todo POST, a web repassa `/v1` com o
+       * cabecalho intacto, e a API recusa (403 FORBIDDEN_ORIGIN) o que nao esta
+       * na lista. Vazia, recusou TODO login em 31/10/2026 — Google e senha.
+       */
+      WEB_ORIGINS: `https://${WEB_DOMAIN}`,
+      /**
        * `D7` FECHOU em 31/10/2026 (ver `GOOGLE_CLIENT_ID` no topo). Historico:
        * `D7` estava aberta: nao existia client_id do Google, e VAZIO e' a unica
        * forma honesta de dizer isso. Ate 06/09 havia aqui um marcador

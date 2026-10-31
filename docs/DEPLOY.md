@@ -86,7 +86,7 @@ Nenhum valor mora neste arquivo nem no repositório (`security.md` §4).
 | `APPLE_CLIENT_ID` | não | `D7` ainda aberta; a recomendação é só Google no lançamento |
 | `NODE_ENV` | já vem `production` na imagem | é o que liga `Secure` no cookie |
 | `API_PORT` | não | padrão 3000 |
-| `WEB_ORIGINS` | não | com mesma origem, não há CORS a liberar |
+| `WEB_ORIGINS` | **sim** | a URL pública da web. Mesmo com mesma origem o navegador manda `Origin` no POST e a web repassa; vazia, a API recusa todo login com 403 |
 
 `AUTH_DEV_SIGN_IN` **não existe em produção**: com `NODE_ENV=production` o boot
 recusa. Isso é proposital (fail-closed, `security.md` §2).

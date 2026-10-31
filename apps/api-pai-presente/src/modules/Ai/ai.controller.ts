@@ -4,14 +4,17 @@
  * Licenca: proprietaria.
  */
 
-import { HTTP_METHODS } from '../shared/http/http.constant';
+import { CONTENT_LENGTH_HEADER, HTTP_METHODS } from '../shared/http/http.constant';
 import type { RateLimiter } from '../shared/http/rate-limit';
 import { parseJsonBody } from '../shared/http/request.util';
 import { respondWithData } from '../shared/http/response.util';
 import type { RouteDefinition } from '../shared/http/route.types';
 import {
   ACTIVITY_SUGGESTIONS_PATH,
+  CHAT_AUDIO_FORM_FIELD,
+  CHAT_AUDIO_MAX_BYTES,
   CHAT_PATH,
+  CHAT_TRANSCRIPTION_PATH,
   INSIGHTS_PATH,
   REPORT_PATH,
 } from './ai.constant';
@@ -21,7 +24,35 @@ import {
   generateReportBodySchema,
   generateSuggestionsBodySchema,
 } from './ai.schema';
+import { AudioInvalidError, AudioTooLargeError } from './ai.error';
 import type { AiUseCases } from './ai.use-case';
+
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+/** A moldura do multipart soma bytes ao corpo; a folga evita recusar audio no limite. */
+const MULTIPART_ALLOWANCE_BYTES = 64 * 1024;
+
+function audioTooLarge(): AudioTooLargeError {
+  return new AudioTooLargeError(CHAT_AUDIO_MAX_BYTES / BYTES_PER_MEGABYTE);
+}
+
+/**
+ * O cabecalho e' do cliente, entao ele nao decide nada: so' evita ler dez
+ * minutos de audio para recusa-los depois. Quem decide e' o tamanho lido.
+ */
+async function readAudio(request: Request): Promise<Uint8Array> {
+  const declared = Number(request.headers.get(CONTENT_LENGTH_HEADER));
+  if (Number.isFinite(declared) && declared > CHAT_AUDIO_MAX_BYTES + MULTIPART_ALLOWANCE_BYTES) {
+    throw audioTooLarge();
+  }
+
+  const form = await request.formData().catch(() => {
+    throw new AudioInvalidError();
+  });
+  const file = form.get(CHAT_AUDIO_FORM_FIELD);
+  if (file === null || typeof file === 'string') throw new AudioInvalidError();
+  if (file.size > CHAT_AUDIO_MAX_BYTES) throw audioTooLarge();
+  return new Uint8Array(await file.arrayBuffer());
+}
 
 export type BuildAiRoutesParams = {
   readonly useCases: AiUseCases;
@@ -83,6 +114,17 @@ export function buildAiRoutes({ useCases, rateLimiter }: BuildAiRoutesParams): r
         const values = await parseJsonBody(request, chatBodySchema);
         const answer = await useCases.chat({ userId: authenticatedUser.userId, values });
         return respondWithData(answer);
+      },
+    },
+    {
+      method: HTTP_METHODS.POST,
+      path: CHAT_TRANSCRIPTION_PATH,
+      summary: 'Transcreve o audio gravado pelo pai; o audio nao e guardado.',
+      handle: async ({ request, authenticatedUser }) => {
+        rateLimiter.consume(authenticatedUser.userId);
+        const audio = await readAudio(request);
+        const transcription = await useCases.transcribe({ audio });
+        return respondWithData(transcription);
       },
     },
   ];

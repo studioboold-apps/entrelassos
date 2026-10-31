@@ -19,6 +19,7 @@ import {
   ACTIVITY_SUGGESTIONS_PATH,
   AI_RATE_LIMIT,
   CHAT_PATH,
+  CHAT_TRANSCRIPTION_PATH,
   INSIGHTS_PATH,
   REPORT_PATH,
 } from './ai.constant';
@@ -32,20 +33,30 @@ import type {
   LlmProvider,
   LlmStructuredRequest,
   LlmTextRequest,
+  LlmTurn,
+  SpeechTranscriber,
+  TranscriptionRequest,
 } from './types/ai.types';
+import { createTranscriber } from './providers/transcription.provider';
 
 const CHILD: ChildContext = { name: 'Bento', age: 7, gender: 'masculino' };
 const MONTH = '2026-08';
 
-type FakeProvider = LlmProvider & { readonly prompts: string[] };
+type FakeProvider = LlmProvider & {
+  readonly prompts: string[];
+  readonly textRequests: LlmTextRequest[];
+};
 
 function createFakeProvider(structured: unknown, text = 'Uma resposta do mentor.'): FakeProvider {
   const prompts: string[] = [];
+  const textRequests: LlmTextRequest[] = [];
   return {
     name: 'anthropic',
     prompts,
-    async generateText({ userPrompt }: LlmTextRequest): Promise<string> {
-      prompts.push(userPrompt);
+    textRequests,
+    async generateText(request: LlmTextRequest): Promise<string> {
+      prompts.push(request.userPrompt);
+      textRequests.push(request);
       return text;
     },
     async generateStructured({ userPrompt }: LlmStructuredRequest): Promise<unknown> {
@@ -60,6 +71,8 @@ type HarnessParams = {
   readonly children?: readonly ChildContext[];
   readonly activities?: readonly ActivityDigestRow[];
   readonly insights?: readonly InsightDigestRow[];
+  readonly history?: readonly LlmTurn[];
+  readonly transcriber?: SpeechTranscriber;
   readonly policy?: RateLimitPolicy;
 };
 
@@ -68,6 +81,8 @@ function createHarness({
   children = [CHILD],
   activities = [],
   insights = [],
+  history = [],
+  transcriber = createTranscriber({ apiKey: '', model: '' }),
   policy = AI_RATE_LIMIT,
 }: HarnessParams): TestClient {
   const useCases = createAiUseCases({
@@ -75,6 +90,8 @@ function createHarness({
     children: { listByUser: async () => children },
     activities: { listMonth: async () => activities },
     insights: { listMonth: async () => insights },
+    chatHistory: { listRecent: async ({ limit }) => history.slice(-limit) },
+    transcriber,
   });
   return createTestClient({
     routes: buildAiRoutes({ useCases, rateLimiter: createRateLimiter(policy) }),
@@ -223,6 +240,157 @@ describe('rotas de IA', () => {
   });
 });
 
+/** 1x1 JPEG minimo: so' a marca do comeco importa para a checagem de tipo. */
+const JPEG_BASE64 = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]).toString(
+  'base64',
+);
+const PNG_BASE64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]).toString('base64');
+
+describe('memoria da conversa', () => {
+  const HISTORY: readonly LlmTurn[] = [
+    { role: 'user', content: 'Meu filho Bento tem medo do escuro.' },
+    { role: 'assistant', content: 'Uma luz fraca no quarto ajuda.' },
+    // A pergunta atual: o app grava ANTES de chamar a IA.
+    { role: 'user', content: 'E se ele acordar de madrugada?' },
+  ];
+
+  test('as falas anteriores viajam com a pergunta, sem repetir a atual', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider, history: HISTORY });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHAT_PATH,
+      body: { message: 'E se ele acordar de madrugada?' },
+    });
+
+    expect(response.status).toBe(200);
+    const [request] = provider.textRequests;
+    expect(request?.history).toEqual(HISTORY.slice(0, 2));
+    expect(request?.userPrompt).toContain('E se ele acordar de madrugada?');
+  });
+
+  test('perguntas antigas que ficaram sem resposta nao voltam', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({
+      provider,
+      history: [...HISTORY.slice(0, 2), { role: 'user', content: 'pergunta que falhou' }, HISTORY[2]!],
+    });
+
+    await client.send({ method: HTTP_METHODS.POST, path: CHAT_PATH, body: { message: 'oi' } });
+
+    expect(provider.textRequests[0]?.history).toEqual(HISTORY.slice(0, 2));
+  });
+});
+
+describe('foto no chat', () => {
+  test('a foto chega ao provedor junto da pergunta', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHAT_PATH,
+      body: { message: 'O que acha deste desenho?', images: [{ mediaType: 'image/jpeg', data: JPEG_BASE64 }] },
+    });
+
+    expect(response.status).toBe(200);
+    expect(provider.textRequests[0]?.images).toEqual([{ mediaType: 'image/jpeg', data: JPEG_BASE64 }]);
+    expect(provider.prompts[0]).toContain('enviou uma foto');
+  });
+
+  test('so a foto, sem texto, tambem vale', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHAT_PATH,
+      body: { images: [{ mediaType: 'image/png', data: PNG_BASE64 }] },
+    });
+
+    expect(response.status).toBe(200);
+    expect(provider.prompts[0]).toContain('mandou so a foto');
+  });
+
+  test('sem texto e sem foto para na fronteira', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider });
+
+    const response = await client.send({ method: HTTP_METHODS.POST, path: CHAT_PATH, body: { message: '  ' } });
+
+    expect(response.status).toBe(400);
+    expect(provider.prompts).toHaveLength(0);
+  });
+
+  test('tipo declarado que nao bate com os bytes nao gasta a chamada', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHAT_PATH,
+      body: { message: 'oi', images: [{ mediaType: 'image/jpeg', data: PNG_BASE64 }] },
+    });
+
+    expect(response.status).toBe(400);
+    expect(provider.prompts).toHaveLength(0);
+  });
+});
+
+describe('audio no chat', () => {
+  /** Inicio de um WebM, que e' o que o Chrome e o Android gravam. */
+  const WEBM_BYTES = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x01, 0x00, 0x00, 0x00]);
+
+  function createFakeTranscriber(): SpeechTranscriber & { readonly calls: TranscriptionRequest[] } {
+    const calls: TranscriptionRequest[] = [];
+    return {
+      calls,
+      async transcribe(request) {
+        calls.push(request);
+        return 'Como faco ele dormir cedo?';
+      },
+    };
+  }
+
+  function sendAudio(client: TestClient, bytes: Uint8Array) {
+    const form = new FormData();
+    form.append('audio', new Blob([bytes], { type: 'audio/webm' }), 'gravacao.webm');
+    return client.send({ method: HTTP_METHODS.POST, path: CHAT_TRANSCRIPTION_PATH, body: form });
+  }
+
+  test('a voz volta como texto, com o formato decidido pelos bytes', async () => {
+    const transcriber = createFakeTranscriber();
+    const client = createHarness({ provider: createFakeProvider(undefined), transcriber });
+
+    const response = await sendAudio(client, WEBM_BYTES);
+
+    expect(response.status).toBe(200);
+    expect(readDataRecord(response).text).toBe('Como faco ele dormir cedo?');
+    expect(transcriber.calls[0]?.format.extension).toBe('webm');
+  });
+
+  test('arquivo que nao e audio nao chega ao provedor', async () => {
+    const transcriber = createFakeTranscriber();
+    const client = createHarness({ provider: createFakeProvider(undefined), transcriber });
+
+    const response = await sendAudio(client, new TextEncoder().encode('<script>'));
+
+    expect(response.status).toBe(400);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.ai.AUDIO_INVALID);
+    expect(transcriber.calls).toHaveLength(0);
+  });
+
+  test('sem chave de transcricao, so o microfone responde 503', async () => {
+    const client = createHarness({ provider: createFakeProvider(undefined) });
+
+    const response = await sendAudio(client, WEBM_BYTES);
+
+    expect(response.status).toBe(HTTP_STATUS.SERVICE_UNAVAILABLE);
+    expect(readErrorCode(response)).toBe(ERROR_CODES.ai.TRANSCRIPTION_NOT_CONFIGURED);
+  });
+});
+
 /**
  * `F2.4` cobra a tela de chat provando o ERRO legivel quando nao ha chave de IA.
  * Isso so existe se o produto SUBIR sem ela — e foi o que faltava: em 05/09/2026
@@ -235,6 +403,8 @@ describe('IA sem chave configurada', () => {
       children: { listByUser: async () => [CHILD] },
       activities: { listMonth: async () => [] },
       insights: { listMonth: async () => [] },
+      chatHistory: { listRecent: async () => [] },
+      transcriber: createTranscriber({ apiKey: '', model: '' }),
     });
     return createTestClient({
       routes: buildAiRoutes({ useCases, rateLimiter: createRateLimiter(AI_RATE_LIMIT) }),

@@ -47,6 +47,10 @@ function createFakeChatMessageRepository(rows: ChatMessageRow[]): ChatMessageRep
       );
       return { items: owned.slice(offset, offset + limit), total: owned.length };
     },
+    listRecent: async ({ userId, conversationId, limit }) =>
+      rows
+        .filter((row) => row.userId === userId && row.conversationId === conversationId)
+        .slice(-limit),
     insert: async ({ userId, values }) => {
       const created = buildMessageRow({ ...buildIdentity(CREATED_ID), userId, ...values });
       rows.push(created);

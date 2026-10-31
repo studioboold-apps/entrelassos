@@ -19,6 +19,12 @@ export type ListChatMessagesResult = {
   readonly total: number;
 };
 
+export type ListRecentChatMessagesParams = {
+  readonly userId: string;
+  readonly conversationId: string;
+  readonly limit: number;
+};
+
 export type CreateChatMessageParams = {
   readonly userId: string;
   readonly values: CreateChatMessageBody;
@@ -26,5 +32,6 @@ export type CreateChatMessageParams = {
 
 export type ChatMessageRepository = {
   list(params: ListChatMessagesParams): Promise<ListChatMessagesResult>;
+  listRecent(params: ListRecentChatMessagesParams): Promise<readonly ChatMessageRow[]>;
   insert(params: CreateChatMessageParams): Promise<ChatMessageRow>;
 };

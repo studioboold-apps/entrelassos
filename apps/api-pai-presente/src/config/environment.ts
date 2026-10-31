@@ -72,6 +72,14 @@ const aiShape = {
   LLM_API_KEY: z.string().default(''),
   /** Vazio usa o modelo padrao do provedor (`DEFAULT_MODELS`). */
   LLM_MODEL: z.string().default(''),
+  /**
+   * Chave da OpenAI para transcrever o audio do chat (a Anthropic nao ouve
+   * audio). Vazia e' estado valido: so' o microfone responde 503. Com
+   * `LLM_PROVIDER=openai`, a chave do texto serve para os dois.
+   */
+  TRANSCRIPTION_API_KEY: z.string().default(''),
+  /** Vazio usa `DEFAULT_TRANSCRIPTION_MODEL` (`gpt-4o-mini-transcribe`). */
+  TRANSCRIPTION_MODEL: z.string().default(''),
 } as const;
 
 const backupShape = {

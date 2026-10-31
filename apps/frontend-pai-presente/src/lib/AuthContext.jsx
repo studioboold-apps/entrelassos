@@ -7,10 +7,22 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api } from '@/api/client';
 import { forgetCachedApiResponses } from '@/lib/pwa-cache';
+import { queryClientInstance } from '@/lib/query-client';
 
 const HTTP_UNAUTHORIZED = 401;
 
 const AuthContext = createContext(undefined);
+
+/**
+ * O cache do react-query e' da ABA, nao da sessao. Sem limpar na troca de
+ * conta, quem entra depois ve por um instante o usuario e os filhos de quem
+ * saiu — e a Home decide o redirecionamento para o cadastro pelo
+ * `onboarding_completed` da conta ANTERIOR (o mesmo defeito do cadastro que
+ * voltava para si mesmo, 31/10/2026).
+ */
+function forgetSessionQueries() {
+  queryClientInstance.clear();
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -44,6 +56,7 @@ export const AuthProvider = ({ children }) => {
   const signIn = useCallback(
     async (credentials) => {
       await api.auth.signIn(credentials);
+      forgetSessionQueries();
       await reloadUser();
     },
     [reloadUser],
@@ -53,6 +66,7 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(
     async (account) => {
       await api.auth.register(account);
+      forgetSessionQueries();
       await reloadUser();
     },
     [reloadUser],
@@ -66,6 +80,7 @@ export const AuthProvider = ({ children }) => {
       /** O cache do service worker e' do aparelho, nao da sessao: sem apagar, o
        * proximo a entrar neste celular leria os dados do pai anterior. */
       await forgetCachedApiResponses();
+      forgetSessionQueries();
       setUser(null);
     }
   }, []);

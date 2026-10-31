@@ -150,8 +150,14 @@ export default defineRailway(() => {
    * primeira edicao.
    */
       PORT: String(API_PORT),
-      /** Gerado pelo Railway, 48 caracteres. O minimo do schema e' 32. */
-      AUTH_JWT_SECRET: { generator: 'secret(48)' },
+      /**
+       * 48 caracteres; o minimo do schema e' 32. Era `{ generator: 'secret(48)' }`,
+       * e no projeto novo (31/10/2026) o Railway gravou o TEXTO `secret(48)` —
+       * 10 caracteres — e a api morreu no boot com `AUTH_JWT_SECRET too_small`.
+       * O valor foi gerado fora (`openssl rand`) e entrou por `--stdin`; este
+       * arquivo so afirma que a variavel existe, como a chave da IA.
+       */
+      AUTH_JWT_SECRET: preserve(),
       LLM_PROVIDER: 'anthropic',
       /**
        * O modelo sai do env, e nao do padrao do codigo (`DEFAULT_MODELS`): o

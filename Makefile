@@ -49,7 +49,7 @@ BACKUP_SCRATCH_DB := $(POSTGRES_DB)_restore
 PG_CONNECT := -h localhost -p $(POSTGRES_PORT) -U $(POSTGRES_USER)
 PG_DUMP_FLAGS := --format=plain --no-owner --no-privileges
 
-.PHONY: help compose-project up down logs psql generate migrate seed install dev dev-web dev-api build images image-api image-web image-smoke backup restore backup-proof log-pii-audit test test-e2e typecheck validate clean
+.PHONY: help compose-project up down logs psql generate migrate seed install dev dev-web dev-api build images image-api image-web image-smoke backup restore backup-proof log-pii-audit test test-e2e typecheck validate github-railway clean
 
 help: ## lista os alvos
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$'  Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -212,6 +212,9 @@ test-e2e: ## fumaca ponta a ponta na API de verdade, no banco de env.test.e2e
 	PP_E2E=1 bun test apps/api-pai-presente/src/e2e
 
 validate: typecheck test ## portao de qualidade
+
+github-railway: ## cadastra RAILWAY_TOKEN no GitHub (`make github-railway TOKEN_FILE=... URL=...`)
+	scripts/configurar-github-railway.sh $(if $(TOKEN_FILE),--token-file $(TOKEN_FILE)) $(if $(URL),--url $(URL))
 
 clean: ## remove build e dependencias
 	rm -rf apps/*/dist apps/*/node_modules node_modules

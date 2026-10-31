@@ -166,6 +166,12 @@ O que o workflow precisa, e que não mora no repositório:
 | GitHub → *Settings* → *Environments* | ambiente `production` com o segredo `RAILWAY_TOKEN` |
 | idem, em *Variables* | `RAILWAY_PUBLIC_URL`, o endereço público da web (opcional: sem ela a fumaça não roda) |
 
+Para cadastrar os dois de uma vez (precisa do `gh` autenticado):
+
+```bash
+make github-railway TOKEN_FILE=caminho/do/token URL=https://...
+```
+
 O token decide em qual conta/workspace do Railway o app sobe. O projeto precisa
 ter os serviços `api` e `web` (e o Postgres) — `.railway/railway.ts` os descreve.
 

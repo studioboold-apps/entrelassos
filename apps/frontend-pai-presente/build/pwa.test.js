@@ -23,7 +23,8 @@ const indexHtml = readAppFile('index.html');
 
 describe('manifesto', () => {
   test('declara o que o celular precisa para oferecer instalar', () => {
-    expect(PWA_MANIFEST.name).toContain('Pai Presente');
+    expect(PWA_MANIFEST.name).toBe('Entrelaços — Pai Presente');
+    expect(PWA_MANIFEST.short_name).toBe('Entrelaços');
     expect(PWA_MANIFEST.short_name.length).toBeLessThanOrEqual(12);
     expect(PWA_MANIFEST.start_url).toBe('/');
     expect(PWA_MANIFEST.display).toBe('standalone');
@@ -80,6 +81,7 @@ describe('service worker', () => {
     const isPrecached = PWA_WORKBOX.globPatterns.some((pattern) => new Bun.Glob(pattern).match('offline.html'));
 
     expect(isPrecached).toBe(true);
+    expect(offlineHtml).toContain('Entrelaços');
     expect(offlineHtml).toContain('Pai Presente');
     expect(existsSync(join(PUBLIC_DIRECTORY, 'marca-pai-presente.png'))).toBe(true);
     expect(offlineHtml).toContain('marca-pai-presente.png');
@@ -89,7 +91,7 @@ describe('service worker', () => {
 describe('index.html', () => {
   test('fala portugues e diz o nome do produto', () => {
     expect(indexHtml).toContain('lang="pt-BR"');
-    expect(indexHtml).toContain('<title>Pai Presente</title>');
+    expect(indexHtml).toContain('<title>Entrelaços — Pai Presente</title>');
   });
 
   /**

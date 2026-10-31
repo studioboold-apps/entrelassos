@@ -15,7 +15,7 @@ export const APP_THEME_COLOR = '#09090b';
 
 export const PWA_MANIFEST = Object.freeze({
   name: 'Entrelaços — Pai Presente',
-  short_name: 'Entrelaços — Pai Presente',
+  short_name: 'Entrelaços',
   description: 'Companhia diaria para pais que querem estar presentes.',
   lang: 'pt-BR',
   start_url: '/',

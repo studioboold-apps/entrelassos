@@ -11,7 +11,7 @@ import {
   buildInsightsPrompt,
   buildReportPrompt,
   buildSuggestionsPrompt,
-  MENTOR_SYSTEM_PROMPT,
+  buildMentorSystemPrompt,
 } from './ai.prompt';
 import {
   insightsOutputSchema,
@@ -65,7 +65,7 @@ export function createAiUseCases({
     async generateInsights({ userId, values }) {
       const registered = await requireChildren(userId);
       const raw = await provider.generateStructured({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: buildMentorSystemPrompt(values.locale),
         userPrompt: buildInsightsPrompt({ children: registered, category: values.category }),
         schemaName: 'insights',
         jsonSchema: toProviderJsonSchema(insightsOutputSchema),
@@ -78,7 +78,7 @@ export function createAiUseCases({
       const registered = await requireChildren(userId);
       const month = values.month ?? formatMonth(new Date());
       const raw = await provider.generateStructured({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: buildMentorSystemPrompt(values.locale),
         userPrompt: buildSuggestionsPrompt({ children: registered, month }),
         schemaName: 'suggestions',
         jsonSchema: toProviderJsonSchema(suggestionsOutputSchema),
@@ -94,7 +94,7 @@ export function createAiUseCases({
         insights.listMonth({ userId, month }),
       ]);
       const raw = await provider.generateStructured({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: buildMentorSystemPrompt(values.locale),
         userPrompt: buildReportPrompt({
           children: registered,
           month,
@@ -111,7 +111,7 @@ export function createAiUseCases({
     async chat({ userId, values }) {
       const registered = await children.listByUser(userId);
       const reply = await provider.generateText({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: buildMentorSystemPrompt(values.locale),
         userPrompt: buildChatPrompt({ children: registered, message: values.message }),
       });
       return { reply };

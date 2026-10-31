@@ -7,6 +7,9 @@
 import { ACTIVITY_CATEGORIES, INSIGHT_CATEGORIES } from '../shared/shared.constant';
 import { MONTH_NAMES, parseMonth } from '../shared/date.util';
 import {
+  AI_LANGUAGE_NAMES,
+  DEFAULT_AI_LOCALE,
+  type AiLocale,
   ACTIVITY_SUGGESTION_COUNT,
   INSIGHTS_FOR_SINGLE_CATEGORY,
   INSIGHTS_PER_CATEGORY,
@@ -20,11 +23,22 @@ import type { ActivitySummary, ChildContext, InsightSummary } from './types/ai.t
 // A Base44 mandava orientacao religiosa e politica do pai em todo prompt. Sao
 // dados sensiveis (LGPD art. 11) e nao existem no schema novo: enquanto TL.1
 // nao decidir, o prompt nao os pede nem os usa.
-export const MENTOR_SYSTEM_PROMPT =
-  'Voce e um mentor de paternidade do Entrelaços — Pai Presente: especialista em desenvolvimento ' +
-  'infantil, acolhedor e pratico. Responda sempre em portugues do Brasil, sem ' +
-  'julgar o pai, com conselhos aplicaveis no dia a dia e adequados a idade de cada ' +
-  'filho. Nunca invente diagnostico nem substitui profissional de saude.';
+/**
+ * O prompt continua escrito em portugues; o que muda por idioma e' a lingua da
+ * RESPOSTA. Os valores de `category` sao identificadores que o banco grava e a
+ * tela traduz — traduzi-los faria a resposta falhar no schema.
+ */
+export function buildMentorSystemPrompt(locale: AiLocale = DEFAULT_AI_LOCALE): string {
+  return (
+    'Voce e um mentor de paternidade do Entrelaços — Pai Presente: especialista em desenvolvimento ' +
+    `infantil, acolhedor e pratico. Responda sempre em ${AI_LANGUAGE_NAMES[locale]}, sem ` +
+    'julgar o pai, com conselhos aplicaveis no dia a dia e adequados a idade de cada ' +
+    'filho. Nunca invente diagnostico nem substitui profissional de saude. ' +
+    'Valores de `category` sao identificadores: copie exatamente como listados, sem traduzir.'
+  );
+}
+
+export const MENTOR_SYSTEM_PROMPT = buildMentorSystemPrompt(DEFAULT_AI_LOCALE);
 
 const NO_CHILDREN_LINE = 'O pai ainda nao cadastrou filhos.';
 

@@ -43,6 +43,22 @@ export const SEASONS_BY_MONTH = [
   'verao',
 ] as const;
 
+/**
+ * O idioma em que a IA escreve. Bate com `SUPPORTED_LOCALES` do frontend: e' o
+ * idioma que o pai escolheu no perfil, e a resposta tem de falar a mesma lingua
+ * que a tela em volta dela.
+ */
+export const AI_LOCALES = ['pt-BR', 'en', 'es'] as const;
+export type AiLocale = (typeof AI_LOCALES)[number];
+export const DEFAULT_AI_LOCALE: AiLocale = 'pt-BR';
+
+/** Como o prompt (escrito em portugues) nomeia cada idioma. */
+export const AI_LANGUAGE_NAMES = {
+  'pt-BR': 'portugues do Brasil',
+  en: 'ingles',
+  es: 'espanhol',
+} as const satisfies Record<AiLocale, string>;
+
 export const LLM_TIMEOUT_MS = 60_000;
 export const LLM_MAX_OUTPUT_TOKENS = 2048;
 

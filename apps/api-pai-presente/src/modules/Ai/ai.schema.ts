@@ -12,28 +12,39 @@ import {
   INSIGHT_CATEGORIES,
   MEDIUM_TEXT_LENGTH,
 } from '../shared/shared.constant';
-import { REPORT_GRADE_MAX, REPORT_GRADE_MIN } from './ai.constant';
+import { AI_LOCALES, DEFAULT_AI_LOCALE, REPORT_GRADE_MAX, REPORT_GRADE_MIN } from './ai.constant';
 
 /** `YYYY-MM`: o mes e do calendario, nao um instante com fuso. */
 const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes deve ser YYYY-MM.');
 
+/**
+ * Idioma ausente ou desconhecido cai no portugues em vez de recusar: o app
+ * antigo (sem o campo) e um idioma novo no frontend antes da API saber dele
+ * continuam recebendo resposta, so que na lingua de origem.
+ */
+const localeSchema = z.enum(AI_LOCALES).catch(DEFAULT_AI_LOCALE);
+
 export const generateInsightsBodySchema = z.object({
   category: z.enum(INSIGHT_CATEGORIES).optional(),
+  locale: localeSchema,
 });
 export type GenerateInsightsBody = z.infer<typeof generateInsightsBodySchema>;
 
 export const generateSuggestionsBodySchema = z.object({
   month: monthSchema.optional(),
+  locale: localeSchema,
 });
 export type GenerateSuggestionsBody = z.infer<typeof generateSuggestionsBodySchema>;
 
 export const generateReportBodySchema = z.object({
   month: monthSchema,
+  locale: localeSchema,
 });
 export type GenerateReportBody = z.infer<typeof generateReportBodySchema>;
 
 export const chatBodySchema = z.object({
   message: z.string().trim().min(1).max(FREE_TEXT_MAX_LENGTH),
+  locale: localeSchema,
 });
 export type ChatBody = z.infer<typeof chatBodySchema>;
 

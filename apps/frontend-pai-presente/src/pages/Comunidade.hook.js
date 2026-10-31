@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/api/client';
 import { describeApiFailure } from '@/lib/api-error-message';
+import { useTranslation } from '@/lib/i18n';
 import { withStableIds } from '@/lib/insight-id';
 
 /** A API ja devolve o feed do mais novo para o mais antigo. */
@@ -21,6 +22,8 @@ export const COMMUNITY_TABS = Object.freeze({ FEED: 'feed', INSIGHTS: 'insights'
  * a nota otimista sao regra, e regra fora do JSX pode ser lida sem montar tela.
  */
 export function useComunidade() {
+  /** O idioma entra na chave: trocar de lingua pede insight novo, nao o guardado. */
+  const { locale } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(COMMUNITY_TABS.FEED);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -64,7 +67,7 @@ export function useComunidade() {
    * pede texto novo e' o botao de atualizar, deliberadamente.
    */
   const insightsQuery = useQuery({
-    queryKey: ['insights', activeCategory],
+    queryKey: ['insights', activeCategory, locale],
     queryFn: async () => withStableIds(await api.ai.insights(activeCategory ?? undefined)),
     enabled: activeTab === COMMUNITY_TABS.INSIGHTS && children.length > 0 && user !== undefined,
     staleTime: Infinity,

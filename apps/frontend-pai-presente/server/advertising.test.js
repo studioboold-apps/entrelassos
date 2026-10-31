@@ -9,7 +9,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { buildAdsTxt, readAdsenseClientId } from './advertising.js';
+import { buildAdsTxt, readAdsEnabled, readAdsenseClientId, readAdvertisingClientId } from './advertising.js';
 import { readServerEnvironment } from './environment.js';
 import { buildContentSecurityPolicy, CONTENT_SECURITY_POLICY, readPolicyDirective } from './security-headers.js';
 import { createWebServer } from './web.server.js';
@@ -32,9 +32,38 @@ describe('o id do AdSense e conferido no boot', () => {
     expect(() => readAdsenseClientId('ca-pub-abc')).toThrow('ADSENSE_CLIENT_ID');
   });
 
-  test('o ambiente do servidor carrega o id', () => {
-    const environment = readServerEnvironment({ API_ORIGIN: 'http://api', ADSENSE_CLIENT_ID: CLIENT_ID });
+  test('o ambiente do servidor carrega o id quando ADS_ENABLED esta ligado', () => {
+    const environment = readServerEnvironment({
+      API_ORIGIN: 'http://api',
+      ADS_ENABLED: '1',
+      ADSENSE_CLIENT_ID: CLIENT_ID,
+    });
     expect(environment.adsenseClientId).toBe(CLIENT_ID);
+  });
+});
+
+describe('ADS_ENABLED e o interruptor geral, desligado por padrao', () => {
+  test('so valor explicito liga', () => {
+    for (const value of ['1', 'true', 'TRUE', ' on ', 'yes', 'sim']) expect(readAdsEnabled(value)).toBe(true);
+    for (const value of [undefined, '', '0', 'false', 'off', 'talvez']) expect(readAdsEnabled(value)).toBe(false);
+  });
+
+  /** E' o que deixa cadastrar os ids e validar antes de ligar. */
+  test('com id e sem interruptor, desligado', () => {
+    expect(readAdvertisingClientId({ ADSENSE_CLIENT_ID: CLIENT_ID })).toBe('');
+    expect(readAdvertisingClientId({ ADSENSE_CLIENT_ID: CLIENT_ID, ADS_ENABLED: '0' })).toBe('');
+  });
+
+  test('desligado, o id ainda e conferido', () => {
+    expect(() => readAdvertisingClientId({ ADSENSE_CLIENT_ID: 'errado' })).toThrow('ADSENSE_CLIENT_ID');
+  });
+
+  test('ligado sem id derruba o boot', () => {
+    expect(() => readAdvertisingClientId({ ADS_ENABLED: '1' })).toThrow('ADS_ENABLED');
+  });
+
+  test('ligado com id, liga', () => {
+    expect(readAdvertisingClientId({ ADS_ENABLED: 'true', ADSENSE_CLIENT_ID: CLIENT_ID })).toBe(CLIENT_ID);
   });
 });
 

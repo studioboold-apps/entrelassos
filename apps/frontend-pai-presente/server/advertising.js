@@ -64,6 +64,35 @@ export function readAdsenseClientId(value) {
   return clientId;
 }
 
+const ENABLED_VALUES = new Set(['1', 'true', 'on', 'yes', 'sim']);
+
+/**
+ * O interruptor GERAL. So liga com valor explicito: ausente, vazio ou qualquer
+ * outra coisa e' desligado — anuncio ligado por engano e' clique de teste
+ * contado como invalido, e o Google suspende conta por isso.
+ *
+ * @param {string | undefined} value
+ */
+export function readAdsEnabled(value) {
+  return ENABLED_VALUES.has(String(value ?? '').trim().toLowerCase());
+}
+
+/**
+ * O id que o servidor usa (CSP e `ads.txt`). `''` = anuncio desligado.
+ *
+ * Id preenchido e' conferido mesmo com o interruptor desligado: o erro aparece
+ * no dia em que se cadastra o id, nao no dia em que se liga. Interruptor ligado
+ * SEM id derruba o boot — ligar e nao ver anuncio nenhum parece bug do Google.
+ *
+ * @param {Record<string, string | undefined>} source
+ */
+export function readAdvertisingClientId(source) {
+  const clientId = readAdsenseClientId(source.ADSENSE_CLIENT_ID);
+  if (!readAdsEnabled(source.ADS_ENABLED)) return '';
+  if (clientId.length === 0) throw new Error('ADS_ENABLED ligado sem ADSENSE_CLIENT_ID');
+  return clientId;
+}
+
 /**
  * O Google retém o pagamento enquanto o `ads.txt` do dominio nao declara a
  * conta. A linha usa `pub-…`, sem o `ca-` do id de cliente.

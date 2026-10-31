@@ -10,24 +10,35 @@ import { buildAdsenseScriptUrl, resolveAdvertisingConfig } from './advertising.j
 
 const CLIENT_ID = 'ca-pub-1234567890123456';
 
-describe('o anuncio liga so com os dois ids', () => {
+describe('o anuncio liga so com ADS_ENABLED e os dois ids', () => {
   test('sem nada, desligado', () => {
     expect(resolveAdvertisingConfig({}).enabled).toBe(false);
   });
 
-  test('so o cliente, desligado — seria um quadro vazio', () => {
-    expect(resolveAdvertisingConfig({ clientId: CLIENT_ID, slotId: ' ' }).enabled).toBe(false);
+  /** Os ids cadastrados nao bastam: e' o que deixa validar antes de ligar. */
+  test('ids sem interruptor, desligado', () => {
+    expect(resolveAdvertisingConfig({ clientId: CLIENT_ID, slotId: '1' }).enabled).toBe(false);
+    expect(resolveAdvertisingConfig({ adsEnabled: '0', clientId: CLIENT_ID, slotId: '1' }).enabled).toBe(false);
   });
 
-  test('cliente e bloco, ligado', () => {
-    const config = resolveAdvertisingConfig({ clientId: CLIENT_ID, slotId: '9876543210', environment: 'production' });
+  test('so o cliente, desligado — seria um quadro vazio', () => {
+    expect(resolveAdvertisingConfig({ adsEnabled: '1', clientId: CLIENT_ID, slotId: ' ' }).enabled).toBe(false);
+  });
+
+  test('interruptor, cliente e bloco, ligado', () => {
+    const config = resolveAdvertisingConfig({
+      adsEnabled: 'true',
+      clientId: CLIENT_ID,
+      slotId: '9876543210',
+      environment: 'production',
+    });
     expect(config).toEqual({ enabled: true, clientId: CLIENT_ID, slotId: '9876543210', testMode: false });
   });
 
   /** Clique de quem testa conta como invalido, e o Google suspende a conta. */
   test('fora de producao, o bloco vai em modo de teste', () => {
-    expect(resolveAdvertisingConfig({ clientId: CLIENT_ID, slotId: '1', environment: 'staging' }).testMode).toBe(true);
-    expect(resolveAdvertisingConfig({ clientId: CLIENT_ID, slotId: '1', environment: 'local' }).testMode).toBe(true);
+    expect(resolveAdvertisingConfig({ adsEnabled: '1', clientId: CLIENT_ID, slotId: '1', environment: 'staging' }).testMode).toBe(true);
+    expect(resolveAdvertisingConfig({ adsEnabled: '1', clientId: CLIENT_ID, slotId: '1', environment: 'local' }).testMode).toBe(true);
   });
 });
 

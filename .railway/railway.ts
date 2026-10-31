@@ -212,13 +212,16 @@ export default defineRailway(() => {
        */
       GOOGLE_CLIENT_ID: '',
       /**
-       * Anuncio (AdSense). Vazios DESLIGAM tudo: nenhum bloco na tela, CSP
-       * fechada como antes e `/ads.txt` em 404. Nenhum dos dois e' segredo — o
-       * id sai no HTML de todo site com anuncio. O dia em que a conta for
-       * aprovada, o passo e' trocar estas duas linhas pelos ids do painel
-       * (`ca-pub-…` e o numero do bloco). O servidor le o cliente no BOOT (CSP e
-       * `ads.txt`) e o Vite o grava no BUILD (o bloco na tela).
+       * Anuncio (AdSense). `ADS_ENABLED` e' o interruptor geral: sem `1`, nada
+       * liga — nenhum bloco na tela, CSP fechada como antes e `/ads.txt` em
+       * 404 —, mesmo com os ids preenchidos. Assim os ids entram primeiro, se
+       * valida em homologacao, e so depois se liga aqui.
+       *
+       * Nenhum id e' segredo — sai no HTML de todo site com anuncio. O servidor
+       * le no BOOT (CSP e `ads.txt`) e o Vite grava no BUILD (o bloco na tela):
+       * mudar qualquer um pede deploy novo, nao so restart.
        */
+      ADS_ENABLED: '0',
       ADSENSE_CLIENT_ID: '',
       ADSENSE_SLOT_ID: '',
     },

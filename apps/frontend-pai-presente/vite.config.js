@@ -41,12 +41,13 @@ function requireEnvironment(name) {
  */
 /*
  * `ADSENSE_CLIENT_ID` e `ADSENSE_SLOT_ID` tambem sao publicos (saem no HTML de
- * todo site com anuncio). Vazios, nenhum anuncio e' desenhado.
+ * todo site com anuncio). Nenhum anuncio e' desenhado sem `ADS_ENABLED=1`.
  */
 const PUBLIC_ENVIRONMENT_NAMES = [
   'GOOGLE_CLIENT_ID',
   'APPLE_CLIENT_ID',
   'APP_ENV',
+  'ADS_ENABLED',
   'ADSENSE_CLIENT_ID',
   'ADSENSE_SLOT_ID',
 ];

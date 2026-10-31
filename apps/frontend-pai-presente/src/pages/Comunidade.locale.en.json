@@ -1,0 +1,11 @@
+{
+  "sectionLabel": "Community",
+  "title": "Present Dads",
+  "subtitle": "Share, learn and grow together with other dads",
+  "tabs": {
+    "feed": "Feed",
+    "insights": "Insights"
+  },
+  "emptyFeedTitle": "Be the first to post!",
+  "emptyFeedBody": "Share an experience, tip or milestone"
+}

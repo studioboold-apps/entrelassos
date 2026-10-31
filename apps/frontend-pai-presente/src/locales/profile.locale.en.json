@@ -1,0 +1,29 @@
+{
+  "maritalStatus": {
+    "solteiro": "Single",
+    "casado": "Married",
+    "divorciado": "Divorced",
+    "viuvo": "Widowed",
+    "uniao_estavel": "Domestic partnership"
+  },
+  "gender": {
+    "masculino": "Male",
+    "feminino": "Female",
+    "outro": "Other"
+  },
+  "childGender": {
+    "masculino": "Boy",
+    "feminino": "Girl",
+    "outro": "Other"
+  },
+  "childSummary": "{age} years old • {gender}",
+  "childFields": {
+    "name": { "label": "Name", "placeholder": "Child's name" },
+    "age": { "label": "Age", "placeholder": "Age" },
+    "gender": { "label": "Sex", "placeholder": "Select..." },
+    "favorite_hobby": { "label": "Favorite hobby", "placeholder": "E.g. soccer, drawing..." },
+    "favorite_color": { "label": "Favorite color", "placeholder": "E.g. blue, red..." },
+    "favorite_food": { "label": "Favorite food", "placeholder": "E.g. pizza, pasta..." },
+    "favorite_movie_genre": { "label": "Favorite movie genre", "placeholder": "E.g. animation, adventure..." }
+  }
+}

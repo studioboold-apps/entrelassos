@@ -1,0 +1,16 @@
+{
+  "greeting": "Hi, {name}",
+  "fallbackFirstName": "Dad",
+  "subtitle": "Personalized insights for your journey",
+  "quickAccess": "Quick Access",
+  "shortcuts": {
+    "juntinhos": {
+      "title": "Juntinhos",
+      "subtitle": "Plan activities"
+    },
+    "chat": {
+      "title": "Ask Questions",
+      "subtitle": "Support chat"
+    }
+  }
+}

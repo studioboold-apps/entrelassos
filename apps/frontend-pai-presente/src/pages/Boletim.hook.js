@@ -7,7 +7,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { format, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 import { api } from '@/api/client';
 import { ACTIVITY_CATEGORIES } from '@/lib/activity-categories';
@@ -17,7 +16,6 @@ import { useTranslation } from '@/lib/i18n';
 import { INSIGHT_CATEGORIES } from '@/lib/insight-categories';
 import { toMonthKey } from '@/lib/month';
 
-const MONTH_FORMAT = 'MMMM yyyy';
 const MONTH_KEY_FORMAT = 'MM/yyyy';
 const RATING_FULL_MARK = 5;
 
@@ -32,7 +30,7 @@ function averageRating(ratings) {
  * montar grafico nenhum.
  */
 export function useBoletim() {
-  const { t } = useTranslation();
+  const { t, dateLocale } = useTranslation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: activities = [] } = useQuery({
@@ -86,7 +84,7 @@ export function useBoletim() {
   const reportFailure = reportMutation.isError ? describeApiFailure(reportMutation.error) : null;
 
   return {
-    monthLabel: format(currentMonth, MONTH_FORMAT, { locale: ptBR }),
+    monthLabel: format(currentMonth, t('common.dateFormats.monthYear'), { locale: dateLocale }),
     isCurrentMonth: format(currentMonth, MONTH_KEY_FORMAT) === format(new Date(), MONTH_KEY_FORMAT),
     completedCount: completedActivities.length,
     stats,

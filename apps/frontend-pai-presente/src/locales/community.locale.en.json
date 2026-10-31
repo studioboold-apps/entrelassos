@@ -1,0 +1,18 @@
+{
+  "categories": {
+    "experiencia": "Experience",
+    "dica": "Tip",
+    "duvida": "Question",
+    "conquista": "Milestone"
+  },
+  "post": {
+    "comment": "Comment",
+    "commentPlaceholder": "Write a comment...",
+    "sendComment": "Send comment",
+    "fallbackInitial": "D"
+  },
+  "create": {
+    "placeholder": "Share an experience, tip or question with the community...",
+    "publish": "Post"
+  }
+}

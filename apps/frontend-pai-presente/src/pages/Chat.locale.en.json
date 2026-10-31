@@ -1,0 +1,18 @@
+{
+  "brandLogoAlt": "Entrelaços — Pai Presente",
+  "title": "Entrelaços Mentor",
+  "subtitle": "Ask your questions about parenting",
+  "emptyTitle": "How can I help?",
+  "emptyBody": "I'm here to guide you on positive communication and mindful parenting.",
+  "suggestionsLabel": "Suggestions",
+  "suggestions": {
+    "positiveReinforcement": "How do I use positive reinforcement?",
+    "tantrums": "Handling tantrums constructively",
+    "money": "Talking about money with kids",
+    "weekend": "Family activities for the weekend"
+  },
+  "inputPlaceholder": "Type your question...",
+  "send": "Send question",
+  "assistantAvatarLabel": "Mentor",
+  "userAvatarLabel": "You"
+}

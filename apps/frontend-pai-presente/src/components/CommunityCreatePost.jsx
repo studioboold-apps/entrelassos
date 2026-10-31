@@ -1,30 +1,25 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { api } from '@/api/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Send, X } from 'lucide-react';
-
-const categories = [
-  { id: 'experiencia', label: 'Experiência' },
-  { id: 'dica', label: 'Dica' },
-  { id: 'duvida', label: 'Dúvida' },
-  { id: 'conquista', label: 'Conquista' },
-];
+import { Send } from 'lucide-react';
+import { COMMUNITY_CATEGORIES, DEFAULT_COMMUNITY_CATEGORY } from '@/lib/community-categories';
+import { useTranslation } from '@/lib/i18n';
 
 export default function CommunityCreatePost() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('experiencia');
+  const [category, setCategory] = useState(DEFAULT_COMMUNITY_CATEGORY.id);
 
   const createPostMutation = useMutation({
     mutationFn: (data) => api.entities.CommunityPost.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       setContent('');
-      setCategory('experiencia');
+      setCategory(DEFAULT_COMMUNITY_CATEGORY.id);
     },
   });
 
@@ -43,12 +38,12 @@ export default function CommunityCreatePost() {
       <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Compartilhe sua experiência, dica ou dúvida com a comunidade..."
+        placeholder={t('community.create.placeholder')}
         className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600 resize-none min-h-[80px] mb-3"
       />
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2 flex-wrap">
-          {categories.map(cat => (
+          {COMMUNITY_CATEGORIES.map(cat => (
             <button
               key={cat.id}
               onClick={() => setCategory(cat.id)}
@@ -59,7 +54,7 @@ export default function CommunityCreatePost() {
                   : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
               )}
             >
-              {cat.label}
+              {t(cat.labelKey)}
             </button>
           ))}
         </div>
@@ -70,7 +65,7 @@ export default function CommunityCreatePost() {
           className="bg-gradient-to-r from-blue-500 to-emerald-400 text-white flex-shrink-0"
         >
           <Send className="w-4 h-4 mr-1" />
-          Publicar
+          {t('community.create.publish')}
         </Button>
       </div>
     </div>

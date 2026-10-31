@@ -6,7 +6,8 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import { hasTranslation, translate, useTranslation } from '@/lib/i18n';
+import { getTranslation, hasTranslation, translate, translateIn } from '@/lib/i18n';
+import { DEFAULT_LOCALE } from '@/lib/locale';
 
 describe('a chave vira frase', () => {
   test('a chave aninhada resolve ate a folha', () => {
@@ -53,6 +54,48 @@ describe('o tradutor tem identidade estavel', () => {
    * funcao nova a cada render invalidaria todas elas de graca.
    */
   test('duas chamadas devolvem o mesmo objeto', () => {
-    expect(useTranslation()).toBe(useTranslation());
+    expect(getTranslation('en')).toBe(getTranslation('en'));
+    expect(getTranslation(DEFAULT_LOCALE)).toBe(getTranslation(DEFAULT_LOCALE));
+  });
+
+  /** Trocar de idioma TEM de trocar o objeto: e' o que recalcula o que dependia de `t`. */
+  test('cada idioma tem o seu', () => {
+    expect(getTranslation('en')).not.toBe(getTranslation('es'));
+  });
+
+  test('idioma desconhecido cai no portugues', () => {
+    expect(getTranslation('fr')).toBe(getTranslation(DEFAULT_LOCALE));
+  });
+});
+
+describe('o idioma escolhido decide a frase', () => {
+  test('a mesma chave fala tres linguas', () => {
+    expect(translateIn('pt-BR', 'perfil.logout')).toBe('Sair da conta');
+    expect(translateIn('en', 'perfil.logout')).toBe('Sign out');
+    expect(translateIn('es', 'perfil.logout')).toBe('Cerrar sesión');
+  });
+
+  test('o argumento nomeado vale em qualquer idioma', () => {
+    expect(translateIn('en', 'insightCard.forChild', { child: 'Ana' })).toBe('For Ana');
+  });
+
+  test('o formato de data tambem e traducao', () => {
+    expect(translateIn('en', 'common.dateFormats.dayMonth')).toBe('MMM d');
+  });
+
+  /**
+   * Frase que a traducao ainda nao tem cai no portugues, que e' a origem: um
+   * trecho em portugues numa tela em ingles e' feio, a chave crua e' pior.
+   */
+  test('o idioma desconhecido cai no portugues', () => {
+    expect(translateIn('fr', 'perfil.logout')).toBe('Sair da conta');
+  });
+
+  test('chave que nao existe em lingua nenhuma volta crua', () => {
+    expect(translateIn('en', 'boletim.naoExiste')).toBe('boletim.naoExiste');
+  });
+
+  test('o portugues e o padrao fora do React', () => {
+    expect(getTranslation(DEFAULT_LOCALE).t('perfil.logout')).toBe('Sair da conta');
   });
 });

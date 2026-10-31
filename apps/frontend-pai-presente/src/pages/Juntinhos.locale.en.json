@@ -1,0 +1,39 @@
+{
+  "sectionLabel": "Juntinhos",
+  "title": "Special Moments",
+  "subtitle": "Plan activities with your children",
+  "weekDays": {
+    "sunday": "S",
+    "monday": "M",
+    "tuesday": "T",
+    "wednesday": "W",
+    "thursday": "T",
+    "friday": "F",
+    "saturday": "S"
+  },
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "suggest": "Suggest",
+  "newActivity": "New Activity",
+  "activityCount": "{count} activity(ies)",
+  "emptyTitle": "No activities planned",
+  "emptyBody": "Add one or ask for suggestions",
+  "form": {
+    "titleLabel": "Title",
+    "titlePlaceholder": "E.g. Walk in the park",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Activity details...",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
+    "childLabel": "Child",
+    "childPlaceholder": "Select...",
+    "categoryLabel": "Category",
+    "saving": "Saving...",
+    "submit": "Create Activity"
+  },
+  "suggestions": {
+    "title": "Suggestions",
+    "forChild": "For: {child}",
+    "accept": "Add to calendar"
+  }
+}

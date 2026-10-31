@@ -1,5 +1,15 @@
 {
   "brandLogoAlt": "Entrelaços — Pai Presente",
   "brandName": "Entrelaços",
-  "brandTagline": "Pai Presente"
+  "brandTagline": "Pai Presente",
+  "dateFormats": {
+    "dayMonth": "d 'de' MMM",
+    "dayMonthLong": "d 'de' MMMM",
+    "dayMonthTime": "d 'de' MMM 'às' HH:mm",
+    "monthYear": "MMMM yyyy"
+  },
+  "environment": {
+    "local": "Ambiente local — nada aqui é dado de verdade",
+    "staging": "Homologação — nada aqui é dado de verdade"
+  }
 }

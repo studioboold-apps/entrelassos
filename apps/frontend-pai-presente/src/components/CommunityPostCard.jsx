@@ -2,21 +2,16 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Heart, MessageCircle, Send, X } from 'lucide-react';
+import { Heart, MessageCircle, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-
-const categoryConfig = {
-  experiencia: { label: 'Experiência', color: 'text-blue-400 bg-blue-400/10' },
-  dica: { label: 'Dica', color: 'text-emerald-400 bg-emerald-400/10' },
-  duvida: { label: 'Dúvida', color: 'text-yellow-400 bg-yellow-400/10' },
-  conquista: { label: 'Conquista', color: 'text-purple-400 bg-purple-400/10' },
-};
+import { findCommunityCategory } from '@/lib/community-categories';
+import { useTranslation } from '@/lib/i18n';
 
 export default function CommunityPostCard({ post, delay = 0 }) {
+  const { t, dateLocale } = useTranslation();
   const queryClient = useQueryClient();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -48,7 +43,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
     },
   });
 
-  const catConfig = categoryConfig[post.category] || categoryConfig.experiencia;
+  const catConfig = findCommunityCategory(post.category);
 
   const handleComment = () => {
     if (!commentText.trim()) return;
@@ -65,17 +60,17 @@ export default function CommunityPostCard({ post, delay = 0 }) {
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400/20 to-emerald-400/20 border border-blue-400/30 flex items-center justify-center text-blue-400 font-medium">
-          {post.author_name?.[0] || 'P'}
+          {post.author_name?.[0] || t('community.post.fallbackInitial')}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-medium text-white text-sm">{post.author_name}</p>
             <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", catConfig.color)}>
-              {catConfig.label}
+              {t(catConfig.labelKey)}
             </span>
           </div>
           <p className="text-xs text-zinc-500">
-            {format(new Date(post.created_date), "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
+            {format(new Date(post.created_date), t('common.dateFormats.dayMonthTime'), { locale: dateLocale })}
           </p>
         </div>
       </div>
@@ -98,7 +93,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
           className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <MessageCircle className="w-4 h-4" />
-          <span>Comentar</span>
+          <span>{t('community.post.comment')}</span>
         </button>
       </div>
 
@@ -114,7 +109,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
               {comments.map(comment => (
                 <div key={comment.id} className="flex gap-2">
                   <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-zinc-400 flex-shrink-0">
-                    {comment.author_name?.[0] || 'P'}
+                    {comment.author_name?.[0] || t('community.post.fallbackInitial')}
                   </div>
                   <div className="bg-zinc-800/50 rounded-xl px-3 py-2 flex-1">
                     <p className="text-xs font-medium text-zinc-300">{comment.author_name}</p>
@@ -126,12 +121,13 @@ export default function CommunityPostCard({ post, delay = 0 }) {
                 <Input
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Escreva um comentário..."
+                  placeholder={t('community.post.commentPlaceholder')}
                   className="bg-zinc-800 border-zinc-700 text-white text-sm placeholder:text-zinc-600"
                   onKeyDown={(e) => e.key === 'Enter' && handleComment()}
                 />
                 <Button
                   size="icon"
+                  aria-label={t('community.post.sendComment')}
                   onClick={handleComment}
                   disabled={!commentText.trim() || commentMutation.isPending}
                   className="bg-gradient-to-r from-blue-500 to-emerald-400 text-white flex-shrink-0"

@@ -1,0 +1,13 @@
+{
+  "categories": {
+    "comportamento": "Behavior",
+    "sexualidade": "Sexuality",
+    "financeira": "Finances",
+    "saude": "Health"
+  },
+  "refresh": "Refresh",
+  "all": "All Insights",
+  "generating": "Generating insights...",
+  "empty": "No insights available",
+  "needsChildren": "Add your children to receive insights"
+}

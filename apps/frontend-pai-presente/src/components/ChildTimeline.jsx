@@ -23,11 +23,12 @@ function findActivityCategory(category) {
 
 /**
  * O dia sai pelo relogio de quem esta olhando, e nao por um formato cravado no
- * codigo: `2026-09-05` e' o que o banco guarda, nao o que se le.
+ * codigo: `2026-09-05` e' o que o banco guarda, nao o que se le. O idioma e' o
+ * escolhido no app, para a data nao falar outra lingua que a frase em volta.
  */
-function formatDay(day, fallback) {
+function formatDay(day, fallback, locale) {
   const date = toLocalDate(day);
-  return date === undefined ? fallback : date.toLocaleDateString();
+  return date === undefined ? fallback : date.toLocaleDateString(locale);
 }
 
 /**
@@ -37,7 +38,7 @@ function formatDay(day, fallback) {
  * mes, nao de em qual aba a coisa foi guardada.
  */
 export default function ChildTimeline({ entries, onRemoveFile }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   return (
     <div className="space-y-2">
@@ -45,7 +46,7 @@ export default function ChildTimeline({ entries, onRemoveFile }) {
         const isFile = entry.entryKind === TIMELINE_ENTRY_KINDS.FILE;
         const kindOption = isFile ? findChildFileKind(entry.item.kind) : undefined;
         const category = isFile ? undefined : findActivityCategory(entry.item.category);
-        const day = formatDay(entry.day, t('perfil.childFiles.noDate'));
+        const day = formatDay(entry.day, t('perfil.childFiles.noDate'), locale);
 
         return (
           <div key={entry.key} className={ROW_CLASS}>

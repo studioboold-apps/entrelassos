@@ -7,16 +7,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 import { api } from '@/api/client';
 import { describeApiFailure } from '@/lib/api-error-message';
 import { buildActivityPayload, createEmptyActivityForm } from '@/lib/activity-form';
 import { toCalendarDate, toLocalDate } from '@/lib/calendar-date';
+import { useTranslation } from '@/lib/i18n';
 import { toMonthKey } from '@/lib/month';
-
-const MONTH_FORMAT = 'MMMM yyyy';
-const SELECTED_DATE_FORMAT = "d 'de' MMMM";
 
 /**
  * A decisao do calendario mora aqui (`web.md` §4): o mes, o dia escolhido, as
@@ -24,6 +21,7 @@ const SELECTED_DATE_FORMAT = "d 'de' MMMM";
  * montar tela.
  */
 export function useJuntinhos() {
+  const { t, dateLocale } = useTranslation();
   const queryClient = useQueryClient();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -142,8 +140,8 @@ export function useJuntinhos() {
   return {
     currentMonth,
     selectedDate,
-    monthLabel: format(currentMonth, MONTH_FORMAT, { locale: ptBR }),
-    selectedDateLabel: format(selectedDate, SELECTED_DATE_FORMAT, { locale: ptBR }),
+    monthLabel: format(currentMonth, t('common.dateFormats.monthYear'), { locale: dateLocale }),
+    selectedDateLabel: format(selectedDate, t('common.dateFormats.dayMonthLong'), { locale: dateLocale }),
     days,
     daysWithActivities,
     activitiesForSelectedDate,

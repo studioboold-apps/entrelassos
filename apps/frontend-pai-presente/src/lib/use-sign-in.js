@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { loadScript } from './load-script';
+import { findLocale, getLocale } from './locale';
 import { describeCredentialProblems, SIGN_IN_MODES, toCredentials } from './sign-in-form';
 
 /** Identificador de cliente e publico por definicao — nao e segredo. */
@@ -14,16 +15,21 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 const APPLE_CLIENT_ID = import.meta.env.VITE_APPLE_CLIENT_ID ?? '';
 
 const GOOGLE_SCRIPT = 'https://accounts.google.com/gsi/client';
-const APPLE_SCRIPT =
-  'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/pt_BR/appleid.auth.js';
+/**
+ * A Apple serve um script por idioma, e o botao dela fala a lingua da pasta.
+ * O idioma e' lido na hora do clique: e' quando a janela dela abre.
+ */
+function appleScriptFor(locale) {
+  return `https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/${findLocale(locale).appleScriptLocale}/appleid.auth.js`;
+}
 
+/** O idioma do botao do Google entra na hora de desenha-lo (`getLocale()`). */
 const GOOGLE_BUTTON = Object.freeze({
   type: 'standard',
   theme: 'outline',
   size: 'large',
   shape: 'pill',
   text: 'continue_with',
-  locale: 'pt-BR',
   width: 320,
 });
 
@@ -89,7 +95,7 @@ export function useSignIn() {
           callback: ({ credential }) =>
             submitTokenRef.current({ provider: 'google', idToken: credential }),
         });
-        window.google.accounts.id.renderButton(googleButtonRef.current, GOOGLE_BUTTON);
+        window.google.accounts.id.renderButton(googleButtonRef.current, { ...GOOGLE_BUTTON, locale: getLocale() });
       })
       .catch(() => {
         if (isMounted) setError(FAILURE_KEYS.signInKey);
@@ -102,7 +108,7 @@ export function useSignIn() {
 
   const signInWithApple = useCallback(async () => {
     try {
-      await loadScript(APPLE_SCRIPT);
+      await loadScript(appleScriptFor(getLocale()));
       window.AppleID.auth.init({
         clientId: APPLE_CLIENT_ID,
         scope: 'name email',

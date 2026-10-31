@@ -1,0 +1,30 @@
+{
+  "progress": "Paso {current} de {total}",
+  "welcome": {
+    "lead": "Bienvenido al camino de ser un padre presente y consciente.",
+    "body": "Vamos a personalizar tu experiencia para ayudarte en la misión de educar a tus hijos con propósito."
+  },
+  "about": {
+    "title": "Sobre ti",
+    "subtitle": "Cuéntanos un poco sobre ti",
+    "ageLabel": "Tu edad",
+    "agePlaceholder": "Ej: 35"
+  },
+  "preferences": {
+    "title": "Tus preferencias",
+    "subtitle": "Solo lo que la aplicación realmente guarda",
+    "maritalStatusLabel": "Estado Civil",
+    "maritalStatusPlaceholder": "Selecciona..."
+  },
+  "children": {
+    "title": "Tus hijos",
+    "subtitle": "Registra a tus hijos para recibir insights personalizados",
+    "addTitle": "Añadir hijo",
+    "add": "Añadir",
+    "remove": "Quitar hijo"
+  },
+  "saving": "Guardando...",
+  "finish": "Empezar mi camino",
+  "continue": "Continuar",
+  "back": "Volver"
+}

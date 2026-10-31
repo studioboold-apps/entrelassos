@@ -80,5 +80,9 @@
       "childQuota": "O álbum deste filho não tem espaço para este arquivo. Apague algo para abrir espaço.",
       "accountQuota": "Sua conta não tem espaço para este arquivo. Apague algo para abrir espaço."
     }
+  },
+  "languageSection": {
+    "title": "Idioma",
+    "hint": "O app aparece neste idioma neste aparelho."
   }
 }

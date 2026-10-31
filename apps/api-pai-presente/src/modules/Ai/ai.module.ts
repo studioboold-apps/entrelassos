@@ -5,6 +5,8 @@
  */
 
 import type { ActivityRepository } from '../Activity/types/activity.types';
+import type { ChatMessageRepository } from '../ChatMessage/types/chat-message.types';
+import { CHAT_ROLES } from '../shared/shared.constant';
 import type { ChildRepository } from '../Child/types/child.types';
 import type { InsightRatingRepository } from '../InsightRating/types/insight-rating.types';
 import { createRateLimiter } from '../shared/http/rate-limit';
@@ -13,19 +15,24 @@ import { AI_RATE_LIMIT, type LlmProviderName } from './ai.constant';
 import { buildAiRoutes } from './ai.controller';
 import { createAiUseCases } from './ai.use-case';
 import { createLlmProvider } from './providers/provider.factory';
+import { createTranscriber } from './providers/transcription.provider';
 import type {
   ActivityDigestPort,
+  ChatHistoryPort,
   ChildrenContextPort,
   InsightDigestPort,
+  LlmTurn,
 } from './types/ai.types';
 
 export type BuildAiModuleParams = {
   readonly children: ChildRepository;
   readonly activities: ActivityRepository;
   readonly insights: InsightRatingRepository;
+  readonly chatMessages: ChatMessageRepository;
   readonly providerName: LlmProviderName;
   readonly apiKey: string;
   readonly model: string;
+  readonly transcription: { readonly apiKey: string; readonly model: string };
 };
 
 /**
@@ -44,19 +51,37 @@ function adaptInsightDigest(repository: InsightRatingRepository): InsightDigestP
   return { listMonth: (params) => repository.listMonthDigest(params) };
 }
 
+function isChatRole(role: string): role is LlmTurn['role'] {
+  return (CHAT_ROLES as readonly string[]).includes(role);
+}
+
+/** So' papel e texto atravessam: id, data e dono da linha nao interessam a IA. */
+function adaptChatHistory(repository: ChatMessageRepository): ChatHistoryPort {
+  return {
+    listRecent: async (params) => {
+      const rows = await repository.listRecent(params);
+      return rows.flatMap(({ role, content }) => (isChatRole(role) ? [{ role, content }] : []));
+    },
+  };
+}
+
 export function buildAiModule({
   children,
   activities,
   insights,
+  chatMessages,
   providerName,
   apiKey,
   model,
+  transcription,
 }: BuildAiModuleParams): readonly RouteDefinition[] {
   const useCases = createAiUseCases({
     provider: createLlmProvider({ providerName, apiKey, model }),
     children: adaptChildrenContext(children),
     activities: adaptActivityDigest(activities),
     insights: adaptInsightDigest(insights),
+    chatHistory: adaptChatHistory(chatMessages),
+    transcriber: createTranscriber(transcription),
   });
 
   // Um limitador por MODULO, nao por rota: as quatro rotas gastam da mesma

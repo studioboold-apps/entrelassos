@@ -11,6 +11,35 @@ export const INSIGHTS_PATH = '/v1/insights';
 export const ACTIVITY_SUGGESTIONS_PATH = '/v1/activity-suggestions';
 export const REPORT_PATH = '/v1/report';
 export const CHAT_PATH = '/v1/chat';
+export const CHAT_TRANSCRIPTION_PATH = '/v1/chat/transcriptions';
+
+/**
+ * Quantas falas anteriores viajam com a pergunta. Vinte cobrem a conversa do
+ * dia sem transformar cada pergunta numa chamada cara: cada fala tem teto de
+ * `FREE_TEXT_MAX_LENGTH`, entao o pior caso continua limitado.
+ */
+export const CHAT_HISTORY_LIMIT = 20;
+
+/**
+ * Foto no chat. O teto vale para o BASE64, que e' o que o provedor mede. O
+ * app reduz a foto antes de mandar (lado maior em `1568px`, o que o modelo
+ * enxerga sem desperdicio), entao o normal fica muito abaixo disto.
+ */
+export const CHAT_IMAGE_MAX_BASE64_LENGTH = 5 * 1024 * 1024;
+export const CHAT_IMAGE_MAX_COUNT = 3;
+/** So' o que os dois provedores aceitam como imagem. HEIC o app converte antes. */
+export const CHAT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/**
+ * Audio do chat: o pai grava, o servidor transcreve, e o TEXTO volta para a
+ * caixa de pergunta — o audio nao e' guardado em lugar nenhum. Dez megabytes
+ * cobrem alguns minutos de voz em opus/aac.
+ */
+export const CHAT_AUDIO_MAX_BYTES = 10 * 1024 * 1024;
+export const CHAT_AUDIO_FORM_FIELD = 'audio';
+export const TRANSCRIPTION_BASE_URL = 'https://api.openai.com/v1/audio/transcriptions';
+export const DEFAULT_TRANSCRIPTION_MODEL = 'gpt-4o-mini-transcribe';
+export const TRANSCRIPTION_TIMEOUT_MS = 60_000;
 
 /** Um insight por categoria; pedindo UMA categoria, dois dela (Home.jsx). */
 export const INSIGHTS_PER_CATEGORY = 1;

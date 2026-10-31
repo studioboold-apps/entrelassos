@@ -68,6 +68,8 @@ export type BuildApplicationRoutesParams = {
     readonly providerName: LlmProviderName;
     readonly apiKey: string;
     readonly model: string;
+    /** Voz para texto (microfone do chat). Chave vazia so' desliga o microfone. */
+    readonly transcription: { readonly apiKey: string; readonly model: string };
   };
 };
 
@@ -109,6 +111,7 @@ export function buildApplicationRoutes({
   const communityPostRepository = createCommunityPostRepository(database);
   const activityRepository = createActivityRepository(database);
   const insightRatingRepository = createInsightRatingRepository(database);
+  const chatMessageRepository = createChatMessageRepository(database);
 
   return [
     ...buildUserRoutes(
@@ -135,11 +138,12 @@ export function buildApplicationRoutes({
         postExistence: adaptPostExistence(communityPostRepository),
       }),
     ),
-    ...buildChatMessageRoutes(createChatMessageUseCases(createChatMessageRepository(database))),
+    ...buildChatMessageRoutes(createChatMessageUseCases(chatMessageRepository)),
     ...buildAiModule({
       children: childRepository,
       activities: activityRepository,
       insights: insightRatingRepository,
+      chatMessages: chatMessageRepository,
       ...llm,
     }),
   ];

@@ -20,7 +20,9 @@ import { join } from 'node:path';
  */
 const PAGE = readFileSync(join(import.meta.dir, 'Chat.jsx'), 'utf8');
 const HOOK = readFileSync(join(import.meta.dir, 'Chat.hook.js'), 'utf8');
-const SOURCE = `${PAGE}\n${HOOK}`;
+/** A caixa de pergunta saiu para um componente; o aviso de falha mora nela. */
+const COMPOSER = readFileSync(join(import.meta.dir, '../components/ChatComposer.jsx'), 'utf8');
+const SOURCE = `${PAGE}\n${HOOK}\n${COMPOSER}`;
 
 describe('a tela desenha, o hook decide (web.md §4)', () => {
   test('a pagina nao guarda estado nem chama a API', () => {
@@ -75,5 +77,20 @@ describe('a conversa e dado de servidor', () => {
   /** Gravou, a verdade passa a ser a do banco: sem invalidar, a tela e uma copia que envelhece. */
   test('depois de gravar, a tela recarrega o historico', () => {
     expect(SOURCE).toContain('invalidateQueries');
+  });
+});
+
+describe('foto e audio nao viram dado guardado', () => {
+  /**
+   * A foto vai a IA e some; o audio vira texto e some. O que fica na conversa e'
+   * texto — com a marca de foto, para o historico lembrar que ela existiu.
+   */
+  test('o que se grava na conversa e texto, nunca a foto', () => {
+    expect(HOOK).toContain('toStoredContent');
+    expect(HOOK).not.toMatch(/content:\s*attached\.data/);
+  });
+
+  test('o ditado volta para a caixa, e nao e enviado sozinho', () => {
+    expect(HOOK).toContain('appendTranscript');
   });
 });

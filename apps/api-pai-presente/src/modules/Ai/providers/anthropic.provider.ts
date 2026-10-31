@@ -13,7 +13,7 @@ import {
 } from '../ai.constant';
 import { LlmResponseInvalidError } from '../ai.error';
 import type { LlmProvider, LlmStructuredRequest, LlmTextRequest } from '../types/ai.types';
-import { parseProviderPayload, postJson } from './provider.util';
+import { parseProviderPayload, postJson, toAlternatingTurns } from './provider.util';
 
 const textBlockSchema = z.object({ type: z.literal('text'), text: z.string() });
 const toolUseBlockSchema = z.object({ type: z.literal('tool_use'), input: z.unknown() });
@@ -29,12 +29,31 @@ export type AnthropicProviderParams = {
 };
 
 export function createAnthropicProvider({ apiKey, model }: AnthropicProviderParams): LlmProvider {
-  function buildRequest({ systemPrompt, userPrompt }: LlmTextRequest): Record<string, unknown> {
+  function buildRequest({
+    systemPrompt,
+    userPrompt,
+    history = [],
+    images = [],
+  }: LlmTextRequest): Record<string, unknown> {
+    // Imagem antes do texto: e' a ordem em que o modelo melhor as relaciona.
+    const content =
+      images.length === 0
+        ? userPrompt
+        : [
+            ...images.map(({ mediaType, data }) => ({
+              type: 'image',
+              source: { type: 'base64', media_type: mediaType, data },
+            })),
+            { type: 'text', text: userPrompt },
+          ];
     return {
       model,
       max_tokens: LLM_MAX_OUTPUT_TOKENS,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [
+        ...toAlternatingTurns(history).map(({ role, content: text }) => ({ role, content: text })),
+        { role: 'user', content },
+      ],
     };
   }
 

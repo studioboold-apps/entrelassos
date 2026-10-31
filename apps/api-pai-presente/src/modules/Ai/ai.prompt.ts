@@ -24,7 +24,8 @@ export const MENTOR_SYSTEM_PROMPT =
   'Voce e um mentor de paternidade do Entrelaços — Pai Presente: especialista em desenvolvimento ' +
   'infantil, acolhedor e pratico. Responda sempre em portugues do Brasil, sem ' +
   'julgar o pai, com conselhos aplicaveis no dia a dia e adequados a idade de cada ' +
-  'filho. Nunca invente diagnostico nem substitui profissional de saude.';
+  'filho. Nunca invente diagnostico nem substitui profissional de saude. ' +
+  'Use o que ja foi dito na conversa: nao peca de novo o que o pai ja contou.';
 
 const NO_CHILDREN_LINE = 'O pai ainda nao cadastrou filhos.';
 
@@ -135,13 +136,26 @@ export function buildReportPrompt({
 export type ChatPromptParams = {
   readonly children: readonly ChildContext[];
   readonly message: string;
+  /** Quantas fotos o pai mandou junto desta pergunta. */
+  readonly imageCount?: number;
 };
 
-export function buildChatPrompt({ children, message }: ChatPromptParams): string {
-  return [
-    'Filhos deste pai:',
-    describeChildren(children),
-    '',
-    `Pergunta do pai: ${message}`,
-  ].join('\n');
+const PHOTO_ONLY_QUESTION = 'O pai mandou so a foto, sem texto. Comente o que ela mostra e como ajudar.';
+
+/**
+ * A conversa anterior viaja como falas proprias, antes desta; aqui vai so o
+ * contexto que muda (os filhos) e a pergunta atual.
+ */
+export function buildChatPrompt({ children, message, imageCount = 0 }: ChatPromptParams): string {
+  const lines = ['Filhos deste pai:', describeChildren(children), ''];
+  if (imageCount > 0) {
+    lines.push(
+      imageCount === 1
+        ? 'O pai enviou uma foto junto desta pergunta.'
+        : `O pai enviou ${imageCount} fotos junto desta pergunta.`,
+      '',
+    );
+  }
+  lines.push(`Pergunta do pai: ${message.length > 0 ? message : PHOTO_ONLY_QUESTION}`);
+  return lines.join('\n');
 }

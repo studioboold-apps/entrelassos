@@ -4,7 +4,7 @@
  * Licenca: proprietaria.
  */
 
-import { and, asc, count, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
 import { chatMessagesTable, type ChatMessageRow } from './chat-message.table';
@@ -13,6 +13,7 @@ import type {
   CreateChatMessageParams,
   ListChatMessagesParams,
   ListChatMessagesResult,
+  ListRecentChatMessagesParams,
 } from './types/chat-message.types';
 
 export function createChatMessageRepository(database: Database): ChatMessageRepository {
@@ -33,6 +34,26 @@ export function createChatMessageRepository(database: Database): ChatMessageRepo
         database.select({ value: count() }).from(chatMessagesTable).where(where),
       ]);
       return { items, total: totals[0]?.value ?? 0 };
+    },
+
+    /**
+     * As ULTIMAS `limit` falas, devolvidas da mais antiga para a mais recente.
+     * Ordenar ao contrario e cortar no banco evita ler a conversa inteira so'
+     * para jogar fora o comeco dela.
+     */
+    async listRecent({ userId, conversationId, limit }: ListRecentChatMessagesParams): Promise<readonly ChatMessageRow[]> {
+      const rows = await database
+        .select()
+        .from(chatMessagesTable)
+        .where(
+          and(
+            eq(chatMessagesTable.userId, userId),
+            eq(chatMessagesTable.conversationId, conversationId),
+          ),
+        )
+        .orderBy(desc(chatMessagesTable.createdAt))
+        .limit(limit);
+      return rows.reverse();
     },
 
     async insert({ userId, values }: CreateChatMessageParams): Promise<ChatMessageRow> {

@@ -12,7 +12,15 @@ import {
   INSIGHT_CATEGORIES,
   MEDIUM_TEXT_LENGTH,
 } from '../shared/shared.constant';
-import { REPORT_GRADE_MAX, REPORT_GRADE_MIN } from './ai.constant';
+import { uuidSchema } from '../shared/shared.schema';
+import { detectContentType } from '../Media/detect-content-type';
+import {
+  CHAT_IMAGE_MAX_BASE64_LENGTH,
+  CHAT_IMAGE_MAX_COUNT,
+  CHAT_IMAGE_TYPES,
+  REPORT_GRADE_MAX,
+  REPORT_GRADE_MIN,
+} from './ai.constant';
 
 /** `YYYY-MM`: o mes e do calendario, nao um instante com fuso. */
 const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes deve ser YYYY-MM.');
@@ -32,9 +40,40 @@ export const generateReportBodySchema = z.object({
 });
 export type GenerateReportBody = z.infer<typeof generateReportBodySchema>;
 
-export const chatBodySchema = z.object({
-  message: z.string().trim().min(1).max(FREE_TEXT_MAX_LENGTH),
-});
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
+
+/**
+ * O tipo declarado pelo app e' texto do cliente: quem decide sao os BYTES
+ * (`security.md` §3). Foto que diz ser JPEG e e' outra coisa nao chega ao
+ * provedor — e nem gasta a chamada.
+ */
+const chatImageSchema = z
+  .object({
+    mediaType: z.enum(CHAT_IMAGE_TYPES),
+    data: z.string().min(1).max(CHAT_IMAGE_MAX_BASE64_LENGTH).regex(BASE64_PATTERN, 'Imagem deve vir em base64.'),
+  })
+  .superRefine((image, context) => {
+    const detected = detectContentType(Buffer.from(image.data.slice(0, 64), 'base64'));
+    if (detected !== image.mediaType) {
+      context.addIssue({ code: 'custom', path: ['data'], message: 'A imagem nao e do tipo declarado.' });
+    }
+  });
+
+export const chatBodySchema = z
+  .object({
+    /** Pode vir vazia quando o pai so' manda a foto. */
+    message: z.string().trim().max(FREE_TEXT_MAX_LENGTH).default(''),
+    /**
+     * Conversa cujas falas anteriores dao memoria ao mentor. Ausente, vale a
+     * conversa unica do pai (o app usa o id do proprio pai como id dela).
+     */
+    conversationId: uuidSchema.optional(),
+    images: z.array(chatImageSchema).max(CHAT_IMAGE_MAX_COUNT).default([]),
+  })
+  .refine((body) => body.message.length > 0 || body.images.length > 0, {
+    path: ['message'],
+    message: 'Escreva uma pergunta ou envie uma foto.',
+  });
 export type ChatBody = z.infer<typeof chatBodySchema>;
 
 /**

@@ -55,9 +55,25 @@ export type InsightSummary = {
   readonly averageByCategory: ReadonlyMap<string, number>;
 };
 
+/** Uma fala ja dita na conversa, na ordem em que foi dita. */
+export type LlmTurn = {
+  readonly role: 'user' | 'assistant';
+  readonly content: string;
+};
+
+/** Imagem que acompanha a pergunta atual; `data` e' base64 sem prefixo `data:`. */
+export type LlmImage = {
+  readonly mediaType: string;
+  readonly data: string;
+};
+
 export type LlmTextRequest = {
   readonly systemPrompt: string;
   readonly userPrompt: string;
+  /** Falas anteriores da conversa, da mais antiga para a mais recente. */
+  readonly history?: readonly LlmTurn[];
+  /** Imagens da pergunta ATUAL; as de falas antigas nao viajam de novo. */
+  readonly images?: readonly LlmImage[];
 };
 
 export type LlmStructuredRequest = LlmTextRequest & {
@@ -77,9 +93,32 @@ export type LlmProvider = {
   generateStructured(request: LlmStructuredRequest): Promise<unknown>;
 };
 
+export type ChatHistoryParams = {
+  readonly userId: string;
+  readonly conversationId: string;
+  readonly limit: number;
+};
+
+/** Leitura estreita das ultimas falas; o modulo Ai nunca ve a tabela de mensagens. */
+export type ChatHistoryPort = {
+  listRecent(params: ChatHistoryParams): Promise<readonly LlmTurn[]>;
+};
+
+export type TranscriptionRequest = {
+  readonly audio: Uint8Array;
+  readonly format: { readonly contentType: string; readonly extension: string };
+};
+
+/** Voz vira texto. A Anthropic nao ouve audio, entao e' um provedor a parte. */
+export type SpeechTranscriber = {
+  transcribe(request: TranscriptionRequest): Promise<string>;
+};
+
 export type AiDependencies = {
   readonly provider: LlmProvider;
   readonly children: ChildrenContextPort;
+  readonly chatHistory: ChatHistoryPort;
+  readonly transcriber: SpeechTranscriber;
   readonly activities: ActivityDigestPort;
   readonly insights: InsightDigestPort;
 };

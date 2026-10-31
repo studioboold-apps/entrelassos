@@ -9,6 +9,7 @@ import type { z } from 'zod';
 import { createLogger } from '../../shared/logger/logger';
 import { LLM_TIMEOUT_MS } from '../ai.constant';
 import { LlmProviderFailedError, LlmResponseInvalidError } from '../ai.error';
+import type { LlmTurn } from '../types/ai.types';
 
 const logger = createLogger({ traceId: 'ai-provider', source: 'ai-provider' });
 
@@ -50,4 +51,30 @@ export function parseProviderPayload<TSchema extends z.ZodType>(
   const result = schema.safeParse(payload);
   if (!result.success) throw new LlmResponseInvalidError();
   return result.data;
+}
+
+/**
+ * A conversa gravada nem sempre alterna certinho: uma pergunta cuja resposta
+ * falhou deixa duas falas do pai seguidas, e um corte pelo limite pode comecar
+ * numa fala do mentor. Os provedores querem a conversa comecando pelo pai, e a
+ * Anthropic junta falas seguidas do mesmo lado de qualquer jeito — juntar aqui
+ * deixa as duas pontas iguais e o teste enxergando o que vai na rede.
+ *
+ * O resultado termina SEMPRE numa fala do mentor (ou vazio): quem chama poe a
+ * pergunta atual depois.
+ */
+export function toAlternatingTurns(history: readonly LlmTurn[]): readonly LlmTurn[] {
+  const turns: LlmTurn[] = [];
+  for (const turn of history) {
+    if (turn.content.trim().length === 0) continue;
+    if (turns.length === 0 && turn.role !== 'user') continue;
+    const last = turns.at(-1);
+    if (last !== undefined && last.role === turn.role) {
+      turns[turns.length - 1] = { role: turn.role, content: `${last.content}\n\n${turn.content}` };
+    } else {
+      turns.push(turn);
+    }
+  }
+  while (turns.at(-1)?.role === 'user') turns.pop();
+  return turns;
 }

@@ -4,6 +4,8 @@
  * Licenca: proprietaria.
  */
 
+import { getLocale } from '@/lib/locale';
+
 import { HTTP_METHODS, request } from './http';
 
 /**
@@ -38,30 +40,39 @@ function toPageReport(report) {
   };
 }
 
+/**
+ * Todo pedido a IA leva o idioma escolhido no app: a resposta tem de falar a
+ * mesma lingua que a tela em volta dela. E' lido na hora do pedido, nao quando
+ * o modulo carrega, porque o pai pode trocar de idioma no meio da sessao.
+ */
+function withLocale(body) {
+  return { ...body, locale: getLocale() };
+}
+
 export const ai = Object.freeze({
   /** `category` vazio pede insight de todas as categorias. */
   insights: async (category) => {
     const { insights } = await request(HTTP_METHODS.POST, PATHS.insights, {
-      body: category === undefined ? {} : { category },
+      body: withLocale(category === undefined ? {} : { category }),
     });
     return insights;
   },
 
   activitySuggestions: async (month) => {
     const { suggestions } = await request(HTTP_METHODS.POST, PATHS.suggestions, {
-      body: month === undefined ? {} : { month },
+      body: withLocale(month === undefined ? {} : { month }),
     });
     return suggestions;
   },
 
   report: async (month) => {
-    const report = await request(HTTP_METHODS.POST, PATHS.report, { body: { month } });
+    const report = await request(HTTP_METHODS.POST, PATHS.report, { body: withLocale({ month }) });
     return toPageReport(report);
   },
 
   /** Devolve o texto puro: a tela guarda `{ role, content }`, nao um envelope. */
   chat: async (message) => {
-    const { reply } = await request(HTTP_METHODS.POST, PATHS.chat, { body: { message } });
+    const { reply } = await request(HTTP_METHODS.POST, PATHS.chat, { body: withLocale({ message }) });
     return reply;
   },
 });

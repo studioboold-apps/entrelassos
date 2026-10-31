@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '@/api/client';
 import { describeApiFailure } from '@/lib/api-error-message';
+import { useTranslation } from '@/lib/i18n';
 import { withStableIds } from '@/lib/insight-id';
 import { createPageUrl } from '@/utils';
 
@@ -20,6 +21,8 @@ import { createPageUrl } from '@/utils';
  * para exercitar sem montar a tela inteira.
  */
 export function useHome() {
+  /** O idioma entra na chave: trocar de lingua pede insight novo, nao o guardado. */
+  const { locale } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState(null);
@@ -47,7 +50,7 @@ export function useHome() {
    * de aba do navegador gastava dinheiro.
    */
   const insightsQuery = useQuery({
-    queryKey: ['insights', activeCategory],
+    queryKey: ['insights', activeCategory, locale],
     queryFn: async () => withStableIds(await api.ai.insights(activeCategory ?? undefined)),
     enabled: Boolean(user) && children.length > 0,
     staleTime: Infinity,

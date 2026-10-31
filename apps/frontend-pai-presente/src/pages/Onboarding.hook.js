@@ -4,8 +4,8 @@
  * Licenca: proprietaria.
  */
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '@/api/client';
@@ -29,6 +29,12 @@ const EMPTY_CHILD = Object.freeze({
 export function useOnboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => api.auth.me() });
+
+  /** Quem ja concluiu e chega aqui (link, historico) vai para a Home, sem refazer. */
+  useEffect(() => {
+    if (user?.onboarding_completed) navigate(createPageUrl('Home'), { replace: true });
+  }, [user, navigate]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [userData, setUserData] = useState({ age: '', marital_status: '' });
@@ -93,7 +99,11 @@ export function useOnboarding() {
        */
       queryClient.removeQueries({ queryKey: ['currentUser'] });
       queryClient.removeQueries({ queryKey: ['children'] });
-      navigate(createPageUrl('Home'));
+      /**
+       * `replace`: o cadastro concluido sai da pilha. Com `push`, o "voltar"
+       * reabria o formulario ja preenchido e salvo.
+       */
+      navigate(createPageUrl('Home'), { replace: true });
     } catch (error) {
       /**
        * Antes daqui so saia `console.error`: o botao voltava de "Salvando..." e

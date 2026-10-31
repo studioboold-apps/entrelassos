@@ -38,7 +38,15 @@ describe('Onboarding.jsx', () => {
   test('concluir descarta o usuario em cache antes de ir para a Home', () => {
     const removeAt = HOOK.indexOf("removeQueries({ queryKey: ['currentUser'] })");
     expect(removeAt).toBeGreaterThan(-1);
-    expect(removeAt).toBeLessThan(HOOK.indexOf("navigate(createPageUrl('Home'))"));
+    expect(removeAt).toBeLessThan(HOOK.lastIndexOf("navigate(createPageUrl('Home'), { replace: true })"));
+  });
+
+  /** Cadastro concluido sai da pilha: o "voltar" nao reabre o formulario. */
+  test('as idas entre Home e cadastro substituem o historico', () => {
+    const home = readFileSync(join(HERE, 'Home.hook.js'), 'utf8');
+    expect(home).toContain("navigate(createPageUrl('Onboarding'), { replace: true })");
+    expect(HOOK).not.toContain("navigate(createPageUrl('Home'))");
+    expect(HOOK).toContain('user?.onboarding_completed');
   });
 
   /** O aviso da tentativa anterior nao pode sobreviver a tentativa seguinte. */

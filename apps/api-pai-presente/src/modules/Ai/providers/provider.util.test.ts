@@ -42,7 +42,10 @@ function captureBody(reply: unknown): { readonly bodies: Record<string, unknown>
   return { bodies };
 }
 
+const MODELS = { main: 'm', fast: 'f' } as const;
+
 const REQUEST = {
+  task: 'chat',
   systemPrompt: 'sistema',
   userPrompt: 'pergunta',
   history: [
@@ -56,7 +59,7 @@ describe('formato na rede', () => {
   test('anthropic: historico antes, foto como bloco de imagem antes do texto', async () => {
     const { bodies } = captureBody({ content: [{ type: 'text', text: 'ok' }] });
 
-    await createAnthropicProvider({ apiKey: 'k', model: 'm' }).generateText(REQUEST);
+    await createAnthropicProvider({ apiKey: 'k', models: MODELS }).generateText(REQUEST);
 
     expect(bodies[0]?.messages).toEqual([
       { role: 'user', content: 'antes' },
@@ -74,7 +77,7 @@ describe('formato na rede', () => {
   test('openai: foto vira data URL', async () => {
     const { bodies } = captureBody({ choices: [{ message: { content: 'ok' } }] });
 
-    await createOpenAiProvider({ apiKey: 'k', model: 'm' }).generateText(REQUEST);
+    await createOpenAiProvider({ apiKey: 'k', models: MODELS }).generateText(REQUEST);
 
     const messages = bodies[0]?.messages as readonly Record<string, unknown>[];
     expect(messages).toHaveLength(4);
@@ -90,7 +93,8 @@ describe('formato na rede', () => {
   test('sem historico nem foto, a pergunta segue como texto puro', async () => {
     const { bodies } = captureBody({ content: [{ type: 'text', text: 'ok' }] });
 
-    await createAnthropicProvider({ apiKey: 'k', model: 'm' }).generateText({
+    await createAnthropicProvider({ apiKey: 'k', models: MODELS }).generateText({
+      task: 'chat',
       systemPrompt: 's',
       userPrompt: 'p',
     });

@@ -68,6 +68,8 @@ export type BuildApplicationRoutesParams = {
     readonly providerName: LlmProviderName;
     readonly apiKey: string;
     readonly model: string;
+    /** Faixa barata (insights e sugestoes); vazia cai no padrao do provedor. */
+    readonly modelFast?: string;
     /** Voz para texto (microfone do chat). Chave vazia so' desliga o microfone. */
     readonly transcription: { readonly apiKey: string; readonly model: string };
   };

@@ -63,7 +63,16 @@ function createFakeChildRepository(rows: ChildRow[]): ChildRepository {
     listContext: async (userId) =>
       rows
         .filter((row) => row.userId === userId)
-        .map(({ name, age, gender }) => ({ name, age, gender })),
+        .map(({ name, age, gender, birthDate, favoriteHobby, favoriteFood, favoriteMovieGenre, favoriteColor }) => ({
+          name,
+          age,
+          gender,
+          birthDate,
+          favoriteHobby,
+          favoriteFood,
+          favoriteMovieGenre,
+          favoriteColor,
+        })),
     insert: async (row) => {
       const created = buildChildRow({
         ...buildIdentity(CREATED_ID),

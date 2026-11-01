@@ -172,6 +172,11 @@ export default defineRailway(() => {
        * para as respostas curtas do app. Trocar de modelo e' trocar esta linha.
        */
       LLM_MODEL: 'claude-haiku-5-5',
+      /**
+       * Insights e sugestoes. O chat e o boletim usam o `LLM_MODEL` acima.
+       * Haiku nas duas faixas, confirmado pelo dono em 01/11/2026.
+       */
+      LLM_MODEL_FAST: 'claude-haiku-5-5',
       LLM_API_KEY: preserve(),
       /**
        * Chave do Groq so' para o microfone do chat, usada pelo pacote da casa

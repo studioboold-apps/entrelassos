@@ -9,7 +9,7 @@ import { describe, expect, test } from 'bun:test';
 import { LlmNotConfiguredError } from '../ai.error';
 import { createLlmProvider } from './provider.factory';
 
-const REQUEST = { systemPrompt: 'sistema', userPrompt: 'pergunta' };
+const REQUEST = { task: 'chat', systemPrompt: 'sistema', userPrompt: 'pergunta' } as const;
 
 describe('fabrica de provedor de IA', () => {
   /**

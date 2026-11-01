@@ -70,8 +70,10 @@ const aiShape = {
    * e o resto do produto sobe. Exigir aqui matava a API inteira no boot.
    */
   LLM_API_KEY: z.string().default(''),
-  /** Vazio usa o modelo padrao do provedor (`DEFAULT_MODELS`). */
+  /** Modelo do chat e do boletim. Vazio usa o padrao do provedor (`DEFAULT_MODELS`). */
   LLM_MODEL: z.string().default(''),
+  /** Modelo barato de insights e sugestoes. Vazio usa o padrao do provedor. */
+  LLM_MODEL_FAST: z.string().default(''),
   /**
    * Chave do Groq para transcrever o audio do chat pelo pacote da casa
    * (`@adatechnology/audio-transcription-provider`) — a Anthropic nao ouve

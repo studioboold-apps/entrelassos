@@ -44,11 +44,21 @@ export type CreateChildParams = {
   readonly values: CreateChildBody;
 };
 
-/** O que o prompt precisa saber de um filho — nem hobby, nem cor, nem data. */
+/**
+ * O que o prompt precisa saber de um filho. Os gostos entram porque deixam o
+ * conselho concreto ("use os dinossauros de que ele gosta") e nao sao dado
+ * sensivel (LGPD art. 11). A data de nascimento NAO viaja ao provedor: o modulo
+ * Ai a transforma em idade em meses antes de montar o prompt.
+ */
 export type ChildContextRow = {
   readonly name: string;
   readonly age: number;
   readonly gender: string;
+  readonly birthDate: string | null;
+  readonly favoriteHobby: string | null;
+  readonly favoriteFood: string | null;
+  readonly favoriteMovieGenre: string | null;
+  readonly favoriteColor: string | null;
 };
 
 export type ChildRepository = {

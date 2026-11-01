@@ -44,6 +44,7 @@ const router = createRouter({
       providerName: environment.LLM_PROVIDER,
       apiKey: environment.LLM_API_KEY,
       model: environment.LLM_MODEL,
+      modelFast: environment.LLM_MODEL_FAST,
       transcription: {
         apiKey: environment.TRANSCRIPTION_GROQ_API_KEY,
         model: environment.TRANSCRIPTION_MODEL,

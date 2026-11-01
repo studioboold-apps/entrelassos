@@ -81,6 +81,7 @@ const PROMPTS: readonly (readonly [string, string])[] = [
       month: '2026-09',
       activities: summarizeActivities([]),
       insights: summarizeInsights([]),
+      grade: 0,
     }),
   ],
   ['conversa', buildChatPrompt({ children: CHILDREN, message: 'como ajudo na escola?' })],

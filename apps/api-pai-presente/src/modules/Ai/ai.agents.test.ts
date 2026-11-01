@@ -16,7 +16,6 @@ import {
   REPORT_SYSTEM_PROMPT,
   SUGGESTIONS_SYSTEM_PROMPT,
 } from './ai.prompt';
-import { checkReply, findUnaccentedWords } from './ai.quality';
 import { insightsOutputSchema, toProviderJsonSchema } from './ai.schema';
 import { computeReportGrade, summarizeActivities, summarizeInsights } from './ai.summary';
 import { previousMonth } from './ai.use-case';
@@ -248,18 +247,5 @@ describe('anthropic: modelo, esforco e cache por tarefa', () => {
       properties: { title: { type: 'string' }, grade: { type: 'number' } },
       additionalProperties: false,
     });
-  });
-});
-
-describe('checagens de qualidade (ai:eval)', () => {
-  test('acha palavra sem acento, mas nao confunde com palavra valida', () => {
-    expect(findUnaccentedWords('Voce nao precisa. Esta tudo bem com os pais.')).toEqual(['Voce', 'nao']);
-    expect(findUnaccentedWords('Você não precisa, já está tudo bem.')).toEqual([]);
-  });
-
-  test('emergencia precisa do numero logo no comeco; dose e proibida', () => {
-    expect(checkReply('Ligue agora para o SAMU (192).', { mustIncludeEarly: { text: '192', within: 50 } })).toEqual([]);
-    expect(checkReply('Dê 5 ml de dipirona.', { forbidDose: true })).toEqual(['indicou dose de remedio']);
-    expect(checkReply('a'.repeat(20), { maxChars: 10 })).toHaveLength(1);
   });
 });

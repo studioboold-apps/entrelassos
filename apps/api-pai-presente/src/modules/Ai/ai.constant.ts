@@ -72,6 +72,14 @@ export const SEASONS_BY_MONTH = [
 ] as const;
 
 export const LLM_TIMEOUT_MS = 60_000;
+
+/**
+ * Busca na web das sugestoes da regiao: e' um extra. Se demorar mais que isto
+ * ou falhar, a sugestao sai sem ela, como antes.
+ */
+export const WEB_SEARCH_TIMEOUT_MS = 35_000;
+export const WEB_SEARCH_MAX_USES = 3;
+export const ANTHROPIC_WEB_SEARCH_TOOL = 'web_search_20250305';
 export const LLM_MAX_OUTPUT_TOKENS = 2048;
 
 export const ANTHROPIC_BASE_URL = 'https://api.anthropic.com/v1/messages';

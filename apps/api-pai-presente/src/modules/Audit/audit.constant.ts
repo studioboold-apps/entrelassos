@@ -39,6 +39,13 @@ export const AUDIT_ACTIONS = {
    */
   CHILD_CONSENT_GRANTED: 'child_consent_granted',
   CHILD_CONSENT_REVOKED: 'child_consent_revoked',
+  /**
+   * Religiao, politica e orientacao sexual sao dado sensivel (art. 11). Gravar
+   * so' acontece com o aceite marcado, entao `SAVED` e' tambem a trilha do
+   * consentimento; `DELETED` e' a retirada dele.
+   */
+  FAMILY_VALUES_SAVED: 'family_values_saved',
+  FAMILY_VALUES_DELETED: 'family_values_deleted',
 } as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
@@ -46,5 +53,6 @@ export const AUDIT_TARGET_TYPES = {
   ACCOUNT: 'account',
   CHILD_FILE: 'child_file',
   CHILD_CONSENT: 'child_consent',
+  FAMILY_VALUES: 'family_values',
 } as const;
 export type AuditTargetType = (typeof AUDIT_TARGET_TYPES)[keyof typeof AUDIT_TARGET_TYPES];

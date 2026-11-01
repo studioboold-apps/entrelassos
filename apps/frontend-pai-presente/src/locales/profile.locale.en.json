@@ -90,5 +90,23 @@
         "hint": "Optional. It helps suggest activities that fit."
       }
     }
+  },
+  "familyValues": {
+    "title": "Family values",
+    "edit": "Edit family values",
+    "intro": "Optional and private. If you want, share your religion, political views and sexual orientation so the AI can guide you in your family's way. No one else sees it.",
+    "dialogIntro": "Everything here is optional: leave blank what you'd rather not say. Type your own or tap a suggestion.",
+    "start": "Share family values",
+    "notInformed": "Prefer not to say",
+    "placeholder": "Type or pick below",
+    "sameAs": "Will be saved as “{option}”, which already exists.",
+    "consent": "I allow Entrelaços to store this sensitive data (LGPD, art. 11) only to personalize the AI's guidance. I can delete it at any time.",
+    "save": "Save",
+    "remove": "Delete my values",
+    "fields": {
+      "religion": "Religion or belief",
+      "politics": "Political views",
+      "orientation": "Sexual orientation"
+    }
   }
 }

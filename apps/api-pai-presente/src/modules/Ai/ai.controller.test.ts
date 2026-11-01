@@ -242,6 +242,53 @@ describe('rotas de IA', () => {
     expect(provider.prompts).toHaveLength(0);
   });
 
+  test('com cidade, a busca na web entra no prompt das sugestoes', async () => {
+    const provider = createFakeProvider({ suggestions: [] });
+    const searches: string[] = [];
+    const searching = {
+      ...provider,
+      async searchWeb({ userPrompt }: { userPrompt: string }) {
+        searches.push(userPrompt);
+        return 'Teatro infantil no Sesc Franca, sábado 15h';
+      },
+    };
+    const useCases = createAiUseCases({
+      provider: searching,
+      children: { listByUser: async () => [CHILD] },
+      activities: { listMonth: async () => [] },
+      insights: { listMonth: async () => [] },
+      chatHistory: { listRecent: async () => [] },
+      transcriber: createTranscriber({ apiKey: '', model: '' }),
+      region: { findCity: async () => 'Franca, SP' },
+    });
+
+    await useCases.suggestActivities({ userId: 'u', values: {} });
+
+    expect(searches[0]).toContain('Franca, SP');
+    expect(provider.prompts[0]).toContain('Teatro infantil no Sesc Franca');
+  });
+
+  test('busca na web que falha nao derruba a sugestao', async () => {
+    const provider = createFakeProvider({ suggestions: [] });
+    const useCases = createAiUseCases({
+      provider: {
+        ...provider,
+        async searchWeb() {
+          throw new Error('busca fora do ar');
+        },
+      },
+      children: { listByUser: async () => [CHILD] },
+      activities: { listMonth: async () => [] },
+      insights: { listMonth: async () => [] },
+      chatHistory: { listRecent: async () => [] },
+      transcriber: createTranscriber({ apiKey: '', model: '' }),
+      region: { findCity: async () => 'Franca, SP' },
+    });
+
+    expect(await useCases.suggestActivities({ userId: 'u', values: {} })).toEqual([]);
+    expect(provider.prompts[0]).toContain('Franca, SP');
+  });
+
   test('estourar o teto devolve 429 COM Retry-After', async () => {
     const provider = createFakeProvider({ suggestions: [] });
     const client = createHarness({ provider, policy: { maxRequests: 2, windowSeconds: 60 } });

@@ -10,9 +10,11 @@ import { AudioInvalidError, NoChildrenRegisteredError, SuggestionChildNotFoundEr
 import {
   buildChatPrompt,
   buildInsightsPrompt,
+  buildLocalSearchPrompt,
   buildReportPrompt,
   buildSuggestionsPrompt,
   MENTOR_SYSTEM_PROMPT,
+  withFamilyValues,
 } from './ai.prompt';
 import {
   insightsOutputSchema,
@@ -30,6 +32,13 @@ import {
 import { parseProviderPayload } from './providers/provider.util';
 import { summarizeActivities, summarizeInsights } from './ai.summary';
 import { CHAT_HISTORY_LIMIT } from './ai.constant';
+import { createLogger } from '../shared/logger/logger';
+
+const logger = createLogger({ traceId: 'ai-suggestions', source: 'ai-suggestions' });
+
+/** A busca so' junta fatos; quem escreve com a voz do mentor e' a chamada seguinte. */
+const LOCAL_SEARCH_SYSTEM_PROMPT =
+  'Você pesquisa programação local para famílias no Brasil e responde em português, de forma breve e factual.';
 import type { AiDependencies, ChildContext, LlmTurn } from './types/ai.types';
 
 /**
@@ -85,7 +94,37 @@ export function createAiUseCases({
   chatHistory,
   transcriber,
   region,
+  familyValues,
 }: AiDependencies): AiUseCases {
+  /**
+   * Programas reais da cidade, pela busca na web do provedor. E' um extra: sem
+   * cidade, sem busca no provedor, ou com a busca falhando, a sugestao sai como
+   * antes — o pai nao perde a sugestao porque a agenda da cidade nao veio.
+   */
+  async function searchLocalPrograms(params: {
+    readonly children: readonly ChildContext[];
+    readonly month: string;
+    readonly city: string | undefined;
+  }): Promise<string | undefined> {
+    if (params.city === undefined || params.city.trim() === '' || provider.searchWeb === undefined) return undefined;
+    try {
+      const found = await provider.searchWeb({
+        systemPrompt: LOCAL_SEARCH_SYSTEM_PROMPT,
+        userPrompt: buildLocalSearchPrompt(params),
+        city: params.city,
+      });
+      return /nada encontrado/i.test(found) ? undefined : found;
+    } catch {
+      logger.warn('busca na web das sugestoes falhou; seguindo sem ela');
+      return undefined;
+    }
+  }
+
+  /** O mentor de sempre, mais os valores que ESTE pai escolheu informar. */
+  async function mentorPromptFor(userId: string): Promise<string> {
+    return withFamilyValues(MENTOR_SYSTEM_PROMPT, await familyValues?.findMine(userId));
+  }
+
   async function requireChildren(userId: string): Promise<readonly ChildContext[]> {
     const registered = await children.listByUser(userId);
     if (registered.length === 0) throw new NoChildrenRegisteredError();
@@ -96,7 +135,7 @@ export function createAiUseCases({
     async generateInsights({ userId, values }) {
       const registered = await requireChildren(userId);
       const raw = await provider.generateStructured({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: await mentorPromptFor(userId),
         userPrompt: buildInsightsPrompt({ children: registered, category: values.category }),
         schemaName: 'insights',
         jsonSchema: toProviderJsonSchema(insightsOutputSchema),
@@ -109,9 +148,10 @@ export function createAiUseCases({
       const [registered, city] = await Promise.all([requireChildren(userId), region?.findCity(userId)]);
       const month = values.month ?? formatMonth(new Date());
       const chosen = pickChildren(registered, values.childId);
+      const localFindings = await searchLocalPrograms({ children: chosen, month, city });
       const raw = await provider.generateStructured({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
-        userPrompt: buildSuggestionsPrompt({ children: chosen, month, city }),
+        systemPrompt: await mentorPromptFor(userId),
+        userPrompt: buildSuggestionsPrompt({ children: chosen, month, city, localFindings }),
         schemaName: 'suggestions',
         jsonSchema: toProviderJsonSchema(suggestionsOutputSchema),
       });
@@ -126,7 +166,7 @@ export function createAiUseCases({
         insights.listMonth({ userId, month }),
       ]);
       const raw = await provider.generateStructured({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: await mentorPromptFor(userId),
         userPrompt: buildReportPrompt({
           children: registered,
           month,
@@ -150,7 +190,7 @@ export function createAiUseCases({
         }),
       ]);
       const reply = await provider.generateText({
-        systemPrompt: MENTOR_SYSTEM_PROMPT,
+        systemPrompt: await mentorPromptFor(userId),
         userPrompt: buildChatPrompt({
           children: registered,
           message: values.message,

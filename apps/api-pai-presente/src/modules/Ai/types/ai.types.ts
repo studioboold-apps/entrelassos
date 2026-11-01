@@ -39,6 +39,17 @@ export type ChildContext = {
   readonly gender: string;
 };
 
+/** O que o pai escolheu informar, com aceite do art. 11. `null` e' "prefiro nao dizer". */
+export type FamilyValuesContext = {
+  readonly religion: string | null;
+  readonly politics: string | null;
+  readonly orientation: string | null;
+};
+
+export type FamilyValuesPort = {
+  findMine(userId: string): Promise<FamilyValuesContext>;
+};
+
 /** Cidade que o pai escreveu no perfil; base das sugestoes da regiao. */
 export type ParentRegionPort = {
   findCity(userId: string): Promise<string | undefined>;
@@ -94,10 +105,19 @@ export type LlmStructuredRequest = LlmTextRequest & {
  * JSON Schema pedido. Confiar na palavra do provedor foi como a Base44 servia
  * tela quebrada quando o modelo respondia fora do formato.
  */
+export type LlmWebSearchRequest = {
+  readonly systemPrompt: string;
+  readonly userPrompt: string;
+  /** Cidade do pai, para a busca priorizar resultados de la'. */
+  readonly city?: string | undefined;
+};
+
 export type LlmProvider = {
   readonly name: LlmProviderName;
   generateText(request: LlmTextRequest): Promise<string>;
   generateStructured(request: LlmStructuredRequest): Promise<unknown>;
+  /** Opcional: so' o provedor que tem busca na web implementa. */
+  searchWeb?(request: LlmWebSearchRequest): Promise<string>;
 };
 
 export type ChatHistoryParams = {
@@ -130,4 +150,6 @@ export type AiDependencies = {
   readonly insights: InsightDigestPort;
   /** Opcional: sem ela, as sugestoes saem sem regiao, como antes. */
   readonly region?: ParentRegionPort;
+  /** Opcional: sem ela, a IA responde sem os valores da familia, como antes. */
+  readonly familyValues?: FamilyValuesPort;
 };

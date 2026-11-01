@@ -9,10 +9,13 @@ import { z } from 'zod';
 import {
   ANTHROPIC_API_VERSION,
   ANTHROPIC_BASE_URL,
+  ANTHROPIC_WEB_SEARCH_TOOL,
   LLM_MAX_OUTPUT_TOKENS,
+  WEB_SEARCH_MAX_USES,
+  WEB_SEARCH_TIMEOUT_MS,
 } from '../ai.constant';
 import { LlmResponseInvalidError } from '../ai.error';
-import type { LlmProvider, LlmStructuredRequest, LlmTextRequest } from '../types/ai.types';
+import type { LlmProvider, LlmStructuredRequest, LlmTextRequest, LlmWebSearchRequest } from '../types/ai.types';
 import { parseProviderPayload, postJson, toAlternatingTurns } from './provider.util';
 
 const textBlockSchema = z.object({ type: z.literal('text'), text: z.string() });
@@ -57,26 +60,65 @@ export function createAnthropicProvider({ apiKey, model }: AnthropicProviderPara
     };
   }
 
-  async function send(body: Record<string, unknown>): Promise<z.infer<typeof messageSchema>> {
+  async function send(
+    body: Record<string, unknown>,
+    timeoutMs?: number,
+  ): Promise<z.infer<typeof messageSchema>> {
     const payload = await postJson({
       url: ANTHROPIC_BASE_URL,
       headers: { 'x-api-key': apiKey, 'anthropic-version': ANTHROPIC_API_VERSION },
       body,
+      ...(timeoutMs === undefined ? {} : { timeoutMs }),
     });
     return parseProviderPayload(messageSchema, payload);
+  }
+
+  function joinText(message: z.infer<typeof messageSchema>): string {
+    return message.content
+      .filter((block): block is z.infer<typeof textBlockSchema> => block.type === 'text')
+      .map((block) => block.text)
+      .join('');
   }
 
   return {
     name: 'anthropic',
 
     async generateText(request: LlmTextRequest): Promise<string> {
-      const message = await send(buildRequest(request));
-      const text = message.content
-        .filter((block): block is z.infer<typeof textBlockSchema> => block.type === 'text')
-        .map((block) => block.text)
-        .join('');
+      const text = joinText(await send(buildRequest(request)));
       if (text.length === 0) throw new LlmResponseInvalidError();
       return text;
+    },
+
+    /**
+     * Pedido do design: sugestao com programa REAL da cidade. A busca e' a
+     * ferramenta de servidor da Anthropic (quem busca e le as paginas e' ela);
+     * aqui so' sai o texto final, com o que foi achado.
+     */
+    async searchWeb({ systemPrompt, userPrompt, city }: LlmWebSearchRequest): Promise<string> {
+      const message = await send(
+        {
+          ...buildRequest({ systemPrompt, userPrompt }),
+          tools: [
+            {
+              type: ANTHROPIC_WEB_SEARCH_TOOL,
+              name: 'web_search',
+              max_uses: WEB_SEARCH_MAX_USES,
+              ...(city === undefined
+                ? {}
+                : {
+                    user_location: {
+                      type: 'approximate',
+                      city,
+                      country: 'BR',
+                      timezone: 'America/Sao_Paulo',
+                    },
+                  }),
+            },
+          ],
+        },
+        WEB_SEARCH_TIMEOUT_MS,
+      );
+      return joinText(message);
     },
 
     /**

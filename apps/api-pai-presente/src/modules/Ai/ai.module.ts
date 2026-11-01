@@ -21,6 +21,7 @@ import type {
   ActivityDigestPort,
   ChatHistoryPort,
   ChildrenContextPort,
+  FamilyValuesPort,
   InsightDigestPort,
   LlmTurn,
   ParentRegionPort,
@@ -32,6 +33,7 @@ export type BuildAiModuleParams = {
   readonly insights: InsightRatingRepository;
   readonly chatMessages: ChatMessageRepository;
   readonly users: UserRepository;
+  readonly familyValues?: FamilyValuesPort;
   readonly providerName: LlmProviderName;
   readonly apiKey: string;
   readonly model: string;
@@ -80,6 +82,7 @@ export function buildAiModule({
   insights,
   chatMessages,
   users,
+  familyValues,
   providerName,
   apiKey,
   model,
@@ -93,6 +96,7 @@ export function buildAiModule({
     chatHistory: adaptChatHistory(chatMessages),
     transcriber: createTranscriber(transcription),
     region: adaptParentRegion(users),
+    ...(familyValues === undefined ? {} : { familyValues }),
   });
 
   // Um limitador por MODULO, nao por rota: as quatro rotas gastam da mesma

@@ -90,5 +90,23 @@
         "hint": "Opcional. Ajuda a sugerir atividades com a cara dele."
       }
     }
+  },
+  "familyValues": {
+    "title": "Valores da família",
+    "edit": "Editar valores da família",
+    "intro": "Opcional e privado. Se quiser, conte sua religião, posicionamento político e orientação sexual para a IA orientar do jeito da sua família. Ninguém mais vê.",
+    "dialogIntro": "Tudo aqui é opcional: deixe em branco o que preferir não dizer. Escreva do seu jeito ou toque numa sugestão.",
+    "start": "Contar valores da família",
+    "notInformed": "Prefiro não dizer",
+    "placeholder": "Escreva ou escolha abaixo",
+    "sameAs": "Vai ser salvo como “{option}”, que já existe.",
+    "consent": "Autorizo o Entrelaços a guardar esses dados sensíveis (LGPD, art. 11) só para personalizar as orientações da IA. Posso apagar a qualquer momento.",
+    "save": "Salvar",
+    "remove": "Apagar meus valores",
+    "fields": {
+      "religion": "Religião ou crença",
+      "politics": "Posicionamento político",
+      "orientation": "Orientação sexual"
+    }
   }
 }

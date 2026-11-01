@@ -12,10 +12,26 @@ import {
   buildSuggestionsPrompt,
   MENTOR_SYSTEM_PROMPT,
   WRITING_RULES,
+  withFamilyValues,
 } from './ai.prompt';
 import { summarizeActivities, summarizeInsights } from './ai.summary';
 
 const CHILDREN = [{ name: 'Maria', age: 10, gender: 'feminino' }];
+
+describe('valores da familia no sistema', () => {
+  test('sem valores informados, o prompt e o de sempre', () => {
+    expect(withFamilyValues('BASE', undefined)).toBe('BASE');
+    expect(withFamilyValues('BASE', { religion: null, politics: null, orientation: null })).toBe('BASE');
+  });
+
+  test('so o que o pai informou entra, com a regra de respeitar sem julgar', () => {
+    const prompt = withFamilyValues('BASE', { religion: 'Espírita', politics: null, orientation: 'Gay' });
+    expect(prompt).toContain('Espírita');
+    expect(prompt).toContain('Gay');
+    expect(prompt).not.toContain('Posicionamento político');
+    expect(prompt).toContain('sem julgar');
+  });
+});
 
 describe('ortografia — o modelo imita a escrita do prompt', () => {
   test('o system prompt do mentor e acentuado e pede acentuacao', () => {

@@ -14,6 +14,7 @@ import { buildMonthRange } from '../shared/date.util';
 import type {
   ActivityMonthDigestParams,
   ActivityMonthDigestRow,
+  ActivityRecentDigestParams,
   ActivityRepository,
   ActivityView,
   FindActivityParams,
@@ -21,6 +22,14 @@ import type {
   ListActivitiesResult,
   UpdateActivityParams,
 } from './types/activity.types';
+
+/** As mesmas colunas para o mes e para as recentes: o modulo Ai le um formato so'. */
+const DIGEST_COLUMNS = {
+  title: activitiesTable.title,
+  category: activitiesTable.category,
+  isCompleted: activitiesTable.isCompleted,
+  rating: activitiesTable.rating,
+};
 
 type JoinedRow = {
   readonly activity: typeof activitiesTable.$inferSelect;
@@ -97,11 +106,7 @@ export function createActivityRepository(database: Database): ActivityRepository
     }: ActivityMonthDigestParams): Promise<readonly ActivityMonthDigestRow[]> {
       const { firstDay, lastDay } = buildMonthRange(month);
       return database
-        .select({
-          category: activitiesTable.category,
-          isCompleted: activitiesTable.isCompleted,
-          rating: activitiesTable.rating,
-        })
+        .select(DIGEST_COLUMNS)
         .from(activitiesTable)
         .where(
           and(
@@ -110,6 +115,18 @@ export function createActivityRepository(database: Database): ActivityRepository
             lte(activitiesTable.activityDate, lastDay),
           ),
         );
+    },
+
+    async listRecentDigest({
+      userId,
+      limit,
+    }: ActivityRecentDigestParams): Promise<readonly ActivityMonthDigestRow[]> {
+      return database
+        .select(DIGEST_COLUMNS)
+        .from(activitiesTable)
+        .where(eq(activitiesTable.userId, userId))
+        .orderBy(desc(activitiesTable.activityDate))
+        .limit(limit);
     },
 
     async remove({ activityId, userId }: FindActivityParams): Promise<boolean> {

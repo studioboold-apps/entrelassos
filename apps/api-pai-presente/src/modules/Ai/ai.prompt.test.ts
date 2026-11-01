@@ -11,6 +11,7 @@ import {
   buildReportPrompt,
   buildSuggestionsPrompt,
   MENTOR_SYSTEM_PROMPT,
+  REPORT_SYSTEM_PROMPT,
   WRITING_RULES,
 } from './ai.prompt';
 import { summarizeActivities, summarizeInsights } from './ai.summary';
@@ -19,7 +20,7 @@ const CHILDREN = [{ name: 'Maria', age: 10, gender: 'feminino' }];
 
 describe('ortografia — o modelo imita a escrita do prompt', () => {
   test('o system prompt do mentor e acentuado e pede acentuacao', () => {
-    expect(MENTOR_SYSTEM_PROMPT).toContain('Você é um mentor');
+    expect(MENTOR_SYSTEM_PROMPT).toContain('Você é o mentor');
     expect(MENTOR_SYSTEM_PROMPT).toContain(WRITING_RULES);
   });
 
@@ -29,17 +30,18 @@ describe('ortografia — o modelo imita a escrita do prompt', () => {
       month: '2026-11',
       activities: summarizeActivities([]),
       insights: summarizeInsights([]),
+      grade: 0,
     });
     expect(prompt).toContain('Números do mês');
-    expect(prompt).toContain(WRITING_RULES);
+    expect(REPORT_SYSTEM_PROMPT).toContain(WRITING_RULES);
     expect(prompt).not.toContain('Numeros do mes');
   });
 });
 
 describe('conversa — resposta curta primeiro', () => {
-  test('o prompt da conversa pede resumo e no maximo 4 topicos', () => {
+  test('o mentor pede resumo e no maximo 4 topicos, no system prompt (vale para a conversa toda)', () => {
+    expect(MENTOR_SYSTEM_PROMPT).toContain('no máximo 4 tópicos');
     const prompt = buildChatPrompt({ children: CHILDREN, message: 'como ajudo?' });
-    expect(prompt).toContain('no máximo 4 tópicos');
     expect(prompt.endsWith('Pergunta do pai: como ajudo?')).toBe(true);
   });
 });

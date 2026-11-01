@@ -4,7 +4,7 @@
  * Licenca: proprietaria.
  */
 
-import { DEFAULT_MODELS, type LlmProviderName } from '../ai.constant';
+import { DEFAULT_MODELS, type LlmProviderName, type LlmTier } from '../ai.constant';
 import { LlmNotConfiguredError } from '../ai.error';
 import type { LlmProvider } from '../types/ai.types';
 import { createAnthropicProvider } from './anthropic.provider';
@@ -13,14 +13,19 @@ import { createOpenAiProvider } from './openai.provider';
 export type CreateLlmProviderParams = {
   readonly providerName: LlmProviderName;
   readonly apiKey: string;
-  /** Vazio cai no modelo padrao do provedor; o nome do modelo muda mais que o codigo. */
+  /** Faixa principal (chat e boletim). Vazio cai no padrao do provedor. */
   readonly model: string;
+  /** Faixa barata (insights e sugestoes). Vazio cai no padrao do provedor. */
+  readonly modelFast?: string;
 };
 
 const BUILDERS = {
   anthropic: createAnthropicProvider,
   openai: createOpenAiProvider,
-} as const satisfies Record<LlmProviderName, (params: { apiKey: string; model: string }) => LlmProvider>;
+} as const satisfies Record<
+  LlmProviderName,
+  (params: { apiKey: string; models: Readonly<Record<LlmTier, string>> }) => LlmProvider
+>;
 
 /**
  * Sem chave, ninguem chama a rede: a chamada sairia com credencial vazia e
@@ -40,11 +45,16 @@ export function createLlmProvider({
   providerName,
   apiKey,
   model,
+  modelFast = '',
 }: CreateLlmProviderParams): LlmProvider {
   if (apiKey.length === 0) return createUnconfiguredProvider(providerName);
 
+  const defaults = DEFAULT_MODELS[providerName];
   return BUILDERS[providerName]({
     apiKey,
-    model: model.length > 0 ? model : DEFAULT_MODELS[providerName],
+    models: {
+      main: model.length > 0 ? model : defaults.main,
+      fast: modelFast.length > 0 ? modelFast : defaults.fast,
+    },
   });
 }

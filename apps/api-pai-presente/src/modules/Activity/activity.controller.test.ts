@@ -68,7 +68,12 @@ function createFakeActivityRepository(rows: ActivityView[]): ActivityRepository 
     listMonthDigest: async ({ userId, month }) =>
       rows
         .filter((row) => row.userId === userId && row.activityDate.startsWith(month))
-        .map(({ category, isCompleted, rating }) => ({ category, isCompleted, rating })),
+        .map(({ title, category, isCompleted, rating }) => ({ title, category, isCompleted, rating })),
+    listRecentDigest: async ({ userId, limit }) =>
+      rows
+        .filter((row) => row.userId === userId)
+        .slice(0, limit)
+        .map(({ title, category, isCompleted, rating }) => ({ title, category, isCompleted, rating })),
     insert: async (row) => {
       const created = buildActivityView({
         ...buildIdentity(CREATED_ID),

@@ -48,8 +48,18 @@ export type ActivityMonthDigestParams = {
   readonly month: string;
 };
 
-/** So o que o boletim conta — nem titulo nem descricao saem do banco a toa. */
+export type ActivityRecentDigestParams = {
+  readonly userId: string;
+  readonly limit: number;
+};
+
+/**
+ * So o que a IA usa: o titulo (o boletim cita a atividade pelo nome e as
+ * sugestoes evitam repetir), categoria, conclusao e nota. Descricao e filho
+ * continuam no banco.
+ */
 export type ActivityMonthDigestRow = {
+  readonly title: string;
   readonly category: string | null;
   readonly isCompleted: boolean;
   readonly rating: number | null;
@@ -62,4 +72,5 @@ export type ActivityRepository = {
   update(params: UpdateActivityParams): Promise<ActivityView | undefined>;
   remove(params: FindActivityParams): Promise<boolean>;
   listMonthDigest(params: ActivityMonthDigestParams): Promise<readonly ActivityMonthDigestRow[]>;
+  listRecentDigest(params: ActivityRecentDigestParams): Promise<readonly ActivityMonthDigestRow[]>;
 };

@@ -85,11 +85,17 @@ export type ChatBody = z.infer<typeof chatBodySchema>;
 export const insightsOutputSchema = z.object({
   insights: z.array(
     z.object({
-      title: z.string().max(MEDIUM_TEXT_LENGTH),
-      content: z.string().max(FREE_TEXT_MAX_LENGTH),
+      title: z.string().max(MEDIUM_TEXT_LENGTH).describe('Título curto, até 8 palavras.'),
+      content: z
+        .string()
+        .max(FREE_TEXT_MAX_LENGTH)
+        .describe('De 2 a 4 frases, com uma ação concreta para esta semana.'),
       category: z.enum(INSIGHT_CATEGORIES),
       /** Vazio quando o insight vale para todos os filhos. */
-      childName: z.string().max(MEDIUM_TEXT_LENGTH),
+      childName: z
+        .string()
+        .max(MEDIUM_TEXT_LENGTH)
+        .describe('Nome do filho, exatamente como cadastrado, ou vazio se vale para todos.'),
     }),
   ),
 });
@@ -98,26 +104,43 @@ export type InsightsOutput = z.infer<typeof insightsOutputSchema>;
 export const suggestionsOutputSchema = z.object({
   suggestions: z.array(
     z.object({
-      title: z.string().max(MEDIUM_TEXT_LENGTH),
-      description: z.string().max(FREE_TEXT_MAX_LENGTH),
+      title: z.string().max(MEDIUM_TEXT_LENGTH).describe('Título curto, até 8 palavras.'),
+      description: z
+        .string()
+        .max(FREE_TEXT_MAX_LENGTH)
+        .describe('De 2 a 3 frases: o que fazer, do que precisa e quanto tempo leva.'),
       category: z.enum(ACTIVITY_CATEGORIES),
-      childName: z.string().max(MEDIUM_TEXT_LENGTH),
+      childName: z
+        .string()
+        .max(MEDIUM_TEXT_LENGTH)
+        .describe('Nome do filho, exatamente como cadastrado, ou vazio para a família.'),
     }),
   ),
 });
 export type SuggestionsOutput = z.infer<typeof suggestionsOutputSchema>;
 
 const reportHighlightSchema = z.object({
-  title: z.string().max(MEDIUM_TEXT_LENGTH),
-  description: z.string().max(FREE_TEXT_MAX_LENGTH),
+  title: z.string().max(MEDIUM_TEXT_LENGTH).describe('Título curto.'),
+  description: z.string().max(FREE_TEXT_MAX_LENGTH).describe('No máximo 2 frases.'),
 });
 
-export const reportOutputSchema = z.object({
-  grade: z.number().min(REPORT_GRADE_MIN).max(REPORT_GRADE_MAX),
+/**
+ * O que o MODELO escreve no boletim. A nota fica de fora: ela sai da regua do
+ * servidor (`computeReportGrade`), e pedir ao modelo seria deixa-lo divergir.
+ */
+export const reportNarrativeSchema = z.object({
   strengths: z.array(reportHighlightSchema),
   improvements: z.array(reportHighlightSchema),
-  motivationalMessage: z.string().max(FREE_TEXT_MAX_LENGTH),
-  nextMonthGoal: z.string().max(FREE_TEXT_MAX_LENGTH),
+  motivationalMessage: z.string().max(FREE_TEXT_MAX_LENGTH).describe('Até 3 frases.'),
+  nextMonthGoal: z
+    .string()
+    .max(FREE_TEXT_MAX_LENGTH)
+    .describe('Uma meta concreta e alcançável, em 1 frase.'),
+});
+
+/** O boletim que a API devolve: a narrativa do modelo mais a nota do servidor. */
+export const reportOutputSchema = reportNarrativeSchema.extend({
+  grade: z.number().min(REPORT_GRADE_MIN).max(REPORT_GRADE_MAX),
 });
 export type ReportOutput = z.infer<typeof reportOutputSchema>;
 

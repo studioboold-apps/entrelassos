@@ -166,10 +166,10 @@ describe('rotas de IA', () => {
     const client = createHarness({
       provider,
       activities: [
-        { category: 'aventura', isCompleted: true, rating: 5 },
-        { category: 'aventura', isCompleted: true, rating: 3 },
-        { category: 'escolar', isCompleted: false, rating: null },
-        { category: null, isCompleted: false, rating: null },
+        { title: 'Trilha no parque', category: 'aventura', isCompleted: true, rating: 5 },
+        { title: 'Acampar na sala', category: 'aventura', isCompleted: true, rating: 3 },
+        { title: 'Lição de frações', category: 'escolar', isCompleted: false, rating: null },
+        { title: 'Sem categoria', category: null, isCompleted: false, rating: null },
       ],
       insights: [{ category: 'comportamento', rating: 4 }],
     });
@@ -182,7 +182,11 @@ describe('rotas de IA', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(readDataRecord(response).grade).toBe(7);
+    // A regua do servidor da' 4,0 (presenca 1,25 + constancia 1 + variedade 1 +
+    // satisfacao 0,75); o 7 que o modelo falso devolve e' descartado.
+    expect(readDataRecord(response).grade).toBe(4);
+    expect(provider.prompts[0]).toContain('nota do mês: 4,0');
+    expect(provider.prompts[0]).toContain('- Trilha no parque (aventura, feita, nota 5/5)');
     expect(provider.prompts[0]).toContain('atividades planejadas: 4');
     expect(provider.prompts[0]).toContain('taxa de conclusão: 50%');
   });

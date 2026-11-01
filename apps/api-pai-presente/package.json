@@ -11,7 +11,8 @@
     "db:seed": "bun src/database/seed.ts",
     "backup:run": "bun src/backup/run-backup.ts",
     "backup:restore": "bun src/backup/run-restore.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "ai:eval": "bun src/modules/Ai/eval/run-eval.ts"
   },
   "dependencies": {
     "@adatechnology/audio-transcription-provider": "^0.1.0",

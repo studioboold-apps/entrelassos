@@ -72,14 +72,69 @@ export const SEASONS_BY_MONTH = [
 ] as const;
 
 export const LLM_TIMEOUT_MS = 60_000;
-export const LLM_MAX_OUTPUT_TOKENS = 2048;
+/**
+ * Teto de SEGURANCA, nao de estilo: nos modelos 5.x o raciocinio interno conta
+ * dentro dele, e bater no teto corta a resposta no meio. Quem deixa a resposta
+ * curta e' o prompt (`CHAT_STYLE_RULES`), nao este numero.
+ */
+export const LLM_MAX_OUTPUT_TOKENS = 4096;
 
 export const ANTHROPIC_BASE_URL = 'https://api.anthropic.com/v1/messages';
 export const ANTHROPIC_API_VERSION = '2023-06-01';
+/** Recusa do classificador de seguranca e' refeita no modelo indicado pela propria Anthropic. */
+export const ANTHROPIC_FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 export const OPENAI_BASE_URL = 'https://api.openai.com/v1/chat/completions';
+
+/**
+ * Duas faixas de modelo. `main` responde o pai olhando a tela e escreve o
+ * boletim (onde qualidade aparece); `fast` gera insights e sugestoes em lote,
+ * onde um modelo barato rende o mesmo.
+ */
+export const LLM_TIERS = ['main', 'fast'] as const;
+export type LlmTier = (typeof LLM_TIERS)[number];
+
+/** Quanto o modelo pensa antes de responder; so' os modelos 5.x aceitam. */
+export type LlmEffort = 'low' | 'medium' | 'high';
+
+export const LLM_TASKS = ['chat', 'report', 'insights', 'suggestions'] as const;
+export type LlmTask = (typeof LLM_TASKS)[number];
+
+/**
+ * Cada tarefa escolhe faixa e esforco. Conversa e' `low`: o pai quer resposta
+ * rapida e o conteudo e' acolhimento, nao calculo. O boletim pensa um pouco
+ * mais porque cruza numeros, atividades e o mes anterior.
+ */
+export const LLM_TASK_PROFILES = {
+  chat: { tier: 'main', effort: 'low' },
+  report: { tier: 'main', effort: 'medium' },
+  insights: { tier: 'fast', effort: 'low' },
+  suggestions: { tier: 'fast', effort: 'low' },
+} as const satisfies Record<LlmTask, { tier: LlmTier; effort: LlmEffort }>;
 
 /** O nome do modelo muda mais que o codigo; sai do env, com um padrao util. */
 export const DEFAULT_MODELS = {
-  anthropic: 'claude-sonnet-4-5',
-  openai: 'gpt-4o-mini',
-} as const satisfies Record<LlmProviderName, string>;
+  anthropic: { main: 'claude-sonnet-5-5', fast: 'claude-haiku-5-5' },
+  openai: { main: 'gpt-4o-mini', fast: 'gpt-4o-mini' },
+} as const satisfies Record<LlmProviderName, Record<LlmTier, string>>;
+
+/**
+ * Atividades recentes que viajam com insights e sugestoes: o bastante para a
+ * IA nao repetir o que o pai acabou de fazer, sem inflar o prompt.
+ */
+export const RECENT_ACTIVITY_LIMIT = 15;
+
+/**
+ * Regua da nota do boletim (0 a 10), calculada no SERVIDOR: o mesmo mes da' a
+ * mesma nota sempre, e o modelo so' explica. Pesos:
+ * - presenca (5): atividades concluidas, cheia em 8 no mes (~2 por semana);
+ * - constancia (2): taxa de conclusao do que foi planejado;
+ * - variedade (2): categorias diferentes, cheia em 4;
+ * - satisfacao (1): nota media que o pai deu as atividades (neutra sem nota).
+ */
+export const REPORT_GRADE_RUBRIC = {
+  presence: { weight: 5, target: 8 },
+  consistency: { weight: 2 },
+  variety: { weight: 2, target: 4 },
+  satisfaction: { weight: 1, neutral: 0.5 },
+  step: 0.5,
+} as const;

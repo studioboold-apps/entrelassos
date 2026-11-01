@@ -31,6 +31,7 @@ import {
   type SuggestionsOutput,
 } from './ai.schema';
 import { parseProviderPayload } from './providers/provider.util';
+import { isOffTopic, OFF_TOPIC_REPLY } from './ai.topic-guard';
 import { computeReportGrade, summarizeActivities, summarizeInsights } from './ai.summary';
 import { CHAT_HISTORY_LIMIT, RECENT_ACTIVITY_LIMIT } from './ai.constant';
 import type {
@@ -192,6 +193,10 @@ export function createAiUseCases({
           limit: CHAT_HISTORY_LIMIT,
         }),
       ]);
+      // Fora do tema e sem foto: resposta pronta, sem chamada paga.
+      if (values.images.length === 0 && isOffTopic({ message: values.message, childNames: registered.map(({ name }) => name) })) {
+        return { reply: OFF_TOPIC_REPLY };
+      }
       const reply = await provider.generateText({
         task: 'chat',
         systemPrompt: MENTOR_SYSTEM_PROMPT,

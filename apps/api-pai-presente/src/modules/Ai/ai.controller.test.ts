@@ -25,6 +25,7 @@ import {
 } from './ai.constant';
 import { buildAiRoutes } from './ai.controller';
 import { createLlmProvider } from './providers/provider.factory';
+import { OFF_TOPIC_REPLY } from './ai.topic-guard';
 import { createAiUseCases } from './ai.use-case';
 import type {
   ActivityDigestRow,
@@ -159,6 +160,21 @@ describe('rotas de IA', () => {
     expect(response.status).toBe(200);
     expect(readDataRecord(response).reply).toBe('Uma resposta do mentor.');
     expect(provider.prompts[0]).toContain('Como lidar com birra?');
+  });
+
+  test('pergunta fora do tema volta com resposta pronta e nao chama a IA paga', async () => {
+    const provider = createFakeProvider(undefined);
+    const client = createHarness({ provider, children: [] });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: CHAT_PATH,
+      body: { message: 'Qual ação da bolsa de valores eu compro hoje?' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(readDataRecord(response).reply).toBe(OFF_TOPIC_REPLY);
+    expect(provider.textRequests).toHaveLength(0);
   });
 
   test('o boletim usa os numeros do SERVIDOR, nao o que o cliente mandar', async () => {

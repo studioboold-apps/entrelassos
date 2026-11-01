@@ -17,14 +17,14 @@ import RatingButton from '@/components/ui/RatingButton';
 const categoryConfig = {
   aventura: { icon: Tent, color: 'text-blue-600', bg: 'bg-blue-400/10 border-blue-400/20' },
   educativa: { icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-400/10 border-emerald-400/20' },
-  esportiva: { icon: Dumbbell, color: 'text-teal-400', bg: 'bg-teal-400/10 border-teal-400/20' },
-  criativa: { icon: Palette, color: 'text-sky-400', bg: 'bg-sky-400/10 border-sky-400/20' },
+  esportiva: { icon: Dumbbell, color: 'text-teal-600', bg: 'bg-teal-400/10 border-teal-400/20' },
+  criativa: { icon: Palette, color: 'text-sky-600', bg: 'bg-sky-400/10 border-sky-400/20' },
   natureza: { icon: TreePine, color: 'text-emerald-600', bg: 'bg-emerald-400/10 border-emerald-400/20' },
   culinaria: { icon: ChefHat, color: 'text-blue-600', bg: 'bg-blue-300/10 border-blue-300/20' },
-  jogos: { icon: Gamepad2, color: 'text-teal-300', bg: 'bg-teal-300/10 border-teal-300/20' },
-  escolar: { icon: School, color: 'text-indigo-400', bg: 'bg-indigo-400/10 border-indigo-400/20' },
-  cursos: { icon: GraduationCap, color: 'text-purple-400', bg: 'bg-purple-400/10 border-purple-400/20' },
-  oficinas: { icon: Wrench, color: 'text-orange-400', bg: 'bg-orange-400/10 border-orange-400/20' }
+  jogos: { icon: Gamepad2, color: 'text-teal-600', bg: 'bg-teal-300/10 border-teal-300/20' },
+  escolar: { icon: School, color: 'text-indigo-600', bg: 'bg-indigo-400/10 border-indigo-400/20' },
+  cursos: { icon: GraduationCap, color: 'text-purple-600', bg: 'bg-purple-400/10 border-purple-400/20' },
+  oficinas: { icon: Wrench, color: 'text-orange-600', bg: 'bg-orange-400/10 border-orange-400/20' }
 };
 
 export default function ActivityCard({ 

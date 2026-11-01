@@ -11,6 +11,7 @@ import BoletimCharts from '@/components/BoletimCharts';
 import BoletimQuickAccess from '@/components/BoletimQuickAccess';
 import BoletimQuickStats from '@/components/BoletimQuickStats';
 import BoletimReportCard from '@/components/BoletimReportCard';
+import BoletimShare from '@/components/BoletimShare';
 import { Button } from '@/components/ui/button';
 import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
@@ -104,6 +105,7 @@ export default function Boletim() {
       </div>
 
       {report && <BoletimReportCard report={report} />}
+      {report && <BoletimShare report={report} monthLabel={monthLabel} />}
 
       {!report && isEmptyMonth && (
         <div className="px-6">

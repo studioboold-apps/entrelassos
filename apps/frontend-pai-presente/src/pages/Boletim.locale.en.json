@@ -40,5 +40,16 @@
     "juntinhosHint": "Plan activities",
     "chat": "Ask Questions",
     "chatHint": "Support chat"
+  },
+  "share": {
+    "title": "My dad report card",
+    "outside": "Share",
+    "copied": "Copied!",
+    "community": "To Community",
+    "heading": "📋 My dad report card — {month}",
+    "score": "⭐ Score {score} ({label})",
+    "strengths": "💪 Strengths:",
+    "goal": "🎯 Next month's goal: {goal}",
+    "footer": "Made with Entrelaços — Pai Presente: {url}"
   }
 }

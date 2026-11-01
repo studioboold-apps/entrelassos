@@ -40,5 +40,16 @@
     "juntinhosHint": "Planeje atividades",
     "chat": "Tire Dúvidas",
     "chatHint": "Chat de apoio"
+  },
+  "share": {
+    "title": "Meu boletim de pai",
+    "outside": "Compartilhar",
+    "copied": "Copiado!",
+    "community": "Na Comunidade",
+    "heading": "📋 Meu boletim de pai — {month}",
+    "score": "⭐ Nota {score} ({label})",
+    "strengths": "💪 Pontos fortes:",
+    "goal": "🎯 Meta do próximo mês: {goal}",
+    "footer": "Feito no Entrelaços — Pai Presente: {url}"
   }
 }

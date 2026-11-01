@@ -29,13 +29,13 @@ const categoryConfig = {
     icon: Wallet, 
     gradient: 'from-sky-400/10 to-blue-400/10',
     border: 'border-sky-400/20',
-    iconColor: 'text-sky-400'
+    iconColor: 'text-sky-600'
   },
   saude: { 
     icon: Activity, 
     gradient: 'from-teal-400/10 to-emerald-400/10',
     border: 'border-teal-400/20',
-    iconColor: 'text-teal-400'
+    iconColor: 'text-teal-600'
   }
 };
 

@@ -12,7 +12,7 @@
 const COLOR_STEPS = Object.freeze([
   { min: 8, className: 'text-emerald-600' },
   { min: 6, className: 'text-blue-600' },
-  { min: 4, className: 'text-yellow-400' },
+  { min: 4, className: 'text-amber-700' },
 ]);
 
 const LABEL_STEPS = Object.freeze([

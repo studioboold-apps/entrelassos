@@ -19,25 +19,25 @@ export const INSIGHT_CATEGORIES = Object.freeze([
     id: 'comportamento',
     labelKey: 'insights.categories.comportamento',
     icon: Brain,
-    gradient: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30',
+    gradient: 'from-blue-400/25 to-amber-300/30 border-blue-400/40',
   },
   {
     id: 'sexualidade',
     labelKey: 'insights.categories.sexualidade',
     icon: Heart,
-    gradient: 'from-emerald-400/20 to-teal-400/20 border-emerald-400/30',
+    gradient: 'from-rose-300/30 to-amber-200/40 border-rose-300/50',
   },
   {
     id: 'financeira',
     labelKey: 'insights.categories.financeira',
     icon: Wallet,
-    gradient: 'from-blue-400/20 to-sky-400/20 border-blue-400/30',
+    gradient: 'from-amber-300/40 to-amber-100/60 border-amber-400/50',
   },
   {
     id: 'saude',
     labelKey: 'insights.categories.saude',
     icon: Activity,
-    gradient: 'from-teal-400/20 to-emerald-400/20 border-teal-400/30',
+    gradient: 'from-emerald-300/30 to-amber-100/50 border-emerald-400/40',
   },
 ]);
 

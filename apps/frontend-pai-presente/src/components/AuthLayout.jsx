@@ -1,21 +1,29 @@
 import React from "react";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+import BrandMark from "@/components/BrandMark";
+import BrandWordmark from "@/components/BrandWordmark";
+
+/**
+ * Moldura do login/cadastro com a marca (feedback do design, nov/2026): faixa
+ * marinho com o simbolo e o nome, como nas pecas de divulgacao, e o cartao do
+ * formulario em cima do fundo off-white. `title` vira o nome da pagina para o
+ * leitor de tela; o nome visivel e' o logotipo.
+ */
+export default function AuthLayout({ title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <Icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-          {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
-        </div>
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
+    <div className="min-h-screen bg-background">
+      <div className="bg-brand-navy px-6 pt-14 pb-24 text-center">
+        <BrandMark motion="enter" className="mx-auto h-20 w-24" />
+        <h1 className="sr-only">{title}</h1>
+        <BrandWordmark tone="dark" size="lg" className="mt-4 inline-block" />
+        {subtitle && <p className="mx-auto mt-4 max-w-xs text-sm text-[#F3F0E8]/80">{subtitle}</p>}
+      </div>
+      <div className="mx-auto -mt-14 w-full max-w-md px-4 pb-10">
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-[0_12px_40px_rgba(47,47,81,0.12)] sm:p-8">
           {children}
         </div>
         {footer && (
-          <p className="text-center text-sm text-muted-foreground mt-6">{footer}</p>
+          <p className="mt-6 text-center text-sm text-muted-foreground">{footer}</p>
         )}
       </div>
     </div>

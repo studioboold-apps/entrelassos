@@ -41,7 +41,7 @@ export default function ProfileEditDialog({ perfil }) {
               type="number"
               value={profileForm.age}
               onChange={(event) => handleProfileFieldChange('age', event.target.value)}
-              className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100"
+              className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100"
             />
           </div>
 
@@ -51,10 +51,10 @@ export default function ProfileEditDialog({ perfil }) {
               value={profileForm.marital_status}
               onValueChange={(value) => handleProfileFieldChange('marital_status', value)}
             >
-              <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100">
+              <SelectTrigger className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100">
                 <SelectValue placeholder={t('perfil.editProfile.maritalStatusPlaceholder')} />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-900 border-zinc-700">
                 {MARITAL_STATUS_OPTIONS.map(({ value, labelKey }) => (
                   <SelectItem key={value} value={value}>{t(labelKey)}</SelectItem>
                 ))}
@@ -69,7 +69,7 @@ export default function ProfileEditDialog({ perfil }) {
               value={profileForm.city}
               placeholder={t('profile.city.placeholder')}
               onChange={(event) => handleProfileFieldChange('city', event.target.value)}
-              className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100"
+              className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100"
             />
             <p className="mt-1.5 text-xs text-zinc-500">{t('profile.city.hint')}</p>
           </div>

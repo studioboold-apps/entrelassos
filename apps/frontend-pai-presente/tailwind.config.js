@@ -9,6 +9,14 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		/*
+  		 * Fonte da marca: BETM Rounded (licenca paga). Enquanto os arquivos nao
+  		 * estao no repo, entra a Nunito, tambem arredondada e embutida no bundle.
+  		 * Ao receber os .woff2, declarar o @font-face em index.css e pronto.
+  		 */
+  		fontFamily: {
+  			sans: ['"BETM Rounded"', '"Nunito Variable"', 'Nunito', 'ui-rounded', 'system-ui', 'sans-serif']
+  		},
   		colors: {
   			/*
   			 * Paleta da marca (feedback do design, nov/2026): menos fria, mais

@@ -29,7 +29,7 @@ export default function OnboardingChildrenStep({ onboarding }) {
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center">
           <Baby aria-hidden="true" className="w-8 h-8 text-emerald-600" />
         </div>
-        <h2 className="text-2xl font-light text-zinc-100">{t('onboarding.children.title')}</h2>
+        <h2 className="text-2xl font-bold text-zinc-100">{t('onboarding.children.title')}</h2>
         <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.children.subtitle')}</p>
       </div>
 

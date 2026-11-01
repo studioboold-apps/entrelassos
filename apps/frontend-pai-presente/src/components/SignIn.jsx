@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Heart, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
 
 import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
@@ -106,7 +106,6 @@ export default function SignIn() {
 
   return (
     <AuthLayout
-      icon={Heart}
       title={t('signIn.title')}
       subtitle={t('signIn.subtitle')}
       footer={t('signIn.footer')}
@@ -126,7 +125,7 @@ export default function SignIn() {
             className={cn(
               'min-h-11 rounded-lg text-sm font-medium transition-colors',
               mode === tab.mode
-                ? 'bg-background text-foreground shadow-sm'
+                ? 'bg-gradient-to-r from-blue-500 to-amber-500 text-white shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >

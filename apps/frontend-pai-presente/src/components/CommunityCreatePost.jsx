@@ -39,7 +39,7 @@ export default function CommunityCreatePost() {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={t('community.create.placeholder')}
-        className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 resize-none min-h-[80px] mb-3"
+        className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 resize-none min-h-[80px] mb-3"
       />
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2 flex-wrap">

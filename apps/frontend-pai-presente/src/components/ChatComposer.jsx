@@ -83,7 +83,7 @@ export default function ChatComposer({
           value={question}
           onChange={handleQuestionChange}
           placeholder={t('chat.inputPlaceholder')}
-          className="flex-1 h-12 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+          className="flex-1 h-12 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
           disabled={isBusy}
         />
         {voice.isSupported && (

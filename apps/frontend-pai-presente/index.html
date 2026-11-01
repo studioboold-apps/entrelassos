@@ -12,7 +12,42 @@
     <title>Entrelaços — Pai Presente</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      Abertura estatica: aparece ANTES do JavaScript chegar (rede lenta = tela
+      marinho com a marca, e nao branco). O React substitui o conteudo do #root
+      pelo BrandSplash, que continua a animacao de onde esta parou
+      (window.__splashStartedAt). Desenho igual ao de src/components/BrandMark.jsx.
+    -->
+    <style>
+      #boot-splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; background: #2F2F51; font-family: 'Nunito', ui-rounded, system-ui, sans-serif; }
+      #boot-splash svg { width: 9rem; height: 7rem; overflow: visible; }
+      #boot-splash .w { text-align: center; line-height: 1; color: #F3F0E8; animation: boot-up 400ms ease-out 650ms both; }
+      #boot-splash .w b { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.02em; }
+      #boot-splash .w b span { color: #F28800; }
+      #boot-splash .w small { display: block; margin-top: .25rem; font-size: .875rem; font-weight: 800; letter-spacing: .14em; }
+      #boot-splash .l { animation: boot-left 520ms cubic-bezier(.2,.8,.2,1) both; }
+      #boot-splash .r { animation: boot-right 520ms cubic-bezier(.2,.8,.2,1) both; }
+      #boot-splash .h { transform-origin: 262px 260px; animation: boot-beat 600ms ease-in-out 560ms both; }
+      @keyframes boot-left { from { transform: translateX(-90px); opacity: 0 } to { transform: none; opacity: 1 } }
+      @keyframes boot-right { from { transform: translateX(90px); opacity: 0 } to { transform: none; opacity: 1 } }
+      @keyframes boot-beat { 0%, 100% { transform: scale(1) } 40% { transform: scale(1.1) } 70% { transform: scale(.97) } }
+      @keyframes boot-up { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+      @media (prefers-reduced-motion: reduce) { #boot-splash * { animation: none !important } }
+    </style>
+    <div id="root">
+      <div id="boot-splash" role="status" aria-label="Carregando">
+        <svg viewBox="70 110 380 300" aria-hidden="true">
+          <defs><clipPath id="boot-cross"><rect x="245" y="295" width="110" height="70" transform="rotate(-45 300 330)" /></clipPath></defs>
+          <g class="h" fill="none" stroke-width="44">
+            <g class="r"><rect x="-120" y="-60" width="240" height="120" rx="60" stroke="#F28800" transform="translate(320 257) rotate(-45)" /></g>
+            <g class="l"><rect x="-120" y="-60" width="240" height="120" rx="60" stroke="#F3F0E8" transform="translate(204 256) rotate(45)" /></g>
+            <g class="r"><g clip-path="url(#boot-cross)"><rect x="-120" y="-60" width="240" height="120" rx="60" stroke="#F28800" transform="translate(320 257) rotate(-45)" /></g></g>
+          </g>
+        </svg>
+        <div class="w"><b>Entre<span>laços</span></b><small>PAI PRESENTE</small></div>
+      </div>
+    </div>
+    <script>window.__splashStartedAt = performance.now();</script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

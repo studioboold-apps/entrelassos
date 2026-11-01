@@ -17,29 +17,6 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      <style>{`
-        :root {
-          --background: 48 22% 95%;
-          --foreground: 240 27% 25%;
-          --card: 0 0% 100%;
-          --card-foreground: 240 27% 25%;
-          --popover: 0 0% 100%;
-          --popover-foreground: 240 27% 25%;
-          --primary: 34 100% 47%;
-          --primary-foreground: 0 0% 100%;
-          --secondary: 43 26% 89%;
-          --secondary-foreground: 240 27% 25%;
-          --muted: 43 26% 89%;
-          --muted-foreground: 241 10% 51%;
-          --accent: 44 100% 55%;
-          --accent-foreground: 240 27% 25%;
-          --destructive: 0 72% 51%;
-          --destructive-foreground: 0 0% 100%;
-          --border: 43 22% 86%;
-          --input: 43 22% 86%;
-          --ring: 34 100% 47%;
-        }
-      `}</style>
       
       <main>{children}</main>
 

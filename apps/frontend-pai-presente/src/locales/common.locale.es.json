@@ -11,5 +11,10 @@
   "environment": {
     "local": "Entorno local — nada aquí son datos reales",
     "staging": "Pruebas — nada aquí son datos reales"
+  },
+  "notFound": {
+    "title": "Esta página no existe",
+    "body": "La dirección puede haber cambiado. Vuelve al inicio y sigue desde allí.",
+    "home": "Ir al inicio"
   }
 }

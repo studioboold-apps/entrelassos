@@ -72,6 +72,7 @@ export function createAiUseCases({
   insights,
   chatHistory,
   transcriber,
+  region,
 }: AiDependencies): AiUseCases {
   async function requireChildren(userId: string): Promise<readonly ChildContext[]> {
     const registered = await children.listByUser(userId);
@@ -93,11 +94,11 @@ export function createAiUseCases({
     },
 
     async suggestActivities({ userId, values }) {
-      const registered = await requireChildren(userId);
+      const [registered, city] = await Promise.all([requireChildren(userId), region?.findCity(userId)]);
       const month = values.month ?? formatMonth(new Date());
       const raw = await provider.generateStructured({
         systemPrompt: MENTOR_SYSTEM_PROMPT,
-        userPrompt: buildSuggestionsPrompt({ children: registered, month }),
+        userPrompt: buildSuggestionsPrompt({ children: registered, month, city }),
         schemaName: 'suggestions',
         jsonSchema: toProviderJsonSchema(suggestionsOutputSchema),
       });

@@ -100,9 +100,28 @@ export function buildInsightsPrompt({ children, category }: InsightsPromptParams
 export type SuggestionsPromptParams = {
   readonly children: readonly ChildContext[];
   readonly month: string;
+  /** Cidade do perfil do pai, quando ele informou. */
+  readonly city?: string | undefined;
 };
 
-export function buildSuggestionsPrompt({ children, month }: SuggestionsPromptParams): string {
+/**
+ * Pedido do design: o "Sugerir" procurar programa da REGIAO do pai. O modelo
+ * conhece lugares que existem ha' anos (parque, museu, biblioteca, feira), mas
+ * nao a agenda desta semana: por isso o prompt proibe inventar evento com data.
+ */
+function describeRegion(city: string | undefined): readonly string[] {
+  if (city === undefined || city.trim() === '') return [];
+  return [
+    '',
+    `O pai mora em ${city}. Pelo menos 2 sugestões devem ser passeios na região: lugares`,
+    'que existem de fato na cidade ou perto dela (parques, museus, bibliotecas, feiras,',
+    'centros culturais), citando o nome do lugar no título ou na descrição.',
+    'Não invente eventos com data marcada; se sugerir um tipo de evento, diga para',
+    'conferir a programação local.',
+  ];
+}
+
+export function buildSuggestionsPrompt({ children, month, city }: SuggestionsPromptParams): string {
   const { monthNumber } = parseMonth(month);
   const monthIndex = monthNumber - 1;
 
@@ -117,6 +136,7 @@ export function buildSuggestionsPrompt({ children, month }: SuggestionsPromptPar
     '',
     'Leve a estação em conta: atividade ao ar livre no inverno precisa ser viável.',
     'Em `childName`, escreva o nome do filho, ou deixe vazio para atividade em família.',
+    ...describeRegion(city),
     '',
     WRITING_RULES,
   ].join('\n');

@@ -6,7 +6,13 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import { buildChatPrompt, buildReportPrompt, MENTOR_SYSTEM_PROMPT, WRITING_RULES } from './ai.prompt';
+import {
+  buildChatPrompt,
+  buildReportPrompt,
+  buildSuggestionsPrompt,
+  MENTOR_SYSTEM_PROMPT,
+  WRITING_RULES,
+} from './ai.prompt';
 import { summarizeActivities, summarizeInsights } from './ai.summary';
 
 const CHILDREN = [{ name: 'Maria', age: 10, gender: 'feminino' }];
@@ -35,5 +41,18 @@ describe('conversa — resposta curta primeiro', () => {
     const prompt = buildChatPrompt({ children: CHILDREN, message: 'como ajudo?' });
     expect(prompt).toContain('no máximo 4 tópicos');
     expect(prompt.endsWith('Pergunta do pai: como ajudo?')).toBe(true);
+  });
+});
+
+describe('sugestoes da regiao', () => {
+  test('com cidade, pede passeios reais da regiao e proibe evento inventado', () => {
+    const prompt = buildSuggestionsPrompt({ children: CHILDREN, month: '2026-11', city: 'Campinas, SP' });
+    expect(prompt).toContain('O pai mora em Campinas, SP');
+    expect(prompt).toContain('Não invente eventos com data marcada');
+  });
+
+  test('sem cidade, o prompt fica como antes', () => {
+    const prompt = buildSuggestionsPrompt({ children: CHILDREN, month: '2026-11' });
+    expect(prompt).not.toContain('mora em');
   });
 });

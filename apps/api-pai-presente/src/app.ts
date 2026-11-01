@@ -112,11 +112,12 @@ export function buildApplicationRoutes({
   const activityRepository = createActivityRepository(database);
   const insightRatingRepository = createInsightRatingRepository(database);
   const chatMessageRepository = createChatMessageRepository(database);
+  const userRepository = createUserRepository(database);
 
   return [
     ...buildUserRoutes(
       createUserUseCases({
-        repository: createUserRepository(database),
+        repository: userRepository,
         childFiles: childFileUseCases,
         childFileExport: childFileUseCases,
       }),
@@ -144,6 +145,7 @@ export function buildApplicationRoutes({
       activities: activityRepository,
       insights: insightRatingRepository,
       chatMessages: chatMessageRepository,
+      users: userRepository,
       ...llm,
     }),
   ];

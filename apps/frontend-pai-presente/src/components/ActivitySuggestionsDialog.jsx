@@ -6,11 +6,16 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { MapPin, Sparkles } from 'lucide-react';
+
+import { api } from '@/api/client';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTranslation } from '@/lib/i18n';
+import { createPageUrl } from '@/utils';
 
 /**
  * Fatia da tela de Juntinhos: recebe o retorno do hook, nao props soltas.
@@ -20,6 +25,7 @@ import { useTranslation } from '@/lib/i18n';
 export default function ActivitySuggestionsDialog({ juntinhos }) {
   const { t } = useTranslation();
   const { suggestions, showSuggestions, createFailure, setShowSuggestions, handleAcceptSuggestion } = juntinhos;
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => api.auth.me() });
 
   return (
     <Dialog open={showSuggestions} onOpenChange={setShowSuggestions}>
@@ -32,6 +38,20 @@ export default function ActivitySuggestionsDialog({ juntinhos }) {
         </DialogHeader>
 
         <div className="space-y-3">
+          {user?.city ? (
+            <p className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <MapPin aria-hidden="true" className="w-3.5 h-3.5 text-blue-600" />
+              {t('juntinhos.suggestions.regionOn', { city: user.city })}
+            </p>
+          ) : (
+            <Link
+              to={createPageUrl('Perfil')}
+              className="flex items-start gap-2 rounded-xl border border-amber-400/40 bg-amber-50 p-3 text-xs text-zinc-300"
+            >
+              <MapPin aria-hidden="true" className="w-4 h-4 shrink-0 text-blue-600" />
+              <span>{t('juntinhos.suggestions.regionOff')}</span>
+            </Link>
+          )}
           {createFailure && (
             <p role="alert" className="text-sm text-red-600">
               {createFailure.message}

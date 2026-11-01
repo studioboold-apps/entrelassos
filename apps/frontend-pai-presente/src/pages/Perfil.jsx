@@ -12,6 +12,7 @@ import ChildDeleteDialog from '@/components/ChildDeleteDialog';
 import AvatarPicker from '@/components/AvatarPicker';
 import ChildEditDialog from '@/components/ChildEditDialog';
 import ChildFilesDialog from '@/components/ChildFilesDialog';
+import FamilyValuesSection from '@/components/FamilyValuesSection';
 import LanguagePicker from '@/components/LanguagePicker';
 import PerfilChildrenSection from '@/components/PerfilChildrenSection';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
@@ -138,6 +139,8 @@ export default function Perfil() {
       </div>
 
       <PerfilChildrenSection perfil={perfil} />
+
+      <FamilyValuesSection />
 
       <LanguagePicker />
 

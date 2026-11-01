@@ -22,3 +22,7 @@ export { chatMessagesTable } from '../modules/ChatMessage/chat-message.table';
 export { childFilesTable } from '../modules/ChildFile/child-file.table';
 export { childConsentsTable } from '../modules/ChildConsent/child-consent.table';
 export { auditLogTable } from '../modules/Audit/audit.table';
+export {
+  familyValueOptionsTable,
+  userFamilyValuesTable,
+} from '../modules/FamilyValues/family-values.table';

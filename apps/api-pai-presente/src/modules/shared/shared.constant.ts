@@ -74,6 +74,11 @@ export const SHORT_TEXT_LENGTH = 120;
  */
 export const AVATAR_DATA_URL_MAX_LENGTH = 160_000;
 export const AVATAR_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+/**
+ * Foto de post da comunidade: o app reduz para 1280px em JPEG (~150-300 KB).
+ * Ela NAO viaja na lista do feed; cada uma tem a sua rota de leitura.
+ */
+export const POST_IMAGE_DATA_URL_MAX_LENGTH = 700_000;
 export const MEDIUM_TEXT_LENGTH = 255;
 
 /** Faixa da nota de 1 a 5, unica em todo o produto (atividade e insight). */

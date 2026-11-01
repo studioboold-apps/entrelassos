@@ -32,6 +32,8 @@ export type GenerateInsightsBody = z.infer<typeof generateInsightsBodySchema>;
 
 export const generateSuggestionsBodySchema = z.object({
   month: monthSchema.optional(),
+  /** Sem ele, as sugestoes valem para a familia toda. */
+  childId: z.string().uuid().optional(),
 });
 export type GenerateSuggestionsBody = z.infer<typeof generateSuggestionsBodySchema>;
 

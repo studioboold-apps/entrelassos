@@ -15,11 +15,12 @@ import {
   readDataRecord,
   readErrorCode,
   TEST_USER_ID,
-  type TestClient,
+  type RawTestClient,
 } from '../../testing/http-test.util';
 import { applyOverrides, buildIdentity, type RowOverrides } from '../../testing/row.factory';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { HTTP_METHODS } from '../shared/http/http.constant';
+import { splitImageDataUrl } from '../shared/shared.schema';
 import { buildCommunityPostRoutes } from './community-post.controller';
 import { createCommunityPostUseCases } from './community-post.use-case';
 import type {
@@ -42,6 +43,7 @@ function buildPostView(overrides: RowOverrides<CommunityPostView> = {}): Communi
     likesCount: 0,
     hasLiked: false,
     commentsCount: 0,
+    hasImage: false,
   }, overrides);
 }
 
@@ -57,7 +59,10 @@ function createFakePostRepository(
     hasLiked: likes.has(likeKey(post.id, viewerId)),
   });
 
+  const images = new Map<string, { contentType: string; base64: string }>();
+
   return {
+    findImage: async (postId) => images.get(postId),
     list: async ({ viewerId, filters, limit, offset }) => {
       const visible = posts.filter(
         (post) => filters.category === undefined || post.category === filters.category,
@@ -73,7 +78,14 @@ function createFakePostRepository(
     },
     exists: async (postId) => posts.some((post) => post.id === postId),
     insert: async ({ authorId, values }) => {
-      const created = buildPostView({ ...buildIdentity(CREATED_ID), authorId, ...values });
+      const { image, ...fields } = values;
+      if (image !== undefined) images.set(CREATED_ID, splitImageDataUrl(image));
+      const created = buildPostView({
+        ...buildIdentity(CREATED_ID),
+        authorId,
+        ...fields,
+        hasImage: image !== undefined,
+      });
       posts.push(created);
       return created;
     },
@@ -92,7 +104,10 @@ function createFakePostRepository(
   };
 }
 
-let client: TestClient;
+const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1]);
+const JPEG_DATA_URL = `data:image/jpeg;base64,${JPEG_BYTES.toString('base64')}`;
+
+let client: RawTestClient;
 
 beforeEach(() => {
   const posts = [
@@ -218,5 +233,37 @@ describe('DELETE /v1/community/posts/:postId', () => {
     });
     expect(response.status).toBe(404);
     expect(readErrorCode(response)).toBe(ERROR_CODES.community.POST_NOT_FOUND);
+  });
+});
+
+describe('foto do post', () => {
+  test('publica com foto: o post diz que tem foto, e a foto volta pela rota propria', async () => {
+    const created = await client.send({
+      method: HTTP_METHODS.POST,
+      path: POSTS_PATH,
+      body: { content: 'Olha o castelo de areia.', category: 'conquista', image: JPEG_DATA_URL },
+    });
+    expect(created.status).toBe(201);
+    expect(readDataRecord(created).hasImage).toBe(true);
+    expect(readDataRecord(created)).not.toHaveProperty('image');
+
+    const image = await client.sendRaw({ method: HTTP_METHODS.GET, path: `${POSTS_PATH}/${CREATED_ID}/image` });
+    expect(image.status).toBe(200);
+    expect(image.headers.get('content-type')).toBe('image/jpeg');
+    expect(Buffer.from(image.bytes).equals(JPEG_BYTES)).toBe(true);
+  });
+
+  test('SVG disfarcado de foto responde 400', async () => {
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: POSTS_PATH,
+      body: { content: 'x', category: 'dica', image: 'data:image/svg+xml;base64,PHN2Zz4=' },
+    });
+    expect(response.status).toBe(400);
+  });
+
+  test('post sem foto: a rota da foto responde 404', async () => {
+    const response = await client.sendRaw({ method: HTTP_METHODS.GET, path: `${POSTS_PATH}/${KNOWN_ID}/image` });
+    expect(response.status).toBe(404);
   });
 });

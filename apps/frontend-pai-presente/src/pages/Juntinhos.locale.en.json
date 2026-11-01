@@ -36,6 +36,9 @@
     "forChild": "For: {child}",
     "accept": "Add to calendar",
     "regionOn": "Suggestions tailored to {city}.",
-    "regionOff": "Want outings near you? Add your city in your Profile."
+    "regionOff": "Want outings near you? Add your city in your Profile.",
+    "forWhom": "For whom?",
+    "allChildren": "Everyone together",
+    "loading": "Thinking up suggestions..."
   }
 }

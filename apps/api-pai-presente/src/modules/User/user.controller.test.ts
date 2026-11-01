@@ -83,6 +83,7 @@ function buildAccountExportWithoutFiles(row: UserRow): AccountExportWithoutFiles
     communityPostLikes: [],
     communityComments: [],
     chatMessages: [],
+    familyValues: [],
   };
 }
 

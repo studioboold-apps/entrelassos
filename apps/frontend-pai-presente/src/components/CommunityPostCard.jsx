@@ -76,6 +76,14 @@ export default function CommunityPostCard({ post, delay = 0 }) {
       </div>
 
       <p className="text-zinc-300 text-sm leading-relaxed mb-3 whitespace-pre-wrap">{post.content}</p>
+      {post.has_image && (
+        <img
+          src={api.entities.CommunityPost.imageUrl(post.id)}
+          alt={t('community.create.photoAlt')}
+          loading="lazy"
+          className="mb-3 w-full max-h-96 rounded-xl object-cover bg-zinc-800"
+        />
+      )}
 
       <div className="flex items-center gap-4 pt-3 border-t border-zinc-800">
         <button

@@ -4,26 +4,32 @@
  * Licenca: proprietaria.
  */
 
-import { and, count, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, getTableColumns, isNotNull, sql, type SQL } from 'drizzle-orm';
 
 import type { Database } from '../../database/client';
 import { communityCommentsTable } from '../CommunityComment/community-comment.table';
 import { usersTable } from '../User/user.table';
-import { communityPostLikesTable, communityPostsTable } from './community-post.table';
+import { splitImageDataUrl } from '../shared/shared.schema';
+import { communityPostLikesTable, communityPostsTable, type CommunityPostRow } from './community-post.table';
 import type {
   CommunityPostRepository,
   CommunityPostView,
   CreateCommunityPostParams,
+  CommunityPostImage,
   FindCommunityPostParams,
   ListCommunityPostsParams,
   ListCommunityPostsResult,
   ToggleLikeParams,
 } from './types/community-post.types';
 
+/** Tudo do post MENOS a foto: o feed lista dezenas de posts, e a foto pesa. */
+const { imageData, imageContentType: _imageContentType, ...POST_COLUMNS } = getTableColumns(communityPostsTable);
+
 export function createCommunityPostRepository(database: Database): CommunityPostRepository {
   function buildSelection(viewerId: string) {
     return {
-      post: communityPostsTable,
+      post: POST_COLUMNS,
+      hasImage: isNotNull(imageData).mapWith(Boolean),
       authorName: usersTable.fullName,
       likesCount: sql<number>`(
         select count(*) from ${communityPostLikesTable}
@@ -44,15 +50,16 @@ export function createCommunityPostRepository(database: Database): CommunityPost
   const AUTHOR_JOIN = eq(usersTable.id, communityPostsTable.authorId);
 
   type JoinedRow = {
-    readonly post: typeof communityPostsTable.$inferSelect;
+    readonly post: Omit<CommunityPostRow, 'imageData' | 'imageContentType'>;
+    readonly hasImage: boolean;
     readonly authorName: string | null;
     readonly likesCount: number;
     readonly commentsCount: number;
     readonly hasLiked: boolean;
   };
 
-  function toView({ post, authorName, likesCount, commentsCount, hasLiked }: JoinedRow): CommunityPostView {
-    return { ...post, authorName, likesCount, commentsCount, hasLiked };
+  function toView({ post, hasImage, authorName, likesCount, commentsCount, hasLiked }: JoinedRow): CommunityPostView {
+    return { ...post, hasImage, authorName, likesCount, commentsCount, hasLiked };
   }
 
   async function loadView(postId: string, viewerId: string): Promise<CommunityPostView | undefined> {
@@ -86,6 +93,17 @@ export function createCommunityPostRepository(database: Database): CommunityPost
 
     findById: ({ postId, viewerId }: FindCommunityPostParams) => loadView(postId, viewerId),
 
+    async findImage(postId: string): Promise<CommunityPostImage | undefined> {
+      const rows = await database
+        .select({ base64: imageData, contentType: communityPostsTable.imageContentType })
+        .from(communityPostsTable)
+        .where(eq(communityPostsTable.id, postId))
+        .limit(1);
+      const row = rows[0];
+      if (row?.base64 == null || row.contentType == null) return undefined;
+      return { base64: row.base64, contentType: row.contentType };
+    },
+
     async exists(postId: string): Promise<boolean> {
       const rows = await database
         .select({ id: communityPostsTable.id })
@@ -98,7 +116,16 @@ export function createCommunityPostRepository(database: Database): CommunityPost
     async insert({ authorId, values }: CreateCommunityPostParams): Promise<CommunityPostView> {
       const rows = await database
         .insert(communityPostsTable)
-        .values({ ...values, authorId })
+        .values({
+          content: values.content,
+          category: values.category,
+          authorId,
+          ...(values.image === undefined
+            ? {}
+            : (({ contentType, base64 }) => ({ imageData: base64, imageContentType: contentType }))(
+                splitImageDataUrl(values.image),
+              )),
+        })
         .returning({ id: communityPostsTable.id });
       const postId = rows[0]?.id;
       if (postId === undefined) throw new Error('insert de post nao retornou linha');

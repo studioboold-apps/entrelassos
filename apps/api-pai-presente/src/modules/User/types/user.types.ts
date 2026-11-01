@@ -69,6 +69,8 @@ export type AccountExport = {
   readonly communityPostLikes: readonly CommunityPostLikeRow[];
   readonly communityComments: readonly CommunityCommentRow[];
   readonly chatMessages: readonly ChatMessageRow[];
+  /** Religiao, politica e orientacao que o pai escolheu informar (art. 11). */
+  readonly familyValues: readonly { readonly kind: string; readonly label: string; readonly grantedAt: Date }[];
   /**
    * Vem por PORTA, do `ChildFile`: a vista que esconde a `objectKey` e o
    * endereco por onde os bytes saem moram la'. Uma consulta propria aqui seria

@@ -16,5 +16,6 @@
     "title": "This page doesn't exist",
     "body": "The address may have changed. Go back home and continue from there.",
     "home": "Go home"
-  }
+  },
+  "aiBadge": "Made with AI"
 }

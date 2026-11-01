@@ -14,7 +14,9 @@ import type {
  * likesCount sai do COUNT das curtidas, nunca de coluna guardada ao lado:
  * as duas verdades concordam ate a primeira curtida perdida (decisao de TB.4).
  */
-export type CommunityPostView = CommunityPostRow & {
+/** A foto nao viaja no post; `hasImage` diz se ha' uma para buscar. */
+export type CommunityPostView = Omit<CommunityPostRow, 'imageData' | 'imageContentType'> & {
+  readonly hasImage: boolean;
   /** Vem do JOIN com users: a tabela guarda o vinculo, nunca uma copia do nome. */
   readonly authorName: string | null;
   readonly likesCount: number;
@@ -49,7 +51,13 @@ export type ToggleLikeParams = {
   readonly userId: string;
 };
 
+export type CommunityPostImage = {
+  readonly contentType: string;
+  readonly base64: string;
+};
+
 export type CommunityPostRepository = {
+  findImage(postId: string): Promise<CommunityPostImage | undefined>;
   list(params: ListCommunityPostsParams): Promise<ListCommunityPostsResult>;
   findById(params: FindCommunityPostParams): Promise<CommunityPostView | undefined>;
   exists(postId: string): Promise<boolean>;

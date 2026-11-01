@@ -34,6 +34,37 @@ export async function toAvatarDataUrl(file) {
   }
 }
 
+/** Lado maior da foto de post: nitida no feed sem pesar no celular. */
+export const POST_IMAGE_MAX_SIDE_PX = 1280;
+/** Igual ao teto da API (`POST_IMAGE_DATA_URL_MAX_LENGTH`). */
+export const POST_IMAGE_MAX_LENGTH = 700_000;
+const POST_IMAGE_QUALITIES = Object.freeze([0.82, 0.7, 0.55]);
+
+/**
+ * Reduz a foto do post para caber em `POST_IMAGE_MAX_SIDE_PX`, sem cortar, em
+ * JPEG. Se ainda passar do teto da API, tenta de novo com menos qualidade.
+ *
+ * @param {File} file
+ * @returns {Promise<string>} data URL `data:image/jpeg;base64,...`
+ */
+export async function toPostImageDataUrl(file) {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, POST_IMAGE_MAX_SIDE_PX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    for (const quality of POST_IMAGE_QUALITIES) {
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      if (dataUrl.length <= POST_IMAGE_MAX_LENGTH) return dataUrl;
+    }
+    throw new Error('foto grande demais mesmo reduzida');
+  } finally {
+    bitmap.close?.();
+  }
+}
+
 /** Inicial para o avatar sem foto. Nome vazio nao quebra a tela. */
 export function initialOf(name) {
   return (name ?? '').trim().charAt(0).toUpperCase();

@@ -18,6 +18,7 @@ import {
   communityPostLikesTable,
   communityPostsTable,
 } from '../CommunityPost/community-post.table';
+import { familyValueOptionsTable, userFamilyValuesTable } from '../FamilyValues/family-values.table';
 import { insightRatingsTable } from '../InsightRating/insight-rating.table';
 import type {
   AccountExportWithoutFiles,
@@ -42,6 +43,7 @@ async function readAccountSections(
     communityPostLikes,
     communityComments,
     chatMessages,
+    familyValues,
   ] = await Promise.all([
     database.select().from(authIdentitiesTable).where(eq(authIdentitiesTable.userId, userId)),
     database.select().from(childrenTable).where(eq(childrenTable.userId, userId)),
@@ -57,6 +59,15 @@ async function readAccountSections(
       .from(communityCommentsTable)
       .where(eq(communityCommentsTable.authorId, userId)),
     database.select().from(chatMessagesTable).where(eq(chatMessagesTable.userId, userId)),
+    database
+      .select({
+        kind: userFamilyValuesTable.kind,
+        label: familyValueOptionsTable.label,
+        grantedAt: userFamilyValuesTable.grantedAt,
+      })
+      .from(userFamilyValuesTable)
+      .innerJoin(familyValueOptionsTable, eq(familyValueOptionsTable.id, userFamilyValuesTable.optionId))
+      .where(eq(userFamilyValuesTable.userId, userId)),
   ]);
 
   return {
@@ -68,6 +79,7 @@ async function readAccountSections(
     communityPostLikes,
     communityComments,
     chatMessages,
+    familyValues,
   };
 }
 

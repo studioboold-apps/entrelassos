@@ -15,6 +15,9 @@ import { toCalendarDate, toLocalDate } from '@/lib/calendar-date';
 import { useTranslation } from '@/lib/i18n';
 import { toMonthKey } from '@/lib/month';
 
+/** Alvo da sugestao quando o pai quer ideias para a familia toda. */
+export const ALL_CHILDREN = 'all';
+
 /**
  * A decisao do calendario mora aqui (`web.md` §4): o mes, o dia escolhido, as
  * tres escritas e o formulario sao regra, e regra fora do JSX pode ser lida sem
@@ -27,6 +30,8 @@ export function useJuntinhos() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showNewActivity, setShowNewActivity] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  /** Para quem e' a sugestao: `null` antes de escolher, `ALL_CHILDREN` para a familia, ou o id do filho. */
+  const [suggestionTarget, setSuggestionTarget] = useState(null);
   const [newActivity, setNewActivity] = useState(() => createEmptyActivityForm(new Date()));
 
   const { data: children = [] } = useQuery({
@@ -68,12 +73,9 @@ export function useJuntinhos() {
      * dentro. Quem conhece os filhos e a API; a tela so diz de que mes quer
      * sugestao.
      *
-     * @param {string} month
+     * @param {{ month: string, childId?: string }} params
      */
-    mutationFn: (month) => api.ai.activitySuggestions(month),
-    onSuccess: () => {
-      setShowSuggestions(true);
-    },
+    mutationFn: (params) => api.ai.activitySuggestions(params),
   });
 
   const suggestions = suggestionsMutation.data ?? [];
@@ -97,15 +99,37 @@ export function useJuntinhos() {
     updateActivityMutation.mutate({ id: activityId, data: { rating } });
   };
 
+  const requestSuggestions = (target) => {
+    setSuggestionTarget(target);
+    suggestionsMutation.mutate({
+      month: toMonthKey(currentMonth),
+      ...(target === ALL_CHILDREN ? {} : { childId: target }),
+    });
+  };
+
+  /**
+   * Pedido do design: escolher PARA QUAL filho antes de pedir, porque a
+   * sugestao para dois filhos de idades diferentes saia generica. Com um filho
+   * so' nao ha o que escolher, e o pedido sai direto.
+   */
   const handleGenerateSuggestions = () => {
     if (children.length === 0) return;
-    suggestionsMutation.mutate(toMonthKey(currentMonth));
+    suggestionsMutation.reset();
+    setShowSuggestions(true);
+    if (children.length === 1) {
+      requestSuggestions(children[0].id);
+      return;
+    }
+    setSuggestionTarget(null);
   };
 
   /** O dialogo so fecha quando a gravacao volta: fechar antes esconderia a recusa. */
   const handleAcceptSuggestion = (suggestion) => {
     /** A atividade se vincula por id; o nome que a IA devolveu so serve para achar o filho. */
-    const child = children.find((candidate) => candidate.name === suggestion.child_name) ?? children[0];
+    const child =
+      children.find((candidate) => candidate.id === suggestionTarget) ??
+      children.find((candidate) => candidate.name === suggestion.child_name) ??
+      children[0];
     createActivityMutation.mutate({
       title: suggestion.title,
       description: suggestion.description,
@@ -153,6 +177,9 @@ export function useJuntinhos() {
     showSuggestions,
     screenFailure,
     createFailure,
+    suggestionTarget,
+    suggestionsFailure,
+    hasSuggestionChoice: children.length > 1,
     isGeneratingSuggestions: suggestionsMutation.isPending,
     isCreating: createActivityMutation.isPending,
     canSuggest: children.length > 0,
@@ -166,6 +193,7 @@ export function useJuntinhos() {
     handleComplete,
     handleRate,
     handleGenerateSuggestions,
+    handlePickSuggestionTarget: requestSuggestions,
     handleAcceptSuggestion,
     handleOpenNewActivity,
     handleActivityFieldChange,

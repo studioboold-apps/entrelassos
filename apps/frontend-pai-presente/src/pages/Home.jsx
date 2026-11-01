@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { Calendar, HelpCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import AiBadge from '@/components/AiBadge';
 import InsightCard from '@/components/InsightCard';
 import ChildQuickAccess from '@/components/ChildQuickAccess';
 import BrandLoader from '@/components/BrandLoader';
@@ -134,8 +135,9 @@ export default function Home() {
               whileTap={{ scale: 0.98 }}
               className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col items-center gap-2"
             >
-              <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+              <div className="relative w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
                 <HelpCircle aria-hidden="true" className="w-6 h-6 text-emerald-600" />
+                <AiBadge />
               </div>
               <span className="text-zinc-100 text-sm font-medium">{t('home.shortcuts.chat.title')}</span>
               <span className="text-zinc-500 text-xs text-center">{t('home.shortcuts.chat.subtitle')}</span>

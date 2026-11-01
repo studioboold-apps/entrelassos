@@ -38,7 +38,7 @@ const ACTIVITY_ALIASES = Object.freeze({
  * delas e a decisao TL.1 — enquanto ela nao vem, mandar uma so reprovaria a
  * requisicao INTEIRA com 400, e o pai perderia tambem o nome e a idade.
  */
-const PROFILE_FIELDS = Object.freeze(['full_name', 'age', 'marital_status', 'onboarding_completed']);
+const PROFILE_FIELDS = Object.freeze(['full_name', 'age', 'marital_status', 'onboarding_completed', 'avatar_url', 'city']);
 
 function pickProfileFields(values) {
   return Object.fromEntries(Object.entries(values).filter(([key]) => PROFILE_FIELDS.includes(key)));

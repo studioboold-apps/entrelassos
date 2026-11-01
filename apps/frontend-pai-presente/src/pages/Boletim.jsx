@@ -12,6 +12,7 @@ import BoletimQuickAccess from '@/components/BoletimQuickAccess';
 import BoletimQuickStats from '@/components/BoletimQuickStats';
 import BoletimReportCard from '@/components/BoletimReportCard';
 import { Button } from '@/components/ui/button';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 
@@ -40,6 +41,7 @@ export default function Boletim() {
         <div className="flex items-center gap-3 mb-4">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
           <span className="text-blue-600 font-medium">{t('boletim.sectionLabel')}</span>
+          <ChildQuickAccess />
         </div>
         <h1 className="text-2xl font-light text-zinc-100">{t('boletim.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('boletim.subtitle')}</p>

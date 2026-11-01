@@ -11,6 +11,7 @@ import { Loader2, RefreshCw, Sparkles, Users } from 'lucide-react';
 import CommunityCreatePost from '@/components/CommunityCreatePost';
 import CommunityPostCard from '@/components/CommunityPostCard';
 import InsightCard from '@/components/InsightCard';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { INSIGHT_CATEGORIES, findInsightCategory } from '@/lib/insight-categories';
@@ -46,6 +47,7 @@ export default function Comunidade() {
         <div className="flex items-center gap-3 mb-4">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
           <span className="text-emerald-600 font-medium">{t('comunidade.sectionLabel')}</span>
+          <ChildQuickAccess />
         </div>
         <h1 className="text-2xl font-light text-zinc-100">{t('comunidade.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('comunidade.subtitle')}</p>

@@ -4,10 +4,10 @@
  * Licenca: proprietaria.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Baby, Plus, X } from 'lucide-react';
 
-import ChildFields from '@/components/ChildFields';
+import ChildWizard from '@/components/ChildWizard';
 import ChildIdentity from '@/components/ChildIdentity';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
@@ -19,7 +19,9 @@ import { useTranslation } from '@/lib/i18n';
  */
 export default function OnboardingChildrenStep({ onboarding }) {
   const { t } = useTranslation();
-  const { children, newChild, canAddChild, handleNewChildFieldChange, handleAddChild, handleRemoveChild } = onboarding;
+  const { children, newChild, handleNewChildFieldChange, handleAddChild, handleRemoveChild } = onboarding;
+  const [isAddingAnother, setIsAddingAnother] = useState(false);
+  const showsWizard = children.length === 0 || isAddingAnother;
 
   return (
     <>
@@ -52,21 +54,30 @@ export default function OnboardingChildrenStep({ onboarding }) {
         </div>
       )}
 
-      <div className="p-4 border-2 border-dashed border-zinc-800 rounded-xl space-y-4">
-        <p className="text-sm font-medium text-zinc-500">{t('onboarding.children.addTitle')}</p>
-
-        <ChildFields value={newChild} onFieldChange={handleNewChildFieldChange} />
-
+      {showsWizard ? (
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
+          <ChildWizard
+            key={children.length}
+            value={newChild}
+            onFieldChange={handleNewChildFieldChange}
+            onFinish={() => {
+              handleAddChild();
+              setIsAddingAnother(false);
+            }}
+            onCancel={children.length > 0 ? () => setIsAddingAnother(false) : undefined}
+            finishLabel={t('onboarding.children.add')}
+          />
+        </div>
+      ) : (
         <Button
           variant="outline"
-          className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-          onClick={handleAddChild}
-          disabled={!canAddChild}
+          className="w-full h-12 border-dashed border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800"
+          onClick={() => setIsAddingAnother(true)}
         >
           <Plus aria-hidden="true" className="w-4 h-4 mr-2" />
-          {t('onboarding.children.add')}
+          {t('onboarding.children.addAnother')}
         </Button>
-      </div>
+      )}
     </>
   );
 }

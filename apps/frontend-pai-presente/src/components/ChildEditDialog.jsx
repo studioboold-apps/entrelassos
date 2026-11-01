@@ -5,13 +5,20 @@
  */
 
 import React from 'react';
+import { Images } from 'lucide-react';
 
+import AvatarPicker from '@/components/AvatarPicker';
 import ChildFields from '@/components/ChildFields';
+import ChildWizard from '@/components/ChildWizard';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTranslation } from '@/lib/i18n';
 
-/** Fatia da tela de perfil: recebe o retorno do hook, nao props soltas. */
+/**
+ * Cadastrar e editar sao conversas diferentes: quem cadastra responde uma
+ * pergunta por vez (`ChildWizard`); quem edita ja' conhece a ficha e quer ver
+ * tudo junto — inclusive a foto e o historico/album, que moram aqui dentro.
+ */
 export default function ChildEditDialog({ perfil }) {
   const { t } = useTranslation();
   const {
@@ -24,34 +31,67 @@ export default function ChildEditDialog({ perfil }) {
     handleCloseChildDialog,
     handleChildFieldChange,
     handleSaveChild,
+    handleOpenChildFiles,
   } = perfil;
 
   return (
     <Dialog open={isChildDialogOpen} onOpenChange={(open) => { if (!open) handleCloseChildDialog(); }}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-zinc-100">
             {editingChild ? t('perfil.childDialog.editTitle') : t('perfil.childDialog.addTitle')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {editingChild ? t('perfil.childDialog.editTitle') : t('perfil.childDialog.addTitle')}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <ChildFields value={childForm} onFieldChange={handleChildFieldChange} />
+        {editingChild ? (
+          <div className="space-y-5">
+            <AvatarPicker
+              name={childForm.name}
+              value={childForm.avatar_url}
+              onChange={(url) => handleChildFieldChange('avatar_url', url)}
+              size="lg"
+            />
 
-          {childFailure && (
-            <p role="alert" className="text-sm text-red-600">
-              {childFailure.message}
-            </p>
-          )}
+            <ChildFields value={childForm} onFieldChange={handleChildFieldChange} />
 
-          <Button
-            className="w-full bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
-            onClick={handleSaveChild}
-            disabled={!canSaveChild || isSavingChild}
-          >
-            {isSavingChild ? t('perfil.saving') : t('perfil.save')}
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChildFiles(editingChild)}
+              className="w-full h-12 justify-start border-zinc-800 bg-zinc-950 text-zinc-200 hover:bg-zinc-800"
+            >
+              <Images aria-hidden="true" className="w-4 h-4 mr-2 text-blue-600" />
+              {t('perfil.childDialog.files', { child: editingChild.name })}
+            </Button>
+
+            {childFailure && (
+              <p role="alert" className="text-sm text-red-600">
+                {childFailure.message}
+              </p>
+            )}
+
+            <Button
+              className="w-full h-12 bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
+              onClick={handleSaveChild}
+              disabled={!canSaveChild || isSavingChild}
+            >
+              {isSavingChild ? t('perfil.saving') : t('perfil.save')}
+            </Button>
+          </div>
+        ) : (
+          <ChildWizard
+            value={childForm}
+            onFieldChange={handleChildFieldChange}
+            onFinish={handleSaveChild}
+            onCancel={handleCloseChildDialog}
+            isSaving={isSavingChild}
+            failure={childFailure}
+            finishLabel={t('perfil.save')}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

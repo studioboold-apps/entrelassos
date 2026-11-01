@@ -18,12 +18,77 @@
   },
   "childSummary": "{age} años • {gender}",
   "childFields": {
-    "name": { "label": "Nombre", "placeholder": "Nombre del hijo" },
-    "age": { "label": "Edad", "placeholder": "Edad" },
-    "gender": { "label": "Sexo", "placeholder": "Selecciona..." },
-    "favorite_hobby": { "label": "Pasatiempo favorito", "placeholder": "Ej: fútbol, dibujo..." },
-    "favorite_color": { "label": "Color favorito", "placeholder": "Ej: azul, rojo..." },
-    "favorite_food": { "label": "Comida favorita", "placeholder": "Ej: pizza, pasta..." },
-    "favorite_movie_genre": { "label": "Género de película favorito", "placeholder": "Ej: animación, aventura..." }
+    "name": {
+      "label": "Nombre",
+      "placeholder": "Nombre del hijo"
+    },
+    "age": {
+      "label": "Edad",
+      "placeholder": "Edad"
+    },
+    "gender": {
+      "label": "Sexo",
+      "placeholder": "Selecciona..."
+    },
+    "favorite_hobby": {
+      "label": "Pasatiempo favorito",
+      "placeholder": "Ej: fútbol, dibujo..."
+    },
+    "favorite_color": {
+      "label": "Color favorito",
+      "placeholder": "Ej: azul, rojo..."
+    },
+    "favorite_food": {
+      "label": "Comida favorita",
+      "placeholder": "Ej: pizza, pasta..."
+    },
+    "favorite_movie_genre": {
+      "label": "Género de película favorito",
+      "placeholder": "Ej: animación, aventura..."
+    }
+  },
+  "avatar": {
+    "choose": "Elegir foto",
+    "change": "Cambiar foto",
+    "remove": "Quitar foto",
+    "unreadable": "No pudimos abrir esta foto. Prueba otra, en JPG o PNG."
+  },
+  "city": {
+    "label": "Tu ciudad",
+    "placeholder": "Ej.: Córdoba",
+    "hint": "La usamos para sugerir paseos y eventos de tu región."
+  },
+  "quickAccess": {
+    "label": "Acceso rápido a tus hijos",
+    "title": "Tus hijos",
+    "open": "Abrir la ficha de {name}",
+    "add": "Registrar hijo"
+  },
+  "wizard": {
+    "progress": "Paso {current} de {total}",
+    "next": "Siguiente",
+    "back": "Volver",
+    "skip": "Saltar",
+    "finish": "Terminar",
+    "cancel": "Cancelar",
+    "yourChild": "tu hijo",
+    "steps": {
+      "name": {
+        "title": "¿Cómo se llama tu hijo?",
+        "hint": "Puede ser el apodo que usan en casa."
+      },
+      "basics": {
+        "title": "¿Cuántos años tiene {name}?",
+        "hint": "Con la edad, el mentor adapta cada consejo a su etapa."
+      },
+      "photo": {
+        "title": "¿Quieres poner una foto de {name}?",
+        "hint": "Opcional. Aparece arriba en la app, para acceso rápido."
+      },
+      "likes": {
+        "title": "¿Qué le gusta a {name}?",
+        "hint": "Opcional. Ayuda a sugerir actividades a su medida."
+      }
+    }
   }
 }

@@ -4,11 +4,10 @@
  * Licenca: proprietaria.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Baby, Images, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Baby, Pencil, Plus, Trash2 } from 'lucide-react';
 
-import ChildFilesDialog from '@/components/ChildFilesDialog';
 import ChildIdentity from '@/components/ChildIdentity';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
@@ -17,7 +16,6 @@ import { useTranslation } from '@/lib/i18n';
 export default function PerfilChildrenSection({ perfil }) {
   const { t } = useTranslation();
   const { children, deleteFailure, setChildToDelete, handleOpenAddChild, handleOpenEditChild } = perfil;
-  const [childForFiles, setChildForFiles] = useState(null);
 
   return (
     <div className="px-4 mb-6">
@@ -47,17 +45,10 @@ export default function PerfilChildrenSection({ perfil }) {
             className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4"
           >
             <div className="flex items-center justify-between">
-              <ChildIdentity child={child} size="lg" />
+              <button type="button" onClick={() => handleOpenEditChild(child)} className="min-w-0 text-left">
+                <ChildIdentity child={child} size="lg" />
+              </button>
               <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t('perfil.childrenSection.files')}
-                  onClick={() => setChildForFiles(child)}
-                  className="text-zinc-500 hover:text-zinc-100"
-                >
-                  <Images aria-hidden="true" className="w-4 h-4" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -95,7 +86,6 @@ export default function PerfilChildrenSection({ perfil }) {
         )}
       </div>
 
-      <ChildFilesDialog child={childForFiles} onClose={() => setChildForFiles(null)} />
     </div>
   );
 }

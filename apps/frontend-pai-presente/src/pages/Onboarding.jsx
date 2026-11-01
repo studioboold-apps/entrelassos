@@ -6,8 +6,9 @@
 
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
+import AvatarPicker from '@/components/AvatarPicker';
 import OnboardingChildrenStep from '@/components/OnboardingChildrenStep';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ export default function Onboarding() {
     isLastStep,
     isSaving,
     userData,
+    userName,
     saveFailure,
     canProceed,
     handleNext,
@@ -77,8 +79,13 @@ export default function Onboarding() {
           {stepId === 'about' && (
             <motion.div {...STEP_MOTION} className="space-y-6">
               <div className="text-center mb-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-                  <User aria-hidden="true" className="w-8 h-8 text-zinc-400" />
+                <div className="mb-4">
+                  <AvatarPicker
+                    name={userName}
+                    value={userData.avatar_url}
+                    onChange={(url) => handleUserFieldChange('avatar_url', url)}
+                    size="lg"
+                  />
                 </div>
                 <h2 className="text-2xl font-light text-zinc-100">{t('onboarding.about.title')}</h2>
                 <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.about.subtitle')}</p>
@@ -94,6 +101,19 @@ export default function Onboarding() {
                   onChange={(event) => handleUserFieldChange('age', event.target.value)}
                   className={cn(FIELD_CLASS, 'mt-1.5 h-12')}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="city" className="text-zinc-400">{t('profile.city.label')}</Label>
+                <Input
+                  id="city"
+                  autoComplete="address-level2"
+                  placeholder={t('profile.city.placeholder')}
+                  value={userData.city}
+                  onChange={(event) => handleUserFieldChange('city', event.target.value)}
+                  className={cn(FIELD_CLASS, 'mt-1.5 h-12')}
+                />
+                <p className="mt-1.5 text-xs text-zinc-500">{t('profile.city.hint')}</p>
               </div>
             </motion.div>
           )}

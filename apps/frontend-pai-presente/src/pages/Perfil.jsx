@@ -9,7 +9,9 @@ import { motion } from 'framer-motion';
 import { LogOut, Pencil, User } from 'lucide-react';
 
 import ChildDeleteDialog from '@/components/ChildDeleteDialog';
+import AvatarPicker from '@/components/AvatarPicker';
 import ChildEditDialog from '@/components/ChildEditDialog';
+import ChildFilesDialog from '@/components/ChildFilesDialog';
 import LanguagePicker from '@/components/LanguagePicker';
 import PerfilChildrenSection from '@/components/PerfilChildrenSection';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
@@ -30,6 +32,11 @@ export default function Perfil() {
     completedActivities,
     handleOpenEditProfile,
     handleLogout,
+    childForFiles,
+    handleCloseChildFiles,
+    handleChangeAvatar,
+    isSavingAvatar,
+    avatarFailure,
   } = perfil;
 
   const stats = [
@@ -54,14 +61,24 @@ export default function Perfil() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400/20 to-emerald-400/20 border border-blue-400/30 flex items-center justify-center text-2xl font-light text-blue-600">
-            {user?.full_name?.[0] ?? t('perfil.fallbackInitial')}
-          </div>
-          <div>
+          <AvatarPicker
+            name={user?.full_name ?? t('perfil.fallbackInitial')}
+            value={user?.avatar_url ?? null}
+            onChange={handleChangeAvatar}
+            size="lg"
+            showActions={false}
+            isBusy={isSavingAvatar}
+          />
+          <div className="min-w-0">
             <h1 className="text-xl font-light text-zinc-100">{user?.full_name ?? t('perfil.fallbackName')}</h1>
-            <p className="text-zinc-500 text-sm">{user?.email}</p>
+            <p className="text-zinc-500 text-sm truncate">{user?.email}</p>
           </div>
         </div>
+        {avatarFailure && (
+          <p role="alert" className="mt-2 text-sm text-red-600">
+            {avatarFailure.message}
+          </p>
+        )}
       </div>
 
       <div className="px-4 mb-8">
@@ -112,6 +129,10 @@ export default function Perfil() {
                 {user?.marital_status ? t(`profile.maritalStatus.${user.marital_status}`) : t('perfil.emptyValue')}
               </span>
             </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-zinc-500">{t('profile.city.label')}</span>
+              <span className="text-zinc-300 truncate">{user?.city ?? t('perfil.emptyValue')}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -140,6 +161,7 @@ export default function Perfil() {
 
       <ProfileEditDialog perfil={perfil} />
       <ChildEditDialog perfil={perfil} />
+      <ChildFilesDialog child={childForFiles} onClose={handleCloseChildFiles} />
       <ChildDeleteDialog perfil={perfil} />
     </div>
   );

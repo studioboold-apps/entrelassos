@@ -10,6 +10,7 @@ import { Calendar, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import InsightCard from '@/components/InsightCard';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { INSIGHT_CATEGORIES, findInsightCategory } from '@/lib/insight-categories';
@@ -55,6 +56,7 @@ export default function Home() {
               <span className="text-blue-600 font-medium">{t('common.brandName')}</span>
               <span className="text-zinc-500 text-xs uppercase tracking-wider">{t('common.brandTagline')}</span>
             </div>
+            <ChildQuickAccess />
           </div>
           <h1 className="text-2xl font-light text-zinc-100">
             {greetingBefore}

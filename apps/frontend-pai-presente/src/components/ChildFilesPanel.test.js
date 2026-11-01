@@ -16,7 +16,8 @@ import { join } from 'node:path';
 const PANEL = readFileSync(join(import.meta.dir, 'ChildFilesPanel.jsx'), 'utf8');
 const HOOK = readFileSync(join(import.meta.dir, 'ChildFilesPanel.hook.js'), 'utf8');
 const DIALOG = readFileSync(join(import.meta.dir, 'ChildFilesDialog.jsx'), 'utf8');
-const SECTION = readFileSync(join(import.meta.dir, 'PerfilChildrenSection.jsx'), 'utf8');
+const EDIT_DIALOG = readFileSync(join(import.meta.dir, 'ChildEditDialog.jsx'), 'utf8');
+const PERFIL_PAGE = readFileSync(join(import.meta.dir, '..', 'pages', 'Perfil.jsx'), 'utf8');
 const USAGE = readFileSync(join(import.meta.dir, 'ChildFilesUsage.jsx'), 'utf8');
 const USAGE_HOOK = readFileSync(join(import.meta.dir, 'ChildFilesUsage.hook.js'), 'utf8');
 
@@ -176,14 +177,17 @@ describe('o album tem porta de entrada na ficha do filho', () => {
   /**
    * Terceira ocorrencia do padrao que este projeto ja pagou: capacidade que
    * existe na API e nao tem botao na tela nao existe para o usuario.
+   *
+   * Desde o feedback do design (nov/2026) a porta fica DENTRO da ficha do
+   * filho (editar), e nao mais como icone solto no cartao.
    */
-  test('o cartao do filho abre o album', () => {
-    expect(SECTION).toContain('setChildForFiles(child)');
-    expect(SECTION).toContain('<ChildFilesDialog');
+  test('a ficha do filho abre o album', () => {
+    expect(EDIT_DIALOG).toContain('handleOpenChildFiles(editingChild)');
+    expect(PERFIL_PAGE).toContain('<ChildFilesDialog');
   });
 
-  test('o botao de icone tem nome para o leitor de tela', () => {
-    expect(SECTION).toContain("aria-label={t('perfil.childrenSection.files')}");
+  test('o botao diz o que abre', () => {
+    expect(EDIT_DIALOG).toContain("t('perfil.childDialog.files'");
   });
 });
 

@@ -7,7 +7,7 @@
 import { z } from 'zod';
 
 import { CHILD_AGE_MAX, CHILD_AGE_MIN, CHILD_GENDERS } from '../shared/shared.constant';
-import { isoDateSchema, shortTextSchema } from '../shared/shared.schema';
+import { avatarDataUrlSchema, isoDateSchema, shortTextSchema } from '../shared/shared.schema';
 
 export const createChildBodySchema = z
   .object({
@@ -19,6 +19,7 @@ export const createChildBodySchema = z
     favoriteColor: shortTextSchema.optional(),
     favoriteFood: shortTextSchema.optional(),
     favoriteMovieGenre: shortTextSchema.optional(),
+    avatarUrl: avatarDataUrlSchema.optional(),
   })
   .strict();
 

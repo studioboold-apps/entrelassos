@@ -48,3 +48,15 @@ describe('o perfil so manda o que a API tem', () => {
     expect(toProfileUpdate({ age: '', marital_status: '' })).toEqual({});
   });
 });
+
+describe('cidade e foto do perfil', () => {
+  test('cidade em branco pede para apagar; preenchida vai sem espacos', () => {
+    expect(toProfileUpdate({ city: '  ' })).toEqual({ city: null });
+    expect(toProfileUpdate({ city: ' Campinas, SP ' })).toEqual({ city: 'Campinas, SP' });
+  });
+
+  test('foto so viaja quando a tela mexeu nela', () => {
+    expect(toProfileUpdate({ age: '30' })).toEqual({ age: 30 });
+    expect(toProfileUpdate({ avatar_url: null })).toEqual({ avatar_url: null });
+  });
+});

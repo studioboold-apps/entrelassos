@@ -7,7 +7,7 @@
 import { z } from 'zod';
 
 import { ADULT_AGE_MAX, ADULT_AGE_MIN, MARITAL_STATUSES } from '../shared/shared.constant';
-import { shortTextSchema } from '../shared/shared.schema';
+import { avatarDataUrlSchema, shortTextSchema } from '../shared/shared.schema';
 
 // O email NAO entra aqui: ele vem da sessao autenticada, nunca de um campo livre
 // do cliente (security.md §2 — identidade sai do contexto, nao do corpo).
@@ -17,6 +17,9 @@ export const updateUserBodySchema = z
     age: z.int().min(ADULT_AGE_MIN).max(ADULT_AGE_MAX),
     maritalStatus: z.enum(MARITAL_STATUSES),
     onboardingCompleted: z.boolean(),
+    avatarUrl: avatarDataUrlSchema,
+    /** Cidade escrita pelo pai ("Campinas, SP"): base das sugestoes da regiao. `null` apaga. */
+    city: shortTextSchema.nullable(),
   })
   .partial()
   .strict();

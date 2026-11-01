@@ -62,6 +62,18 @@ export default function ProfileEditDialog({ perfil }) {
             </Select>
           </div>
 
+          <div>
+            <Label className="text-zinc-400">{t('profile.city.label')}</Label>
+            <Input
+              autoComplete="address-level2"
+              value={profileForm.city}
+              placeholder={t('profile.city.placeholder')}
+              onChange={(event) => handleProfileFieldChange('city', event.target.value)}
+              className="mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100"
+            />
+            <p className="mt-1.5 text-xs text-zinc-500">{t('profile.city.hint')}</p>
+          </div>
+
           {profileFailure && (
             <p role="alert" className="text-sm text-red-600">
               {profileFailure.message}

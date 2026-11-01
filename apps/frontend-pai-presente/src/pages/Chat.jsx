@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, User, Loader2, Lightbulb } from 'lucide-react';
 import ChatComposer from '@/components/ChatComposer';
 import ExpandableMarkdown from '@/components/ExpandableMarkdown';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { MESSAGE_ROLES, SUGGESTED_QUESTION_KEYS, useChat } from './Chat.hook';
@@ -34,6 +35,7 @@ export default function Chat() {
           <h1 className="font-medium text-zinc-100">{t('chat.title')}</h1>
           <p className="text-xs text-zinc-500">{t('chat.subtitle')}</p>
         </div>
+        <ChildQuickAccess />
       </div>
 
       {/* Messages */}

@@ -18,12 +18,77 @@
   },
   "childSummary": "{age} years old • {gender}",
   "childFields": {
-    "name": { "label": "Name", "placeholder": "Child's name" },
-    "age": { "label": "Age", "placeholder": "Age" },
-    "gender": { "label": "Sex", "placeholder": "Select..." },
-    "favorite_hobby": { "label": "Favorite hobby", "placeholder": "E.g. soccer, drawing..." },
-    "favorite_color": { "label": "Favorite color", "placeholder": "E.g. blue, red..." },
-    "favorite_food": { "label": "Favorite food", "placeholder": "E.g. pizza, pasta..." },
-    "favorite_movie_genre": { "label": "Favorite movie genre", "placeholder": "E.g. animation, adventure..." }
+    "name": {
+      "label": "Name",
+      "placeholder": "Child's name"
+    },
+    "age": {
+      "label": "Age",
+      "placeholder": "Age"
+    },
+    "gender": {
+      "label": "Sex",
+      "placeholder": "Select..."
+    },
+    "favorite_hobby": {
+      "label": "Favorite hobby",
+      "placeholder": "E.g. soccer, drawing..."
+    },
+    "favorite_color": {
+      "label": "Favorite color",
+      "placeholder": "E.g. blue, red..."
+    },
+    "favorite_food": {
+      "label": "Favorite food",
+      "placeholder": "E.g. pizza, pasta..."
+    },
+    "favorite_movie_genre": {
+      "label": "Favorite movie genre",
+      "placeholder": "E.g. animation, adventure..."
+    }
+  },
+  "avatar": {
+    "choose": "Choose photo",
+    "change": "Change photo",
+    "remove": "Remove photo",
+    "unreadable": "We couldn't open this photo. Try another one, in JPG or PNG."
+  },
+  "city": {
+    "label": "Your city",
+    "placeholder": "E.g. Austin, TX",
+    "hint": "We use it to suggest outings and events near you."
+  },
+  "quickAccess": {
+    "label": "Quick access to your children",
+    "title": "Your children",
+    "open": "Open {name}'s profile",
+    "add": "Add child"
+  },
+  "wizard": {
+    "progress": "Step {current} of {total}",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "finish": "Finish",
+    "cancel": "Cancel",
+    "yourChild": "your child",
+    "steps": {
+      "name": {
+        "title": "What's your child's name?",
+        "hint": "It can be the nickname you use at home."
+      },
+      "basics": {
+        "title": "How old is {name}?",
+        "hint": "With the age, the mentor tailors every tip to this stage."
+      },
+      "photo": {
+        "title": "Want to add a photo of {name}?",
+        "hint": "Optional. It shows at the top of the app for quick access."
+      },
+      "likes": {
+        "title": "What does {name} enjoy?",
+        "hint": "Optional. It helps suggest activities that fit."
+      }
+    }
   }
 }

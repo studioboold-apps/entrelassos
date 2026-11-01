@@ -15,7 +15,7 @@ export const FAMILY_VALUE_FIELDS = Object.freeze([
 ]);
 
 /** Quantas sugestoes cabem embaixo do campo sem empurrar o resto do dialogo. */
-export const FAMILY_VALUE_SUGGESTION_LIMIT = 8;
+export const FAMILY_VALUE_SUGGESTION_LIMIT = 12;
 
 /** Mesma regra da API: acento, maiuscula e pontuacao nao fazem outra resposta. */
 export function normalizeFamilyValueKey(label) {

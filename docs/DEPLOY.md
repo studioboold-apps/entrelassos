@@ -82,7 +82,7 @@ Nenhum valor mora neste arquivo nem no repositório (`security.md` §4).
 | `AUTH_JWT_SECRET` | sim | mínimo 32 caracteres, rotacionável |
 | `LLM_PROVIDER` | sim | sem padrão, de propósito (`D8`) |
 | `LLM_API_KEY` | depende de `D8` | sem ela, quatro rotas respondem 503 |
-| `TRANSCRIPTION_API_KEY` | não | chave da OpenAI para o microfone do chat; sem ela só `POST /v1/chat/transcriptions` responde 503 (com `LLM_PROVIDER=openai`, a `LLM_API_KEY` serve) |
+| `TRANSCRIPTION_GROQ_API_KEY` | não | chave do Groq para o microfone do chat (pacote `@adatechnology/audio-transcription-provider`); sem ela só `POST /v1/chat/transcriptions` responde 503 |
 | `GOOGLE_CLIENT_ID` | sim | identificador público; sem provedor nenhum a API **recusa subir** |
 | `APPLE_CLIENT_ID` | não | `D7` ainda aberta; a recomendação é só Google no lançamento |
 | `NODE_ENV` | já vem `production` na imagem | é o que liga `Secure` no cookie |

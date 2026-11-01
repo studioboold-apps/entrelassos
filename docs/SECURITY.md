@@ -315,7 +315,7 @@ até o prompt. O que entrou é outra coisa, e com limites escritos:
 | o quê | vai para | fica guardado? |
 |---|---|---|
 | foto anexada no chat | provedor de IA (`LLM_PROVIDER`), só na pergunta em que foi anexada | **não**. O app reencoda em JPEG ≤ 1568 px (o que também tira o EXIF com a localização) e grava na conversa só o texto com a marca `📷` |
-| áudio gravado no chat | OpenAI (`TRANSCRIPTION_API_KEY`), para virar texto | **não**. O texto volta para a caixa de pergunta e o pai confere antes de enviar |
+| áudio gravado no chat | Groq, pelo pacote `@adatechnology/audio-transcription-provider` (`TRANSCRIPTION_GROQ_API_KEY`), para virar texto | **não**. O texto volta para a caixa de pergunta e o pai confere antes de enviar |
 | conversa anterior | provedor de IA, as últimas 20 falas | já estava em `chat_messages`; agora o mentor a lê para ter memória |
 
 É o pai quem escolhe, foto a foto, o que mandar — nada sai do álbum do filho

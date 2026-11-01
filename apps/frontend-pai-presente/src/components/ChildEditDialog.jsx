@@ -30,7 +30,7 @@ export default function ChildEditDialog({ perfil }) {
     <Dialog open={isChildDialogOpen} onOpenChange={(open) => { if (!open) handleCloseChildDialog(); }}>
       <DialogContent className="bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle className="text-zinc-100">
             {editingChild ? t('perfil.childDialog.editTitle') : t('perfil.childDialog.addTitle')}
           </DialogTitle>
         </DialogHeader>
@@ -39,13 +39,13 @@ export default function ChildEditDialog({ perfil }) {
           <ChildFields value={childForm} onFieldChange={handleChildFieldChange} />
 
           {childFailure && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-red-600">
               {childFailure.message}
             </p>
           )}
 
           <Button
-            className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
+            className="w-full bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
             onClick={handleSaveChild}
             disabled={!canSaveChild || isSavingChild}
           >

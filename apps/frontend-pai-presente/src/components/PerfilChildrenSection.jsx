@@ -22,7 +22,7 @@ export default function PerfilChildrenSection({ perfil }) {
   return (
     <div className="px-4 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-medium text-white flex items-center gap-2">
+        <h2 className="font-medium text-zinc-100 flex items-center gap-2">
           <Baby aria-hidden="true" className="w-5 h-5 text-zinc-400" />
           {t('perfil.childrenSection.title')}
         </h2>
@@ -54,7 +54,7 @@ export default function PerfilChildrenSection({ perfil }) {
                   size="icon"
                   aria-label={t('perfil.childrenSection.files')}
                   onClick={() => setChildForFiles(child)}
-                  className="text-zinc-500 hover:text-white"
+                  className="text-zinc-500 hover:text-zinc-100"
                 >
                   <Images aria-hidden="true" className="w-4 h-4" />
                 </Button>
@@ -63,7 +63,7 @@ export default function PerfilChildrenSection({ perfil }) {
                   size="icon"
                   aria-label={t('perfil.childrenSection.edit')}
                   onClick={() => handleOpenEditChild(child)}
-                  className="text-zinc-500 hover:text-white"
+                  className="text-zinc-500 hover:text-zinc-100"
                 >
                   <Pencil aria-hidden="true" className="w-4 h-4" />
                 </Button>
@@ -72,7 +72,7 @@ export default function PerfilChildrenSection({ perfil }) {
                   size="icon"
                   aria-label={t('perfil.childrenSection.delete')}
                   onClick={() => setChildToDelete(child)}
-                  className="text-zinc-500 hover:text-red-400"
+                  className="text-zinc-500 hover:text-red-600"
                 >
                   <Trash2 aria-hidden="true" className="w-4 h-4" />
                 </Button>
@@ -82,7 +82,7 @@ export default function PerfilChildrenSection({ perfil }) {
         ))}
 
         {deleteFailure && (
-          <p role="alert" className="text-sm text-red-400 px-1">
+          <p role="alert" className="text-sm text-red-600 px-1">
             {deleteFailure.message}
           </p>
         )}

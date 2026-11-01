@@ -37,7 +37,7 @@ function UsageRow({ label, scope }) {
     <div>
       <div className="flex items-baseline justify-between text-xs">
         <span className="text-zinc-400">{label}</span>
-        <span className={cn('tabular-nums', isNearlyFull ? 'text-amber-400' : 'text-zinc-500')}>
+        <span className={cn('tabular-nums', isNearlyFull ? 'text-amber-700' : 'text-zinc-500')}>
           {formatByteSize(scope.used_bytes)} / {formatByteSize(scope.quota_bytes)}
         </span>
       </div>
@@ -78,7 +78,7 @@ export default function ChildFilesUsage({ usage, fit, childName }) {
       </p>
 
       {fitMessageKey !== undefined && (
-        <p role="alert" className="text-sm text-amber-400">
+        <p role="alert" className="text-sm text-amber-700">
           {t(fitMessageKey, { size: formatByteSize(usage.file_max_bytes) })}
         </p>
       )}

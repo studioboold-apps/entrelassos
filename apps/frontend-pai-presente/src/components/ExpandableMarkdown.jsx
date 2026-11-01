@@ -43,7 +43,7 @@ export default function ExpandableMarkdown({ children, className = '', moreLabel
           type="button"
           onClick={() => setIsExpanded((value) => !value)}
           aria-expanded={isExpanded}
-          className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-400 hover:underline"
+          className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:underline"
         >
           {isExpanded ? lessLabel : moreLabel}
           {isExpanded ? (

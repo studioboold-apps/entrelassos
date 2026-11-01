@@ -15,12 +15,12 @@ import { Button } from '@/components/ui/button';
 import RatingButton from '@/components/ui/RatingButton';
 
 const categoryConfig = {
-  aventura: { icon: Tent, color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20' },
-  educativa: { icon: BookOpen, color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20' },
+  aventura: { icon: Tent, color: 'text-blue-600', bg: 'bg-blue-400/10 border-blue-400/20' },
+  educativa: { icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-400/10 border-emerald-400/20' },
   esportiva: { icon: Dumbbell, color: 'text-teal-400', bg: 'bg-teal-400/10 border-teal-400/20' },
   criativa: { icon: Palette, color: 'text-sky-400', bg: 'bg-sky-400/10 border-sky-400/20' },
-  natureza: { icon: TreePine, color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20' },
-  culinaria: { icon: ChefHat, color: 'text-blue-300', bg: 'bg-blue-300/10 border-blue-300/20' },
+  natureza: { icon: TreePine, color: 'text-emerald-600', bg: 'bg-emerald-400/10 border-emerald-400/20' },
+  culinaria: { icon: ChefHat, color: 'text-blue-600', bg: 'bg-blue-300/10 border-blue-300/20' },
   jogos: { icon: Gamepad2, color: 'text-teal-300', bg: 'bg-teal-300/10 border-teal-300/20' },
   escolar: { icon: School, color: 'text-indigo-400', bg: 'bg-indigo-400/10 border-indigo-400/20' },
   cursos: { icon: GraduationCap, color: 'text-purple-400', bg: 'bg-purple-400/10 border-purple-400/20' },
@@ -66,18 +66,18 @@ export default function ActivityCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             {activity.is_suggested && (
-              <span className="text-[10px] px-2 py-0.5 bg-blue-400/20 text-blue-400 rounded-full font-medium">
+              <span className="text-[10px] px-2 py-0.5 bg-blue-400/20 text-blue-600 rounded-full font-medium">
                 {t('activityCard.suggested')}
               </span>
             )}
             {activity.completed && (
-              <span className="text-[10px] px-2 py-0.5 bg-emerald-400/20 text-emerald-400 rounded-full font-medium flex items-center gap-1">
+              <span className="text-[10px] px-2 py-0.5 bg-emerald-400/20 text-emerald-600 rounded-full font-medium flex items-center gap-1">
                 <CheckCircle aria-hidden="true" className="w-3 h-3" /> {t('activityCard.completed')}
               </span>
             )}
           </div>
 
-          <h4 className="font-medium text-white mb-1">
+          <h4 className="font-medium text-zinc-100 mb-1">
             {activity.title}
           </h4>
 
@@ -114,7 +114,7 @@ export default function ActivityCard({
             size="sm"
             variant="outline"
             onClick={() => onComplete(activity)}
-            className="text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10 bg-transparent"
+            className="text-emerald-600 border-emerald-400/30 hover:bg-emerald-400/10 bg-transparent"
           >
             <CheckCircle aria-hidden="true" className="w-4 h-4 mr-1" />
             {t('activityCard.markCompleted')}

@@ -17,13 +17,13 @@ const categoryConfig = {
     icon: Brain, 
     gradient: 'from-blue-500/10 to-indigo-500/10',
     border: 'border-blue-500/20',
-    iconColor: 'text-blue-400'
+    iconColor: 'text-blue-600'
   },
   sexualidade: { 
     icon: Heart, 
     gradient: 'from-emerald-400/10 to-teal-400/10',
     border: 'border-emerald-400/20',
-    iconColor: 'text-emerald-400'
+    iconColor: 'text-emerald-600'
   },
   financeira: { 
     icon: Wallet, 

@@ -39,7 +39,7 @@ export default function CommunityCreatePost() {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={t('community.create.placeholder')}
-        className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600 resize-none min-h-[80px] mb-3"
+        className="bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600 resize-none min-h-[80px] mb-3"
       />
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2 flex-wrap">
@@ -50,7 +50,7 @@ export default function CommunityCreatePost() {
               className={cn(
                 "text-xs px-3 py-1.5 rounded-full font-medium transition-all",
                 category === cat.id
-                  ? "bg-gradient-to-r from-blue-500 to-emerald-400 text-white"
+                  ? "bg-gradient-to-r from-blue-500 to-amber-500 text-white"
                   : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
               )}
             >
@@ -62,7 +62,7 @@ export default function CommunityCreatePost() {
           size="sm"
           onClick={handleSubmit}
           disabled={!content.trim() || createPostMutation.isPending}
-          className="bg-gradient-to-r from-blue-500 to-emerald-400 text-white flex-shrink-0"
+          className="bg-gradient-to-r from-blue-500 to-amber-500 text-white flex-shrink-0"
         >
           <Send className="w-4 h-4 mr-1" />
           {t('community.create.publish')}

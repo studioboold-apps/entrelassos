@@ -22,7 +22,7 @@ export default function LanguagePicker() {
   return (
     <div className="px-4 mt-6">
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-5">
-        <h2 className="font-medium text-white flex items-center gap-2 mb-1">
+        <h2 className="font-medium text-zinc-100 flex items-center gap-2 mb-1">
           <Languages aria-hidden="true" className="w-5 h-5 text-zinc-400" />
           {t('perfil.languageSection.title')}
         </h2>
@@ -43,7 +43,7 @@ export default function LanguagePicker() {
                 className={cn(
                   'text-sm px-4 py-2 rounded-full font-medium transition-all',
                   isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white'
+                    ? 'bg-gradient-to-r from-blue-500 to-amber-500 text-white'
                     : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700',
                 )}
               >

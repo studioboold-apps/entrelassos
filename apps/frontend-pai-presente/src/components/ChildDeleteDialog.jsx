@@ -32,7 +32,7 @@ export default function ChildDeleteDialog({ perfil }) {
     <AlertDialog open={childToDelete !== null} onOpenChange={(open) => { if (!open) setChildToDelete(null); }}>
       <AlertDialogContent className="bg-zinc-900 border-zinc-800">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-white">
+          <AlertDialogTitle className="text-zinc-100">
             {t('perfil.deleteDialog.title', { child: childToDelete?.name })}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-zinc-400">

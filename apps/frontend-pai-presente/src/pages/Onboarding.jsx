@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 import { ONBOARDING_STEPS, useOnboarding } from './Onboarding.hook';
 
-const FIELD_CLASS = 'h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600';
+const FIELD_CLASS = 'h-11 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600';
 const STEP_MOTION = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
@@ -67,7 +67,7 @@ export default function Onboarding() {
           {stepId === 'welcome' && (
             <motion.div {...STEP_MOTION} className="text-center">
               <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-28 h-28 mx-auto mb-8 rounded-3xl" />
-              <h1 className="text-3xl font-light text-white">{t('common.brandName')}</h1>
+              <h1 className="text-3xl font-light text-zinc-100">{t('common.brandName')}</h1>
               <p className="text-zinc-500 text-sm uppercase tracking-widest mb-4">{t('common.brandTagline')}</p>
               <p className="text-zinc-400 text-lg mb-2">{t('onboarding.welcome.lead')}</p>
               <p className="text-zinc-500 text-sm">{t('onboarding.welcome.body')}</p>
@@ -80,7 +80,7 @@ export default function Onboarding() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center">
                   <User aria-hidden="true" className="w-8 h-8 text-zinc-400" />
                 </div>
-                <h2 className="text-2xl font-light text-white">{t('onboarding.about.title')}</h2>
+                <h2 className="text-2xl font-light text-zinc-100">{t('onboarding.about.title')}</h2>
                 <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.about.subtitle')}</p>
               </div>
 
@@ -101,7 +101,7 @@ export default function Onboarding() {
           {stepId === 'preferences' && (
             <motion.div {...STEP_MOTION} className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-light text-white">{t('onboarding.preferences.title')}</h2>
+                <h2 className="text-2xl font-light text-zinc-100">{t('onboarding.preferences.title')}</h2>
                 <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.preferences.subtitle')}</p>
               </div>
 
@@ -111,7 +111,7 @@ export default function Onboarding() {
                   value={userData.marital_status}
                   onValueChange={(value) => handleUserFieldChange('marital_status', value)}
                 >
-                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-white">
+                  <SelectTrigger className="mt-1.5 h-12 bg-zinc-900 border-zinc-800 text-zinc-100">
                     <SelectValue placeholder={t('onboarding.preferences.maritalStatusPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800">
@@ -134,14 +134,14 @@ export default function Onboarding() {
 
       <div className="px-6 pb-8 space-y-3">
         {saveFailure && (
-          <p role="alert" className="text-sm text-red-400 text-center">
+          <p role="alert" className="text-sm text-red-600 text-center">
             {saveFailure.message}
           </p>
         )}
 
         {isLastStep ? (
           <Button
-            className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"
+            className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white font-medium"
             onClick={handleComplete}
             disabled={isSaving || !canProceed}
           >
@@ -149,7 +149,7 @@ export default function Onboarding() {
           </Button>
         ) : (
           <Button
-            className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"
+            className="w-full h-14 text-lg bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white font-medium"
             onClick={handleNext}
             disabled={!canProceed}
           >

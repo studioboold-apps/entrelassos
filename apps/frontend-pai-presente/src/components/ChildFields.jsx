@@ -17,7 +17,7 @@ import {
   childFieldPlaceholderKey,
 } from '@/lib/profile-options';
 
-const INPUT_CLASS = 'mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600';
+const INPUT_CLASS = 'mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600';
 
 /**
  * Os sete campos do filho num lugar so: o cadastro do onboarding e a edicao do
@@ -53,7 +53,7 @@ export default function ChildFields({ value, onFieldChange }) {
         <div>
           <Label className="text-zinc-400">{t(childFieldLabelKey('gender'))}</Label>
           <Select value={value.gender} onValueChange={(gender) => onFieldChange('gender', gender)}>
-            <SelectTrigger className="mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-white">
+            <SelectTrigger className="mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-zinc-100">
               <SelectValue placeholder={t(childFieldPlaceholderKey('gender'))} />
             </SelectTrigger>
             <SelectContent className="bg-zinc-900 border-zinc-800">

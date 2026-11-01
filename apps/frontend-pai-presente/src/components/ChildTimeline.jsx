@@ -56,7 +56,7 @@ export default function ChildTimeline({ entries, onRemoveFile }) {
               <kindOption.icon aria-hidden="true" className={ICON_CLASS} />
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-white truncate">
+              <p className="text-sm text-zinc-100 truncate">
                 {isFile ? (entry.item.caption ?? t(kindOption.labelKey)) : entry.item.title}
               </p>
               <p className="text-xs text-zinc-500">
@@ -78,7 +78,7 @@ export default function ChildTimeline({ entries, onRemoveFile }) {
                 size="icon"
                 aria-label={t('perfil.childFiles.remove')}
                 onClick={() => onRemoveFile(entry.item.id)}
-                className="text-zinc-500 hover:text-red-400 shrink-0"
+                className="text-zinc-500 hover:text-red-600 shrink-0"
               >
                 <Trash2 aria-hidden="true" className="w-4 h-4" />
               </Button>

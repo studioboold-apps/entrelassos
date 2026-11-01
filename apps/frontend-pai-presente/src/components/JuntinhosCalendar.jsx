@@ -23,8 +23,8 @@ const WEEK_DAY_KEYS = Object.freeze([
 ]);
 
 const DAY_STYLE = {
-  selected: 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white',
-  today: 'bg-zinc-800 text-blue-400',
+  selected: 'bg-gradient-to-r from-blue-500 to-amber-500 text-white',
+  today: 'bg-zinc-800 text-blue-600',
   idle: 'hover:bg-zinc-800 text-zinc-400',
 };
 
@@ -56,7 +56,7 @@ export default function JuntinhosCalendar({ juntinhos }) {
         >
           <ChevronLeft aria-hidden="true" className="w-5 h-5 text-zinc-400" />
         </button>
-        <h2 className="font-medium text-white capitalize">{monthLabel}</h2>
+        <h2 className="font-medium text-zinc-100 capitalize">{monthLabel}</h2>
         <button
           onClick={handleNextMonth}
           aria-label={t('juntinhos.nextMonth')}

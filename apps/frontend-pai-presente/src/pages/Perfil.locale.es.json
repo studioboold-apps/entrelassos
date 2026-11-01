@@ -32,7 +32,8 @@
   },
   "childDialog": {
     "editTitle": "Editar Hijo",
-    "addTitle": "Añadir Hijo"
+    "addTitle": "Añadir Hijo",
+    "files": "Historial y fotos de {child}"
   },
   "deleteDialog": {
     "title": "¿Eliminar a {child}?",

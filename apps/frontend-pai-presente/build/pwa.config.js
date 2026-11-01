@@ -11,7 +11,7 @@ const THIRTY_DAYS_IN_SECONDS = ONE_DAY_IN_SECONDS * 30;
 const API_TIMEOUT_IN_SECONDS = 5;
 
 /** A mesma cor do fundo do app, para a barra do sistema nao piscar branco. */
-export const APP_THEME_COLOR = '#09090b';
+export const APP_THEME_COLOR = '#f6f5f0';
 
 export const PWA_MANIFEST = Object.freeze({
   name: 'Entrelaços — Pai Presente',

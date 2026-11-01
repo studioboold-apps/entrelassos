@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, User, Loader2, Lightbulb } from 'lucide-react';
+import { Bot, User, Lightbulb } from 'lucide-react';
 import ChatComposer from '@/components/ChatComposer';
-import ReactMarkdown from 'react-markdown';
+import ExpandableMarkdown from '@/components/ExpandableMarkdown';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
+import BrandLoader from '@/components/BrandLoader';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { MESSAGE_ROLES, SUGGESTED_QUESTION_KEYS, useChat } from './Chat.hook';
@@ -31,9 +33,10 @@ export default function Chat() {
       <div className="bg-zinc-900/80 backdrop-blur-lg border-b border-zinc-800 px-4 py-4 flex items-center gap-3">
         <img src={BRAND_LOGO} alt={t('chat.brandLogoAlt')} className="w-10 h-10 rounded-xl" />
         <div>
-          <h1 className="font-medium text-white">{t('chat.title')}</h1>
+          <h1 className="font-medium text-zinc-100">{t('chat.title')}</h1>
           <p className="text-xs text-zinc-500">{t('chat.subtitle')}</p>
         </div>
+        <ChildQuickAccess />
       </div>
 
       {/* Messages */}
@@ -41,9 +44,9 @@ export default function Chat() {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4">
-              <Lightbulb aria-hidden="true" className="w-8 h-8 text-emerald-400" />
+              <Lightbulb aria-hidden="true" className="w-8 h-8 text-emerald-600" />
             </div>
-            <h2 className="text-lg font-medium text-white mb-2">{t('chat.emptyTitle')}</h2>
+            <h2 className="text-lg font-medium text-zinc-100 mb-2">{t('chat.emptyTitle')}</h2>
             <p className="text-zinc-500 text-sm mb-6 max-w-xs">{t('chat.emptyBody')}</p>
 
             <div className="space-y-2 w-full max-w-sm">
@@ -79,14 +82,14 @@ export default function Chat() {
                       aria-label={t('chat.assistantAvatarLabel')}
                       className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center"
                     >
-                      <Bot aria-hidden="true" className="w-4 h-4 text-blue-400" />
+                      <Bot aria-hidden="true" className="w-4 h-4 text-blue-600" />
                     </div>
                   )}
 
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       message.role === MESSAGE_ROLES.USER
-                        ? 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white'
+                        ? 'bg-gradient-to-r from-blue-500 to-amber-500 text-white'
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-200'
                     }`}
                   >
@@ -100,9 +103,13 @@ export default function Chat() {
                     {message.role === MESSAGE_ROLES.USER ? (
                       <p className="text-sm">{message.content}</p>
                     ) : (
-                      <ReactMarkdown className="text-sm prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                      <ExpandableMarkdown
+                        className="text-sm prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                        moreLabel={t('chat.showMore')}
+                        lessLabel={t('chat.showLess')}
+                      >
                         {message.content}
-                      </ReactMarkdown>
+                      </ExpandableMarkdown>
                     )}
                   </div>
 
@@ -125,10 +132,10 @@ export default function Chat() {
                 className="flex gap-3"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center">
-                  <Bot aria-hidden="true" className="w-4 h-4 text-blue-400" />
+                  <Bot aria-hidden="true" className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
-                  <Loader2 aria-hidden="true" className="w-5 h-5 text-zinc-500 animate-spin" />
+                  <BrandLoader size="sm" />
                 </div>
               </motion.div>
             )}

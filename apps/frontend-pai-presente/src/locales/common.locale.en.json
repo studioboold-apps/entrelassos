@@ -11,5 +11,10 @@
   "environment": {
     "local": "Local environment — nothing here is real data",
     "staging": "Staging — nothing here is real data"
+  },
+  "notFound": {
+    "title": "This page doesn't exist",
+    "body": "The address may have changed. Go back home and continue from there.",
+    "home": "Go home"
   }
 }

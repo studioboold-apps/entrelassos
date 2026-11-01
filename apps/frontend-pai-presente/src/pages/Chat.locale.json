@@ -25,5 +25,7 @@
   "voiceStop": "Parar e transcrever",
   "recording": "Gravando… toque no quadrado para parar.",
   "transcribing": "Transcrevendo o áudio…",
-  "micDenied": "Não conseguimos usar o microfone. Libere o acesso nas permissões do navegador."
+  "micDenied": "Não conseguimos usar o microfone. Libere o acesso nas permissões do navegador.",
+  "showMore": "Ver mais",
+  "showLess": "Ver menos"
 }

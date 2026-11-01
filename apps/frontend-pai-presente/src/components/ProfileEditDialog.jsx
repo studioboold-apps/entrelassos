@@ -31,7 +31,7 @@ export default function ProfileEditDialog({ perfil }) {
     <Dialog open={isEditProfileOpen} onOpenChange={setShowEditProfile}>
       <DialogContent className="bg-zinc-900 border-zinc-800">
         <DialogHeader>
-          <DialogTitle className="text-white">{t('perfil.editProfile.title')}</DialogTitle>
+          <DialogTitle className="text-zinc-100">{t('perfil.editProfile.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -41,7 +41,7 @@ export default function ProfileEditDialog({ perfil }) {
               type="number"
               value={profileForm.age}
               onChange={(event) => handleProfileFieldChange('age', event.target.value)}
-              className="mt-1.5 bg-zinc-800 border-zinc-700 text-white"
+              className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100"
             />
           </div>
 
@@ -51,10 +51,10 @@ export default function ProfileEditDialog({ perfil }) {
               value={profileForm.marital_status}
               onValueChange={(value) => handleProfileFieldChange('marital_status', value)}
             >
-              <SelectTrigger className="mt-1.5 bg-zinc-800 border-zinc-700 text-white">
+              <SelectTrigger className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100">
                 <SelectValue placeholder={t('perfil.editProfile.maritalStatusPlaceholder')} />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-900 border-zinc-700">
                 {MARITAL_STATUS_OPTIONS.map(({ value, labelKey }) => (
                   <SelectItem key={value} value={value}>{t(labelKey)}</SelectItem>
                 ))}
@@ -62,14 +62,26 @@ export default function ProfileEditDialog({ perfil }) {
             </Select>
           </div>
 
+          <div>
+            <Label className="text-zinc-400">{t('profile.city.label')}</Label>
+            <Input
+              autoComplete="address-level2"
+              value={profileForm.city}
+              placeholder={t('profile.city.placeholder')}
+              onChange={(event) => handleProfileFieldChange('city', event.target.value)}
+              className="mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100"
+            />
+            <p className="mt-1.5 text-xs text-zinc-500">{t('profile.city.hint')}</p>
+          </div>
+
           {profileFailure && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-red-600">
               {profileFailure.message}
             </p>
           )}
 
           <Button
-            className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
+            className="w-full bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
             onClick={handleSaveProfile}
             disabled={isSavingProfile}
           >

@@ -20,8 +20,9 @@
     "title": "Seus filhos",
     "subtitle": "Cadastre seus filhos para insights personalizados",
     "addTitle": "Adicionar filho",
-    "add": "Adicionar",
-    "remove": "Remover filho"
+    "add": "Adicionar filho",
+    "remove": "Remover filho",
+    "addAnother": "Adicionar outro filho"
   },
   "saving": "Salvando...",
   "finish": "Começar minha jornada",

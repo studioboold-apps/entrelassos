@@ -9,7 +9,9 @@ import { motion } from 'framer-motion';
 import { LogOut, Pencil, User } from 'lucide-react';
 
 import ChildDeleteDialog from '@/components/ChildDeleteDialog';
+import AvatarPicker from '@/components/AvatarPicker';
 import ChildEditDialog from '@/components/ChildEditDialog';
+import ChildFilesDialog from '@/components/ChildFilesDialog';
 import LanguagePicker from '@/components/LanguagePicker';
 import PerfilChildrenSection from '@/components/PerfilChildrenSection';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
@@ -30,16 +32,21 @@ export default function Perfil() {
     completedActivities,
     handleOpenEditProfile,
     handleLogout,
+    childForFiles,
+    handleCloseChildFiles,
+    handleChangeAvatar,
+    isSavingAvatar,
+    avatarFailure,
   } = perfil;
 
   const stats = [
-    { key: 'children', labelKey: 'perfil.stats.children', value: perfil.children.length, tone: 'text-white' },
-    { key: 'activities', labelKey: 'perfil.stats.activities', value: completedActivities, tone: 'text-emerald-400' },
+    { key: 'children', labelKey: 'perfil.stats.children', value: perfil.children.length, tone: 'text-zinc-100' },
+    { key: 'activities', labelKey: 'perfil.stats.activities', value: completedActivities, tone: 'text-emerald-600' },
     {
       key: 'average',
       labelKey: 'perfil.stats.average',
       value: averageGrade === undefined ? t('perfil.stats.noAverage') : `${averageGrade}⭐`,
-      tone: 'text-blue-400',
+      tone: 'text-blue-600',
     },
   ];
 
@@ -49,19 +56,29 @@ export default function Perfil() {
         <div className="flex items-center gap-3 mb-6">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
           <div className="flex flex-col leading-tight">
-            <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
+            <span className="text-blue-600 font-medium">{t('common.brandName')}</span>
             <span className="text-zinc-500 text-xs uppercase tracking-wider">{t('common.brandTagline')}</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400/20 to-emerald-400/20 border border-blue-400/30 flex items-center justify-center text-2xl font-light text-blue-400">
-            {user?.full_name?.[0] ?? t('perfil.fallbackInitial')}
-          </div>
-          <div>
-            <h1 className="text-xl font-light text-white">{user?.full_name ?? t('perfil.fallbackName')}</h1>
-            <p className="text-zinc-500 text-sm">{user?.email}</p>
+          <AvatarPicker
+            name={user?.full_name ?? t('perfil.fallbackInitial')}
+            value={user?.avatar_url ?? null}
+            onChange={handleChangeAvatar}
+            size="lg"
+            showActions={false}
+            isBusy={isSavingAvatar}
+          />
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-zinc-100">{user?.full_name ?? t('perfil.fallbackName')}</h1>
+            <p className="text-zinc-500 text-sm truncate">{user?.email}</p>
           </div>
         </div>
+        {avatarFailure && (
+          <p role="alert" className="mt-2 text-sm text-red-600">
+            {avatarFailure.message}
+          </p>
+        )}
       </div>
 
       <div className="px-4 mb-8">
@@ -74,7 +91,7 @@ export default function Perfil() {
               transition={{ delay: index * 0.1 }}
               className={STAT_CARD}
             >
-              <p className={`text-2xl font-light ${tone}`}>{value}</p>
+              <p className={`text-2xl font-bold ${tone}`}>{value}</p>
               <p className="text-xs text-zinc-500 mt-1">{t(labelKey)}</p>
             </motion.div>
           ))}
@@ -84,7 +101,7 @@ export default function Perfil() {
       <div className="px-4 mb-6">
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium text-white flex items-center gap-2">
+            <h2 className="font-medium text-zinc-100 flex items-center gap-2">
               <User aria-hidden="true" className="w-5 h-5 text-zinc-400" />
               {t('perfil.profileSection.title')}
             </h2>
@@ -93,7 +110,7 @@ export default function Perfil() {
               size="sm"
               aria-label={t('perfil.profileSection.edit')}
               onClick={handleOpenEditProfile}
-              className="text-zinc-400 hover:text-white"
+              className="text-zinc-400 hover:text-zinc-100"
             >
               <Pencil aria-hidden="true" className="w-4 h-4" />
             </Button>
@@ -112,6 +129,10 @@ export default function Perfil() {
                 {user?.marital_status ? t(`profile.maritalStatus.${user.marital_status}`) : t('perfil.emptyValue')}
               </span>
             </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-zinc-500">{t('profile.city.label')}</span>
+              <span className="text-zinc-300 truncate">{user?.city ?? t('perfil.emptyValue')}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -123,7 +144,7 @@ export default function Perfil() {
       <div className="px-4 mt-8">
         <Button
           variant="outline"
-          className="w-full bg-transparent border-red-900/50 text-red-400 hover:bg-red-900/20"
+          className="w-full bg-transparent border-red-900/50 text-red-600 hover:bg-red-900/20"
           onClick={handleLogout}
         >
           <LogOut aria-hidden="true" className="w-4 h-4 mr-2" />
@@ -140,6 +161,7 @@ export default function Perfil() {
 
       <ProfileEditDialog perfil={perfil} />
       <ChildEditDialog perfil={perfil} />
+      <ChildFilesDialog child={childForFiles} onClose={handleCloseChildFiles} />
       <ChildDeleteDialog perfil={perfil} />
     </div>
   );

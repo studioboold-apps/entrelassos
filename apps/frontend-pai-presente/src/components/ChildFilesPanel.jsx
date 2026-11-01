@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 
 import { useChildFiles } from './ChildFilesPanel.hook';
 
-const INPUT_CLASS = 'mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600';
+const INPUT_CLASS = 'mt-1.5 h-11 bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600';
 
 
 export default function ChildFilesPanel({ child }) {
@@ -61,7 +61,7 @@ export default function ChildFilesPanel({ child }) {
               className={cn(
                 'flex items-center justify-center gap-2 h-11 rounded-xl border text-sm transition-colors',
                 form.kind === option.kind
-                  ? 'bg-gradient-to-r from-blue-500 to-emerald-400 border-transparent text-white'
+                  ? 'bg-gradient-to-r from-blue-500 to-amber-500 border-transparent text-white'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200',
               )}
             >
@@ -88,7 +88,7 @@ export default function ChildFilesPanel({ child }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label className="text-zinc-400">{t('perfil.childFiles.captionLabel')}</Label>
           <Input
@@ -112,9 +112,9 @@ export default function ChildFilesPanel({ child }) {
       {showsExamNotice && (
         <div className="bg-zinc-900 border border-amber-500/40 rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-2">
-            <ShieldCheck aria-hidden="true" className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <ShieldCheck aria-hidden="true" className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-white">{t('perfil.childFiles.examNotice.title')}</p>
+              <p className="text-sm text-zinc-100">{t('perfil.childFiles.examNotice.title')}</p>
               <p className="text-xs text-zinc-400 mt-1">{t('perfil.childFiles.examNotice.body')}</p>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function ChildFilesPanel({ child }) {
           )}
 
           {consentFailure && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-red-600">
               {consentFailure.message}
             </p>
           )}
@@ -149,7 +149,7 @@ export default function ChildFilesPanel({ child }) {
       <Button
         onClick={handleUpload}
         disabled={!canUpload}
-        className="w-full h-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"
+        className="w-full h-12 bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white font-medium"
       >
         {isUploading ? (
           <>
@@ -165,7 +165,7 @@ export default function ChildFilesPanel({ child }) {
       </Button>
 
       {uploadFailure && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="text-sm text-red-600">
           {uploadFailure.message}
         </p>
       )}
@@ -176,13 +176,13 @@ export default function ChildFilesPanel({ child }) {
         </h3>
 
         {listFailure && (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-red-600">
             {listFailure.message}
           </p>
         )}
 
         {removeFailure && (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-red-600">
             {removeFailure.message}
           </p>
         )}

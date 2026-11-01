@@ -15,15 +15,20 @@
  * 2. A tela mandava tambem os campos que a nossa base nao tem, e o schema da
  *    API e estrito: um campo desconhecido reprova o resto.
  *
- * @param {{ age?: string, marital_status?: string }} form
- * @returns {{ age?: number, marital_status?: string }}
+ * Cidade e foto so' viajam quando o formulario as conhece (`undefined` = a tela
+ * nao mexeu nelas). Cidade apagada vira `null`, que e' o pedido de apagar.
+ *
+ * @param {{ age?: string, marital_status?: string, city?: string, avatar_url?: string | null }} form
+ * @returns {{ age?: number, marital_status?: string, city?: string | null, avatar_url?: string | null }}
  */
-export function toProfileUpdate({ age = '', marital_status: maritalStatus = '' }) {
+export function toProfileUpdate({ age = '', marital_status: maritalStatus = '', city, avatar_url: avatarUrl }) {
   const update = {};
   const parsedAge = Number.parseInt(age, 10);
 
   if (Number.isInteger(parsedAge)) update.age = parsedAge;
   if (maritalStatus !== '') update.marital_status = maritalStatus;
+  if (city !== undefined) update.city = city.trim() === '' ? null : city.trim();
+  if (avatarUrl !== undefined) update.avatar_url = avatarUrl;
 
   return update;
 }

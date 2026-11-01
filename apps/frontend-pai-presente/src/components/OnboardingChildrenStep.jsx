@@ -4,10 +4,10 @@
  * Licenca: proprietaria.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Baby, Plus, X } from 'lucide-react';
 
-import ChildFields from '@/components/ChildFields';
+import ChildWizard from '@/components/ChildWizard';
 import ChildIdentity from '@/components/ChildIdentity';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
@@ -19,15 +19,17 @@ import { useTranslation } from '@/lib/i18n';
  */
 export default function OnboardingChildrenStep({ onboarding }) {
   const { t } = useTranslation();
-  const { children, newChild, canAddChild, handleNewChildFieldChange, handleAddChild, handleRemoveChild } = onboarding;
+  const { children, newChild, handleNewChildFieldChange, handleAddChild, handleRemoveChild } = onboarding;
+  const [isAddingAnother, setIsAddingAnother] = useState(false);
+  const showsWizard = children.length === 0 || isAddingAnother;
 
   return (
     <>
       <div className="text-center mb-6">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center">
-          <Baby aria-hidden="true" className="w-8 h-8 text-emerald-400" />
+          <Baby aria-hidden="true" className="w-8 h-8 text-emerald-600" />
         </div>
-        <h2 className="text-2xl font-light text-white">{t('onboarding.children.title')}</h2>
+        <h2 className="text-2xl font-bold text-zinc-100">{t('onboarding.children.title')}</h2>
         <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.children.subtitle')}</p>
       </div>
 
@@ -43,7 +45,7 @@ export default function OnboardingChildrenStep({ onboarding }) {
                 type="button"
                 aria-label={t('onboarding.children.remove')}
                 onClick={() => handleRemoveChild(index)}
-                className="p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                className="p-2 text-zinc-500 hover:text-red-600 transition-colors"
               >
                 <X aria-hidden="true" className="w-5 h-5" />
               </button>
@@ -52,21 +54,30 @@ export default function OnboardingChildrenStep({ onboarding }) {
         </div>
       )}
 
-      <div className="p-4 border-2 border-dashed border-zinc-800 rounded-xl space-y-4">
-        <p className="text-sm font-medium text-zinc-500">{t('onboarding.children.addTitle')}</p>
-
-        <ChildFields value={newChild} onFieldChange={handleNewChildFieldChange} />
-
+      {showsWizard ? (
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
+          <ChildWizard
+            key={children.length}
+            value={newChild}
+            onFieldChange={handleNewChildFieldChange}
+            onFinish={() => {
+              handleAddChild();
+              setIsAddingAnother(false);
+            }}
+            onCancel={children.length > 0 ? () => setIsAddingAnother(false) : undefined}
+            finishLabel={t('onboarding.children.add')}
+          />
+        </div>
+      ) : (
         <Button
           variant="outline"
-          className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-          onClick={handleAddChild}
-          disabled={!canAddChild}
+          className="w-full h-12 border-dashed border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800"
+          onClick={() => setIsAddingAnother(true)}
         >
           <Plus aria-hidden="true" className="w-4 h-4 mr-2" />
-          {t('onboarding.children.add')}
+          {t('onboarding.children.addAnother')}
         </Button>
-      </div>
+      )}
     </>
   );
 }

@@ -6,11 +6,13 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, RefreshCw, Sparkles, Users } from 'lucide-react';
+import { RefreshCw, Sparkles, Users } from 'lucide-react';
 
 import CommunityCreatePost from '@/components/CommunityCreatePost';
 import CommunityPostCard from '@/components/CommunityPostCard';
 import InsightCard from '@/components/InsightCard';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
+import BrandLoader from '@/components/BrandLoader';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { INSIGHT_CATEGORIES, findInsightCategory } from '@/lib/insight-categories';
@@ -19,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { COMMUNITY_TABS, useComunidade } from './Comunidade.hook';
 
 const TAB_STYLE = {
-  active: 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white',
+  active: 'bg-gradient-to-r from-blue-500 to-amber-500 text-white',
   idle: 'text-zinc-400 hover:text-zinc-200',
 };
 
@@ -45,9 +47,10 @@ export default function Comunidade() {
       <div className="px-6 pt-10 pb-4">
         <div className="flex items-center gap-3 mb-4">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
-          <span className="text-emerald-400 font-medium">{t('comunidade.sectionLabel')}</span>
+          <span className="text-blue-600 font-medium">{t('comunidade.sectionLabel')}</span>
+          <ChildQuickAccess />
         </div>
-        <h1 className="text-2xl font-light text-white">{t('comunidade.title')}</h1>
+        <h1 className="text-2xl font-bold text-zinc-100">{t('comunidade.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('comunidade.subtitle')}</p>
       </div>
 
@@ -114,9 +117,9 @@ export default function Comunidade() {
                   >
                     <category.icon
                       aria-hidden="true"
-                      className={cn('w-8 h-8', isActive ? 'text-emerald-400' : 'text-zinc-400')}
+                      className={cn('w-8 h-8', isActive ? 'text-emerald-600' : 'text-zinc-400')}
                     />
-                    <span className={cn('text-xs text-center leading-tight', isActive ? 'text-white' : 'text-zinc-500')}>
+                    <span className={cn('text-xs text-center leading-tight', isActive ? 'text-zinc-100' : 'text-zinc-500')}>
                       {t(category.labelKey)}
                     </span>
                   </motion.button>
@@ -145,13 +148,10 @@ export default function Comunidade() {
             </h2>
 
             {isLoadingInsights ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 aria-hidden="true" className="w-8 h-8 text-blue-400 animate-spin mb-4" />
-                <p className="text-zinc-500">{t('insights.generating')}</p>
-              </div>
+              <BrandLoader label={t('insights.generating')} className="py-16" />
             ) : insightsFailure ? (
               <div className="text-center py-16">
-                <p role="alert" className="text-sm text-red-400">
+                <p role="alert" className="text-sm text-red-600">
                   {insightsFailure.message}
                 </p>
               </div>

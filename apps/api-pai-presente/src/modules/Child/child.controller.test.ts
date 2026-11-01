@@ -43,6 +43,7 @@ function buildChildRow(overrides: RowOverrides<ChildRow> = {}): ChildRow {
     gender: 'feminino',
     birthDate: null,
     favoriteHobby: null,
+    avatarUrl: null,
     favoriteColor: null,
     favoriteFood: null,
     favoriteMovieGenre: null,

@@ -40,5 +40,16 @@
     "juntinhosHint": "Planifica actividades",
     "chat": "Resuelve Dudas",
     "chatHint": "Chat de apoyo"
+  },
+  "share": {
+    "title": "Mi boletín de papá",
+    "outside": "Compartir",
+    "copied": "¡Copiado!",
+    "community": "En la Comunidad",
+    "heading": "📋 Mi boletín de papá — {month}",
+    "score": "⭐ Nota {score} ({label})",
+    "strengths": "💪 Puntos fuertes:",
+    "goal": "🎯 Meta del próximo mes: {goal}",
+    "footer": "Hecho en Entrelaços — Pai Presente: {url}"
   }
 }

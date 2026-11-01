@@ -12,6 +12,7 @@ import ActivitySuggestionsDialog from '@/components/ActivitySuggestionsDialog';
 import JuntinhosCalendar from '@/components/JuntinhosCalendar';
 import NewActivityDialog from '@/components/NewActivityDialog';
 import { Button } from '@/components/ui/button';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 
@@ -37,9 +38,10 @@ export default function Juntinhos() {
       <div className="px-6 pt-10 pb-6">
         <div className="flex items-center gap-3 mb-4">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
-          <span className="text-emerald-400 font-medium">{t('juntinhos.sectionLabel')}</span>
+          <span className="text-blue-600 font-medium">{t('juntinhos.sectionLabel')}</span>
+          <ChildQuickAccess />
         </div>
-        <h1 className="text-2xl font-light text-white">{t('juntinhos.title')}</h1>
+        <h1 className="text-2xl font-bold text-zinc-100">{t('juntinhos.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('juntinhos.subtitle')}</p>
       </div>
 
@@ -53,18 +55,18 @@ export default function Juntinhos() {
             variant="outline"
             onClick={handleGenerateSuggestions}
             disabled={isGeneratingSuggestions || !canSuggest}
-            className="flex-1 h-12 bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            className="flex-1 h-12 bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
           >
             {isGeneratingSuggestions ? (
               <Loader2 aria-hidden="true" className="w-5 h-5 mr-2 animate-spin" />
             ) : (
-              <Sparkles aria-hidden="true" className="w-5 h-5 mr-2 text-blue-400" />
+              <Sparkles aria-hidden="true" className="w-5 h-5 mr-2 text-blue-600" />
             )}
             {t('juntinhos.suggest')}
           </Button>
           <Button
             onClick={handleOpenNewActivity}
-            className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
+            className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
           >
             <Plus aria-hidden="true" className="w-5 h-5 mr-2" />
             {t('juntinhos.newActivity')}
@@ -72,7 +74,7 @@ export default function Juntinhos() {
         </div>
 
         {screenFailure && (
-          <p role="alert" className="text-sm text-red-400 mt-3">
+          <p role="alert" className="text-sm text-red-600 mt-3">
             {screenFailure.message}
           </p>
         )}
@@ -81,7 +83,7 @@ export default function Juntinhos() {
       <div className="px-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-medium text-white">{selectedDateLabel}</h3>
+            <h3 className="font-medium text-zinc-100">{selectedDateLabel}</h3>
             <p className="text-sm text-zinc-500">
               {t('juntinhos.activityCount', { count: activitiesForSelectedDate.length })}
             </p>

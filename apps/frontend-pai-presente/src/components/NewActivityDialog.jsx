@@ -16,7 +16,7 @@ import { ACTIVITY_CATEGORIES } from '@/lib/activity-categories';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-const FIELD_CLASS = 'mt-1.5 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-600';
+const FIELD_CLASS = 'mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600';
 
 /**
  * Fatia da tela de Juntinhos: recebe o retorno do hook, nao props soltas.
@@ -41,7 +41,7 @@ export default function NewActivityDialog({ juntinhos }) {
     <Dialog open={showNewActivity} onOpenChange={setShowNewActivity}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800">
         <DialogHeader>
-          <DialogTitle className="text-white">{t('juntinhos.newActivity')}</DialogTitle>
+          <DialogTitle className="text-zinc-100">{t('juntinhos.newActivity')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -92,7 +92,7 @@ export default function NewActivityDialog({ juntinhos }) {
               <SelectTrigger className={FIELD_CLASS}>
                 <SelectValue placeholder={t('juntinhos.form.childPlaceholder')} />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-900 border-zinc-700">
                 {children.map((child) => (
                   <SelectItem key={child.id} value={child.id}>
                     {child.name}
@@ -112,7 +112,7 @@ export default function NewActivityDialog({ juntinhos }) {
                   className={cn(
                     'p-3 rounded-xl flex flex-col items-center gap-1 transition-all',
                     newActivity.category === category.id
-                      ? 'bg-gradient-to-r from-blue-500 to-emerald-400 text-white'
+                      ? 'bg-gradient-to-r from-blue-500 to-amber-500 text-white'
                       : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700',
                   )}
                 >
@@ -124,13 +124,13 @@ export default function NewActivityDialog({ juntinhos }) {
           </div>
 
           {createFailure && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-red-600">
               {createFailure.message}
             </p>
           )}
 
           <Button
-            className="w-full bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
+            className="w-full bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
             onClick={handleCreateActivity}
             disabled={!canCreate || isCreating}
           >

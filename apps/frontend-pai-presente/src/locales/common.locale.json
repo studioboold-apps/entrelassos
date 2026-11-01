@@ -11,5 +11,10 @@
   "environment": {
     "local": "Ambiente local — nada aqui é dado de verdade",
     "staging": "Homologação — nada aqui é dado de verdade"
+  },
+  "notFound": {
+    "title": "Essa página não existe",
+    "body": "O endereço pode ter mudado. Volte para o início e siga de lá.",
+    "home": "Ir para o início"
   }
 }

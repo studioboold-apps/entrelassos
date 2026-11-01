@@ -24,6 +24,7 @@ const EMPTY_CHILD = Object.freeze({
   favorite_color: '',
   favorite_food: '',
   favorite_movie_genre: '',
+  avatar_url: null,
 });
 
 export function useOnboarding() {
@@ -37,7 +38,7 @@ export function useOnboarding() {
   }, [user, navigate]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [userData, setUserData] = useState({ age: '', marital_status: '' });
+  const [userData, setUserData] = useState({ age: '', marital_status: '', city: '', avatar_url: null });
   const [children, setChildren] = useState([]);
   const [saveFailure, setSaveFailure] = useState(null);
   const [newChild, setNewChild] = useState(EMPTY_CHILD);
@@ -128,6 +129,7 @@ export function useOnboarding() {
     isLastStep,
     isSaving,
     userData,
+    userName: user?.full_name ?? '',
     children,
     newChild,
     saveFailure,

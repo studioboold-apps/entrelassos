@@ -34,6 +34,8 @@
   "suggestions": {
     "title": "Suggestions",
     "forChild": "For: {child}",
-    "accept": "Add to calendar"
+    "accept": "Add to calendar",
+    "regionOn": "Suggestions tailored to {city}.",
+    "regionOff": "Want outings near you? Add your city in your Profile."
   }
 }

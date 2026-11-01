@@ -6,10 +6,12 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar, HelpCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import InsightCard from '@/components/InsightCard';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
+import BrandLoader from '@/components/BrandLoader';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { INSIGHT_CATEGORIES, findInsightCategory } from '@/lib/insight-categories';
@@ -52,11 +54,12 @@ export default function Home() {
           <div className="flex items-center gap-3 mb-4">
             <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
             <div className="flex flex-col leading-tight">
-              <span className="text-blue-400 font-medium">{t('common.brandName')}</span>
+              <span className="text-blue-600 font-medium">{t('common.brandName')}</span>
               <span className="text-zinc-500 text-xs uppercase tracking-wider">{t('common.brandTagline')}</span>
             </div>
+            <ChildQuickAccess />
           </div>
-          <h1 className="text-2xl font-light text-white">
+          <h1 className="text-2xl font-bold text-zinc-100">
             {greetingBefore}
             <span className="font-medium">{displayName}</span>
             {greetingAfter}
@@ -85,9 +88,9 @@ export default function Home() {
               >
                 <category.icon
                   aria-hidden="true"
-                  className={cn('w-8 h-8', isActive ? 'text-emerald-400' : 'text-zinc-400')}
+                  className={cn('w-8 h-8', isActive ? 'text-emerald-600' : 'text-zinc-400')}
                 />
-                <span className={cn('text-xs text-center leading-tight', isActive ? 'text-white' : 'text-zinc-500')}>
+                <span className={cn('text-xs text-center leading-tight', isActive ? 'text-zinc-100' : 'text-zinc-500')}>
                   {t(category.labelKey)}
                 </span>
               </motion.button>
@@ -109,7 +112,7 @@ export default function Home() {
       </div>
 
       <div className="px-6 mb-8">
-        <h3 className="text-white font-medium mb-4">{t('home.quickAccess')}</h3>
+        <h3 className="text-zinc-100 font-medium mb-4">{t('home.quickAccess')}</h3>
         <div className="grid grid-cols-2 gap-3">
           <Link to={createPageUrl('Juntinhos')}>
             <motion.div
@@ -118,9 +121,9 @@ export default function Home() {
               className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 rounded-2xl p-4 flex flex-col items-center gap-2"
             >
               <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                <Calendar aria-hidden="true" className="w-6 h-6 text-blue-400" />
+                <Calendar aria-hidden="true" className="w-6 h-6 text-blue-600" />
               </div>
-              <span className="text-white text-sm font-medium">{t('home.shortcuts.juntinhos.title')}</span>
+              <span className="text-zinc-100 text-sm font-medium">{t('home.shortcuts.juntinhos.title')}</span>
               <span className="text-zinc-500 text-xs text-center">{t('home.shortcuts.juntinhos.subtitle')}</span>
             </motion.div>
           </Link>
@@ -132,9 +135,9 @@ export default function Home() {
               className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col items-center gap-2"
             >
               <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                <HelpCircle aria-hidden="true" className="w-6 h-6 text-emerald-400" />
+                <HelpCircle aria-hidden="true" className="w-6 h-6 text-emerald-600" />
               </div>
-              <span className="text-white text-sm font-medium">{t('home.shortcuts.chat.title')}</span>
+              <span className="text-zinc-100 text-sm font-medium">{t('home.shortcuts.chat.title')}</span>
               <span className="text-zinc-500 text-xs text-center">{t('home.shortcuts.chat.subtitle')}</span>
             </motion.div>
           </Link>
@@ -147,18 +150,15 @@ export default function Home() {
         </h2>
 
         {rateFailure && (
-          <p role="alert" className="text-sm text-red-400 mb-4">
+          <p role="alert" className="text-sm text-red-600 mb-4">
             {rateFailure.message}
           </p>
         )}
 
         {isLoadingInsights ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 aria-hidden="true" className="w-8 h-8 text-blue-400 animate-spin mb-4" />
-            <p className="text-zinc-500">{t('insights.generating')}</p>
-          </div>
+          <BrandLoader label={t('insights.generating')} className="py-16" />
         ) : insightsFailure ? (
-          <p role="alert" className="text-center py-16 text-red-400">
+          <p role="alert" className="text-center py-16 text-red-600">
             {insightsFailure.message}
           </p>
         ) : filteredInsights.length === 0 ? (

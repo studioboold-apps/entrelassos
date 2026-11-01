@@ -8,6 +8,7 @@ import type { ActivityRepository } from '../Activity/types/activity.types';
 import type { ChatMessageRepository } from '../ChatMessage/types/chat-message.types';
 import { CHAT_ROLES } from '../shared/shared.constant';
 import type { ChildRepository } from '../Child/types/child.types';
+import type { UserRepository } from '../User/types/user.types';
 import type { InsightRatingRepository } from '../InsightRating/types/insight-rating.types';
 import { createRateLimiter } from '../shared/http/rate-limit';
 import type { RouteDefinition } from '../shared/http/route.types';
@@ -22,6 +23,7 @@ import type {
   ChildrenContextPort,
   InsightDigestPort,
   LlmTurn,
+  ParentRegionPort,
 } from './types/ai.types';
 
 export type BuildAiModuleParams = {
@@ -29,6 +31,7 @@ export type BuildAiModuleParams = {
   readonly activities: ActivityRepository;
   readonly insights: InsightRatingRepository;
   readonly chatMessages: ChatMessageRepository;
+  readonly users: UserRepository;
   readonly providerName: LlmProviderName;
   readonly apiKey: string;
   readonly model: string;
@@ -51,6 +54,12 @@ function adaptInsightDigest(repository: InsightRatingRepository): InsightDigestP
   return { listMonth: (params) => repository.listMonthDigest(params) };
 }
 
+function adaptParentRegion(repository: UserRepository): ParentRegionPort {
+  return {
+    findCity: async (userId) => (await repository.findById({ userId }))?.city ?? undefined,
+  };
+}
+
 function isChatRole(role: string): role is LlmTurn['role'] {
   return (CHAT_ROLES as readonly string[]).includes(role);
 }
@@ -70,6 +79,7 @@ export function buildAiModule({
   activities,
   insights,
   chatMessages,
+  users,
   providerName,
   apiKey,
   model,
@@ -82,6 +92,7 @@ export function buildAiModule({
     insights: adaptInsightDigest(insights),
     chatHistory: adaptChatHistory(chatMessages),
     transcriber: createTranscriber(transcription),
+    region: adaptParentRegion(users),
   });
 
   // Um limitador por MODULO, nao por rota: as quatro rotas gastam da mesma

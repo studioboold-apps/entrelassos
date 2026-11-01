@@ -66,6 +66,14 @@ export const OBJECT_KEY_LENGTH = 200;
 /** Teto de VARCHAR para valor de dominio fechado; ENUM nativo e proibido. */
 export const DOMAIN_VALUE_LENGTH = 32;
 export const SHORT_TEXT_LENGTH = 120;
+
+/**
+ * Foto de perfil (do pai e do filho) viaja como data URL ja reduzida pelo app
+ * (256px, JPEG): ~20-40 KB. O teto deixa folga para PNG pequeno e recusa quem
+ * mandar a foto original da camera, que nao cabe numa linha de lista.
+ */
+export const AVATAR_DATA_URL_MAX_LENGTH = 160_000;
+export const AVATAR_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const MEDIUM_TEXT_LENGTH = 255;
 
 /** Faixa da nota de 1 a 5, unica em todo o produto (atividade e insight). */

@@ -19,7 +19,7 @@ const SHORTCUTS = Object.freeze([
     hintKey: 'boletim.quickAccess.juntinhosHint',
     icon: Calendar,
     cardClass: 'from-blue-500/20 to-blue-600/10 border-blue-500/30',
-    iconClass: 'bg-blue-500/20 text-blue-400',
+    iconClass: 'bg-blue-500/20 text-blue-600',
   },
   {
     page: 'Chat',
@@ -27,7 +27,7 @@ const SHORTCUTS = Object.freeze([
     hintKey: 'boletim.quickAccess.chatHint',
     icon: HelpCircle,
     cardClass: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30',
-    iconClass: 'bg-emerald-500/20 text-emerald-400',
+    iconClass: 'bg-emerald-500/20 text-emerald-600',
   },
 ]);
 
@@ -37,7 +37,7 @@ export default function BoletimQuickAccess() {
 
   return (
     <div className="px-6 mt-8 mb-6">
-      <h3 className="text-white font-medium mb-4">{t('boletim.quickAccess.title')}</h3>
+      <h3 className="text-zinc-100 font-medium mb-4">{t('boletim.quickAccess.title')}</h3>
       <div className="grid grid-cols-2 gap-3">
         {SHORTCUTS.map(({ page, labelKey, hintKey, icon: Icon, cardClass, iconClass }) => (
           <Link key={page} to={createPageUrl(page)}>
@@ -49,7 +49,7 @@ export default function BoletimQuickAccess() {
               <div className={`w-12 h-12 ${iconClass} rounded-xl flex items-center justify-center`}>
                 <Icon aria-hidden="true" className="w-6 h-6" />
               </div>
-              <span className="text-white text-sm font-medium">{t(labelKey)}</span>
+              <span className="text-zinc-100 text-sm font-medium">{t(labelKey)}</span>
               <span className="text-zinc-500 text-xs text-center">{t(hintKey)}</span>
             </motion.div>
           </Link>

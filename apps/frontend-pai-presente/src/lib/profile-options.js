@@ -58,6 +58,7 @@ export function createEmptyChildForm() {
     favorite_color: '',
     favorite_food: '',
     favorite_movie_genre: '',
+    avatar_url: null,
   };
 }
 

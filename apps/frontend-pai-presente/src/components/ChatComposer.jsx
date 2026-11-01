@@ -27,7 +27,7 @@ export default function ChatComposer({
   return (
     <div className="fixed bottom-20 left-0 right-0 bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-800 px-4 py-3">
       {failure && (
-        <p role="alert" className="text-sm text-red-400 mb-2">
+        <p role="alert" className="text-sm text-red-600 mb-2">
           {failure}
         </p>
       )}
@@ -54,7 +54,7 @@ export default function ChatComposer({
       )}
 
       {(voice.isRecording || voice.isTranscribing) && (
-        <p role="status" className="text-xs text-emerald-400 mb-2">
+        <p role="status" className="text-xs text-emerald-600 mb-2">
           {voice.isRecording ? t('chat.recording') : t('chat.transcribing')}
         </p>
       )}
@@ -74,7 +74,7 @@ export default function ChatComposer({
           aria-label={t('chat.photoAttach')}
           onClick={photo.open}
           disabled={isBusy}
-          className="h-12 w-10 text-zinc-400 hover:text-white"
+          className="h-12 w-10 text-zinc-400 hover:text-zinc-100"
         >
           <ImagePlus aria-hidden="true" className="w-5 h-5" />
         </Button>
@@ -83,7 +83,7 @@ export default function ChatComposer({
           value={question}
           onChange={handleQuestionChange}
           placeholder={t('chat.inputPlaceholder')}
-          className="flex-1 h-12 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+          className="flex-1 h-12 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
           disabled={isBusy}
         />
         {voice.isSupported && (
@@ -95,7 +95,7 @@ export default function ChatComposer({
             aria-pressed={voice.isRecording}
             onClick={voice.toggle}
             disabled={isSending || voice.isTranscribing}
-            className={`h-12 w-10 ${voice.isRecording ? 'text-red-400 animate-pulse' : 'text-zinc-400 hover:text-white'}`}
+            className={`h-12 w-10 ${voice.isRecording ? 'text-red-600 animate-pulse' : 'text-zinc-400 hover:text-zinc-100'}`}
           >
             {voice.isTranscribing ? (
               <Loader2 aria-hidden="true" className="w-5 h-5 animate-spin" />
@@ -110,7 +110,7 @@ export default function ChatComposer({
           type="submit"
           size="icon"
           aria-label={t('chat.send')}
-          className="h-12 w-12 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white"
+          className="h-12 w-12 bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white"
           disabled={!canSend || isBusy}
         >
           <Send aria-hidden="true" className="w-5 h-5" />

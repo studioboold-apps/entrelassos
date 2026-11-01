@@ -43,8 +43,8 @@ export default function BoletimCharts({ boletim }) {
         <div className="px-6 mb-6">
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white text-base flex items-center gap-2">
-                <TrendingUp aria-hidden="true" className="w-5 h-5 text-blue-400" />
+              <CardTitle className="text-zinc-100 text-base flex items-center gap-2">
+                <TrendingUp aria-hidden="true" className="w-5 h-5 text-blue-600" />
                 {t('boletim.charts.engagement')}
               </CardTitle>
             </CardHeader>
@@ -72,8 +72,8 @@ export default function BoletimCharts({ boletim }) {
         <div className="px-6 mb-6">
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white text-base flex items-center gap-2">
-                <CheckCircle aria-hidden="true" className="w-5 h-5 text-emerald-400" />
+              <CardTitle className="text-zinc-100 text-base flex items-center gap-2">
+                <CheckCircle aria-hidden="true" className="w-5 h-5 text-emerald-600" />
                 {t('boletim.charts.activitiesByType')}
               </CardTitle>
             </CardHeader>

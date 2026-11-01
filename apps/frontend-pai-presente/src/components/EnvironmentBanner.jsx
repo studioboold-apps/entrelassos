@@ -22,7 +22,7 @@ export default function EnvironmentBanner() {
   return (
     <div
       role="status"
-      className="flex items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-center text-xs font-semibold text-zinc-950"
+      className="flex items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-center text-xs font-semibold text-brand-navy"
     >
       <Construction aria-hidden="true" className="h-4 w-4 shrink-0" />
       {t(labelKey)}

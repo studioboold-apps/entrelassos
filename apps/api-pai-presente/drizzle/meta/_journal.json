@@ -43,6 +43,13 @@
       "when": 1788784402919,
       "tag": "0005_conscious_gladiator",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793541961069,
+      "tag": "0006_perfil_foto_cidade",
+      "breakpoints": true
     }
   ]
 }

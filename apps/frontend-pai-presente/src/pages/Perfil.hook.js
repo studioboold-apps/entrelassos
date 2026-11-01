@@ -12,6 +12,7 @@ import { describeApiFailure } from '@/lib/api-error-message';
 import { useAuth } from '@/lib/AuthContext';
 import { toAverageGrade } from '@/lib/average-grade';
 import { toProfileUpdate } from '@/lib/profile-form';
+import { useChildFromLink } from '@/lib/child-from-link';
 import { createEmptyChildForm } from '@/lib/profile-options';
 
 export function usePerfil() {
@@ -23,6 +24,7 @@ export function usePerfil() {
   const [editingChild, setEditingChild] = useState(null);
   const [childToDelete, setChildToDelete] = useState(null);
   const [childForm, setChildForm] = useState(createEmptyChildForm);
+  const [childForFiles, setChildForFiles] = useState(null);
 
   /**
    * O formulario e' preenchido quando o dialogo ABRE, e nao a cada resposta
@@ -30,7 +32,7 @@ export function usePerfil() {
    * foco no meio da edicao para a busca se refazer e apagar por baixo o que o
    * pai estava digitando.
    */
-  const [profileForm, setProfileForm] = useState({ age: '', marital_status: '' });
+  const [profileForm, setProfileForm] = useState({ age: '', marital_status: '', city: '' });
 
   const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => api.auth.me() });
   const { data: children = [] } = useQuery({ queryKey: ['children'], queryFn: () => api.entities.Child.list() });
@@ -41,6 +43,12 @@ export function usePerfil() {
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
     queryFn: () => api.entities.Activity.list(),
+  });
+
+  /** A foto do pai salva sozinha, no toque: nao passa pelo dialogo de editar. */
+  const updateAvatarMutation = useMutation({
+    mutationFn: (avatarUrl) => api.auth.updateMe({ avatar_url: avatarUrl }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['currentUser'] }),
   });
 
   const updateProfileMutation = useMutation({
@@ -98,7 +106,7 @@ export function usePerfil() {
   const completedActivities = activities.filter((activity) => activity.completed).length;
 
   function handleOpenEditProfile() {
-    setProfileForm({ age: user?.age ?? '', marital_status: user?.marital_status ?? '' });
+    setProfileForm({ age: user?.age ?? '', marital_status: user?.marital_status ?? '', city: user?.city ?? '' });
     updateProfileMutation.reset();
     setShowEditProfile(true);
   }
@@ -112,6 +120,7 @@ export function usePerfil() {
   }
 
   function handleOpenAddChild() {
+    createChildMutation.reset();
     setChildForm(createEmptyChildForm());
     setEditingChild(null);
     setShowAddChild(true);
@@ -126,8 +135,26 @@ export function usePerfil() {
       favorite_color: child.favorite_color ?? '',
       favorite_food: child.favorite_food ?? '',
       favorite_movie_genre: child.favorite_movie_genre ?? '',
+      avatar_url: child.avatar_url ?? null,
     });
+    updateChildMutation.reset();
     setEditingChild(child);
+  }
+
+  useChildFromLink({ children, onOpen: handleOpenEditChild });
+
+  /** Historico e album ficam DENTRO da ficha do filho (feedback do design). */
+  function handleOpenChildFiles(child) {
+    setEditingChild(null);
+    setChildForFiles(child);
+  }
+
+  function handleCloseChildFiles() {
+    setChildForFiles(null);
+  }
+
+  function handleChangeAvatar(avatarUrl) {
+    updateAvatarMutation.mutate(avatarUrl);
   }
 
   function handleCloseChildDialog() {
@@ -190,5 +217,11 @@ export function usePerfil() {
     handleSaveChild,
     handleConfirmDelete,
     handleLogout,
+    childForFiles,
+    handleOpenChildFiles,
+    handleCloseChildFiles,
+    handleChangeAvatar,
+    isSavingAvatar: updateAvatarMutation.isPending,
+    avatarFailure: updateAvatarMutation.isError ? describeApiFailure(updateAvatarMutation.error) : null,
   };
 }

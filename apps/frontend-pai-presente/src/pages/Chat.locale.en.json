@@ -25,5 +25,7 @@
   "voiceStop": "Stop and transcribe",
   "recording": "Recording… tap the square to stop.",
   "transcribing": "Transcribing the audio…",
-  "micDenied": "We couldn't use the microphone. Allow access in your browser permissions."
+  "micDenied": "We couldn't use the microphone. Allow access in your browser permissions.",
+  "showMore": "Show more",
+  "showLess": "Show less"
 }

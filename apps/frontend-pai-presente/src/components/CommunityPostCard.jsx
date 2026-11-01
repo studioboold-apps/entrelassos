@@ -59,12 +59,12 @@ export default function CommunityPostCard({ post, delay = 0 }) {
       className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4"
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400/20 to-emerald-400/20 border border-blue-400/30 flex items-center justify-center text-blue-400 font-medium">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400/20 to-emerald-400/20 border border-blue-400/30 flex items-center justify-center text-blue-600 font-medium">
           {post.author_name?.[0] || t('community.post.fallbackInitial')}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-white text-sm">{post.author_name}</p>
+            <p className="font-medium text-zinc-100 text-sm">{post.author_name}</p>
             <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", catConfig.color)}>
               {t(catConfig.labelKey)}
             </span>
@@ -82,7 +82,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
           onClick={() => likeMutation.mutate()}
           className={cn(
             "flex items-center gap-1.5 text-sm transition-colors",
-            post.has_liked ? "text-red-400" : "text-zinc-500 hover:text-zinc-300"
+            post.has_liked ? "text-red-600" : "text-zinc-500 hover:text-zinc-300"
           )}
         >
           <Heart className={cn("w-4 h-4", post.has_liked && "fill-current")} />
@@ -122,7 +122,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder={t('community.post.commentPlaceholder')}
-                  className="bg-zinc-800 border-zinc-700 text-white text-sm placeholder:text-zinc-600"
+                  className="bg-zinc-900 border-zinc-700 text-zinc-100 text-sm placeholder:text-zinc-600"
                   onKeyDown={(e) => e.key === 'Enter' && handleComment()}
                 />
                 <Button
@@ -130,7 +130,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
                   aria-label={t('community.post.sendComment')}
                   onClick={handleComment}
                   disabled={!commentText.trim() || commentMutation.isPending}
-                  className="bg-gradient-to-r from-blue-500 to-emerald-400 text-white flex-shrink-0"
+                  className="bg-gradient-to-r from-blue-500 to-amber-500 text-white flex-shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </Button>

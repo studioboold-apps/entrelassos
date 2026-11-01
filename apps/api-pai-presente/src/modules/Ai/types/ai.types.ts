@@ -37,6 +37,11 @@ export type ChildContext = {
   readonly gender: string;
 };
 
+/** Cidade que o pai escreveu no perfil; base das sugestoes da regiao. */
+export type ParentRegionPort = {
+  findCity(userId: string): Promise<string | undefined>;
+};
+
 export type ChildrenContextPort = {
   listByUser(userId: string): Promise<readonly ChildContext[]>;
 };
@@ -121,4 +126,6 @@ export type AiDependencies = {
   readonly transcriber: SpeechTranscriber;
   readonly activities: ActivityDigestPort;
   readonly insights: InsightDigestPort;
+  /** Opcional: sem ela, as sugestoes saem sem regiao, como antes. */
+  readonly region?: ParentRegionPort;
 };

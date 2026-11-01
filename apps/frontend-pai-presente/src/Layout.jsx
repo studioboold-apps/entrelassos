@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, MessageCircle, Calendar, Award, User, Users } from 'lucide-react';
+import { Home, Calendar, Award, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -17,34 +17,11 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      <style>{`
-        :root {
-          --background: 0 0% 4%;
-          --foreground: 0 0% 95%;
-          --card: 0 0% 7%;
-          --card-foreground: 0 0% 95%;
-          --popover: 0 0% 7%;
-          --popover-foreground: 0 0% 95%;
-          --primary: 45 93% 58%;
-          --primary-foreground: 0 0% 4%;
-          --secondary: 0 0% 12%;
-          --secondary-foreground: 0 0% 95%;
-          --muted: 0 0% 12%;
-          --muted-foreground: 0 0% 60%;
-          --accent: 0 0% 12%;
-          --accent-foreground: 0 0% 95%;
-          --destructive: 0 62% 50%;
-          --destructive-foreground: 0 0% 95%;
-          --border: 0 0% 15%;
-          --input: 0 0% 15%;
-          --ring: 45 93% 58%;
-        }
-      `}</style>
       
       <main>{children}</main>
 
       {showNav && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-800 px-2 pb-safe">
+        <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-lg shadow-[0_-4px_16px_rgba(47,47,81,0.06)] border-t border-zinc-800 px-2 pb-safe">
           <div className="flex justify-around items-center h-16">
             {navItems.map((item) => {
               const isActive = currentPageName === item.page;
@@ -55,7 +32,7 @@ export default function Layout({ children, currentPageName }) {
                   className={cn(
                     "flex flex-col items-center justify-center w-16 h-full transition-all",
                     isActive 
-                      ? "text-blue-400" 
+                      ? "text-blue-600" 
                       : "text-zinc-500 hover:text-zinc-300"
                   )}
                 >

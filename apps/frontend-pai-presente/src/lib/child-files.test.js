@@ -66,9 +66,9 @@ const MIB = 1024 * 1024;
 
 function buildUsage({ childRemaining, accountRemaining, fileMax = 15 * MIB }) {
   return {
-    fileMaxBytes: fileMax,
-    child: { usedBytes: 0, quotaBytes: 500 * MIB, remainingBytes: childRemaining },
-    account: { usedBytes: 0, quotaBytes: 2048 * MIB, remainingBytes: accountRemaining },
+    file_max_bytes: fileMax,
+    child: { used_bytes: 0, quota_bytes: 500 * MIB, remaining_bytes: childRemaining },
+    account: { used_bytes: 0, quota_bytes: 2048 * MIB, remaining_bytes: accountRemaining },
   };
 }
 

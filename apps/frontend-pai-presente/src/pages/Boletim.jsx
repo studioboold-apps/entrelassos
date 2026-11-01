@@ -11,7 +11,9 @@ import BoletimCharts from '@/components/BoletimCharts';
 import BoletimQuickAccess from '@/components/BoletimQuickAccess';
 import BoletimQuickStats from '@/components/BoletimQuickStats';
 import BoletimReportCard from '@/components/BoletimReportCard';
+import BoletimShare from '@/components/BoletimShare';
 import { Button } from '@/components/ui/button';
+import ChildQuickAccess from '@/components/ChildQuickAccess';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 
@@ -39,9 +41,10 @@ export default function Boletim() {
       <div className="px-6 pt-10 pb-6">
         <div className="flex items-center gap-3 mb-4">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
-          <span className="text-blue-400 font-medium">{t('boletim.sectionLabel')}</span>
+          <span className="text-blue-600 font-medium">{t('boletim.sectionLabel')}</span>
+          <ChildQuickAccess />
         </div>
-        <h1 className="text-2xl font-light text-white">{t('boletim.title')}</h1>
+        <h1 className="text-2xl font-bold text-zinc-100">{t('boletim.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('boletim.subtitle')}</p>
       </div>
 
@@ -55,7 +58,7 @@ export default function Boletim() {
             <ChevronLeft aria-hidden="true" className="w-5 h-5 text-zinc-400" />
           </button>
           <div className="text-center">
-            <h2 className="font-medium text-white capitalize">{monthLabel}</h2>
+            <h2 className="font-medium text-zinc-100 capitalize">{monthLabel}</h2>
             <p className="text-xs text-zinc-500">{t('boletim.completedInMonth', { count: completedCount })}</p>
           </div>
           <button
@@ -79,7 +82,7 @@ export default function Boletim() {
         <Button
           onClick={handleGenerateReport}
           disabled={isGeneratingReport}
-          className="w-full h-14 bg-gradient-to-r from-blue-500 to-emerald-400 hover:from-blue-600 hover:to-emerald-500 text-white font-medium"
+          className="w-full h-14 bg-gradient-to-r from-blue-500 to-amber-500 hover:from-blue-600 hover:to-amber-600 text-white font-medium"
         >
           {isGeneratingReport ? (
             <>
@@ -95,13 +98,14 @@ export default function Boletim() {
         </Button>
 
         {reportFailure && (
-          <p role="alert" className="text-sm text-red-400 mt-2">
+          <p role="alert" className="text-sm text-red-600 mt-2">
             {reportFailure.message}
           </p>
         )}
       </div>
 
       {report && <BoletimReportCard report={report} />}
+      {report && <BoletimShare report={report} monthLabel={monthLabel} />}
 
       {!report && isEmptyMonth && (
         <div className="px-6">

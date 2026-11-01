@@ -10,9 +10,9 @@
  * aqui, elas continuam diferentes de proposito — mas dá para ver isso.
  */
 const COLOR_STEPS = Object.freeze([
-  { min: 8, className: 'text-emerald-400' },
-  { min: 6, className: 'text-blue-400' },
-  { min: 4, className: 'text-yellow-400' },
+  { min: 8, className: 'text-emerald-600' },
+  { min: 6, className: 'text-blue-600' },
+  { min: 4, className: 'text-amber-700' },
 ]);
 
 const LABEL_STEPS = Object.freeze([
@@ -24,7 +24,7 @@ const LABEL_STEPS = Object.freeze([
 
 /** @param {number} score */
 export function scoreColorClass(score) {
-  return COLOR_STEPS.find(({ min }) => score >= min)?.className ?? 'text-red-400';
+  return COLOR_STEPS.find(({ min }) => score >= min)?.className ?? 'text-red-600';
 }
 
 /** @param {number} score */

@@ -173,9 +173,8 @@ export default defineRailway(() => {
        */
       LLM_MODEL: 'claude-haiku-5-5',
       /**
-       * Insights e sugestoes (faixa barata). O chat e o boletim usam o
-       * `LLM_MODEL` acima: trocar so' ele por `claude-sonnet-5-5` sobe a
-       * qualidade das respostas sem encarecer os lotes de insight/sugestao.
+       * Insights e sugestoes. O chat e o boletim usam o `LLM_MODEL` acima.
+       * Haiku nas duas faixas, confirmado pelo dono em 01/11/2026.
        */
       LLM_MODEL_FAST: 'claude-haiku-5-5',
       LLM_API_KEY: preserve(),

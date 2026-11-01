@@ -111,9 +111,13 @@ export const LLM_TASK_PROFILES = {
   suggestions: { tier: 'fast', effort: 'low' },
 } as const satisfies Record<LlmTask, { tier: LlmTier; effort: LlmEffort }>;
 
-/** O nome do modelo muda mais que o codigo; sai do env, com um padrao util. */
+/**
+ * O nome do modelo muda mais que o codigo; sai do env, com um padrao util.
+ * Haiku nas duas faixas: decisao do dono (31/10 e 01/11/2026) por custo e
+ * velocidade. As faixas existem para trocar so' o chat/boletim, se um dia valer.
+ */
 export const DEFAULT_MODELS = {
-  anthropic: { main: 'claude-sonnet-5-5', fast: 'claude-haiku-5-5' },
+  anthropic: { main: 'claude-haiku-5-5', fast: 'claude-haiku-5-5' },
   openai: { main: 'gpt-4o-mini', fast: 'gpt-4o-mini' },
 } as const satisfies Record<LlmProviderName, Record<LlmTier, string>>;
 

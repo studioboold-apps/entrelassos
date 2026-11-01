@@ -73,12 +73,13 @@ const aiShape = {
   /** Vazio usa o modelo padrao do provedor (`DEFAULT_MODELS`). */
   LLM_MODEL: z.string().default(''),
   /**
-   * Chave da OpenAI para transcrever o audio do chat (a Anthropic nao ouve
-   * audio). Vazia e' estado valido: so' o microfone responde 503. Com
-   * `LLM_PROVIDER=openai`, a chave do texto serve para os dois.
+   * Chave do Groq para transcrever o audio do chat pelo pacote da casa
+   * (`@adatechnology/audio-transcription-provider`) — a Anthropic nao ouve
+   * audio. Mesmo nome usado nos outros produtos. Vazia e' estado valido: so'
+   * o microfone responde 503.
    */
-  TRANSCRIPTION_API_KEY: z.string().default(''),
-  /** Vazio usa `DEFAULT_TRANSCRIPTION_MODEL` (`gpt-4o-mini-transcribe`). */
+  TRANSCRIPTION_GROQ_API_KEY: z.string().default(''),
+  /** Vazio usa o padrao do pacote (`whisper-large-v3-turbo`). */
   TRANSCRIPTION_MODEL: z.string().default(''),
 } as const;
 

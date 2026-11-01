@@ -174,12 +174,12 @@ export default defineRailway(() => {
       LLM_MODEL: 'claude-haiku-5-5',
       LLM_API_KEY: preserve(),
       /**
-       * Chave da OpenAI so' para o microfone do chat: a Anthropic nao ouve
-       * audio, entao a voz vira texto num provedor a parte. Ausente, o chat
-       * escrito e a foto seguem de pe e so' o microfone responde 503. O modelo
-       * fica no padrao do codigo (`gpt-4o-mini-transcribe`).
+       * Chave do Groq so' para o microfone do chat, usada pelo pacote da casa
+       * `@adatechnology/audio-transcription-provider` (Whisper turbo): a
+       * Anthropic nao ouve audio. Ausente, o chat escrito e a foto seguem de pe
+       * e so' o microfone responde 503.
        */
-      TRANSCRIPTION_API_KEY: preserve(),
+      TRANSCRIPTION_GROQ_API_KEY: preserve(),
       /**
        * A porta que NAO depende de terceiro. Ela ja e' o padrao do schema; esta
        * declarada assim mesmo porque quem le o plano precisa ver COMO se entra

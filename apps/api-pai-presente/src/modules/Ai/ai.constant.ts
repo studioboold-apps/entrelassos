@@ -37,9 +37,8 @@ export const CHAT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as con
  */
 export const CHAT_AUDIO_MAX_BYTES = 10 * 1024 * 1024;
 export const CHAT_AUDIO_FORM_FIELD = 'audio';
-export const TRANSCRIPTION_BASE_URL = 'https://api.openai.com/v1/audio/transcriptions';
-export const DEFAULT_TRANSCRIPTION_MODEL = 'gpt-4o-mini-transcribe';
-export const TRANSCRIPTION_TIMEOUT_MS = 60_000;
+/** Ha' alguem olhando a tela: o pacote recomenda ~15 s nesse caso; 30 s cobre o audio de 2 min. */
+export const TRANSCRIPTION_TIMEOUT_MS = 30_000;
 
 /** Um insight por categoria; pedindo UMA categoria, dois dela (Home.jsx). */
 export const INSIGHTS_PER_CATEGORY = 1;

@@ -89,7 +89,7 @@ export class AudioInvalidError extends DomainError {
   constructor() {
     super({
       code: ERROR_CODES.ai.AUDIO_INVALID,
-      message: 'Nao reconhecemos esse audio. Grave de novo pelo botao do microfone.',
+      message: 'Nao entendemos esse audio. Grave de novo pelo botao do microfone, falando perto do celular.',
       statusCode: 400,
     });
   }

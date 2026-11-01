@@ -45,11 +45,7 @@ const router = createRouter({
       apiKey: environment.LLM_API_KEY,
       model: environment.LLM_MODEL,
       transcription: {
-        // Quem ja usa a OpenAI para o texto nao precisa de uma segunda chave.
-        apiKey:
-          environment.TRANSCRIPTION_API_KEY.length > 0 || environment.LLM_PROVIDER !== 'openai'
-            ? environment.TRANSCRIPTION_API_KEY
-            : environment.LLM_API_KEY,
+        apiKey: environment.TRANSCRIPTION_GROQ_API_KEY,
         model: environment.TRANSCRIPTION_MODEL,
       },
     },

@@ -7,6 +7,8 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import SignIn from '@/components/SignIn';
 import EnvironmentBanner from '@/components/EnvironmentBanner';
+import BrandSplash from '@/components/BrandSplash';
+import { useSplashGate } from '@/lib/splash';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -18,13 +20,10 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isAuthenticated } = useAuth();
+  const showsSplash = useSplashGate(isLoadingAuth);
 
-  if (isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
+  if (showsSplash) {
+    return <BrandSplash />;
   }
 
   if (!isAuthenticated) {

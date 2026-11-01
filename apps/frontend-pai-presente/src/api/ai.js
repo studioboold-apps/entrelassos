@@ -51,9 +51,17 @@ export const ai = Object.freeze({
     return insights;
   },
 
-  activitySuggestions: async (month) => {
+  /**
+   * Sem `childId`, a sugestao vale para a familia toda.
+   *
+   * @param {{ month?: string, childId?: string }} [params]
+   */
+  activitySuggestions: async ({ month, childId } = {}) => {
     const { suggestions } = await request(HTTP_METHODS.POST, PATHS.suggestions, {
-      body: month === undefined ? {} : { month },
+      body: {
+        ...(month === undefined ? {} : { month }),
+        ...(childId === undefined ? {} : { childId }),
+      },
     });
     return suggestions;
   },

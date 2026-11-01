@@ -22,6 +22,13 @@ export const communityPostsTable = pgTable(
       .references(() => usersTable.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
     category: varchar('category', { length: DOMAIN_VALUE_LENGTH }).notNull(),
+    /**
+     * Foto do post em base64 (sem o prefixo `data:`). Fica no banco e nao no
+     * balde: apaga junto com o post e com a conta, sem objeto orfao. A lista
+     * do feed NUNCA seleciona esta coluna; a foto tem rota propria.
+     */
+    imageData: text('image_data'),
+    imageContentType: varchar('image_content_type', { length: DOMAIN_VALUE_LENGTH }),
   },
   (table) => [index('community_posts_author_id_idx').on(table.authorId)],
 );

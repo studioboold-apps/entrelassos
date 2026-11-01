@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, User, Lightbulb } from 'lucide-react';
+import { Sparkles, User, Lightbulb } from 'lucide-react';
 import ChatComposer from '@/components/ChatComposer';
 import ExpandableMarkdown from '@/components/ExpandableMarkdown';
 import ChildQuickAccess from '@/components/ChildQuickAccess';
@@ -82,7 +82,7 @@ export default function Chat() {
                       aria-label={t('chat.assistantAvatarLabel')}
                       className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center"
                     >
-                      <Bot aria-hidden="true" className="w-4 h-4 text-blue-600" />
+                      <Sparkles aria-hidden="true" className="w-4 h-4 text-blue-600" />
                     </div>
                   )}
 
@@ -132,7 +132,7 @@ export default function Chat() {
                 className="flex gap-3"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-400/20 flex-shrink-0 flex items-center justify-center">
-                  <Bot aria-hidden="true" className="w-4 h-4 text-blue-600" />
+                  <Sparkles aria-hidden="true" className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
                   <BrandLoader size="sm" />

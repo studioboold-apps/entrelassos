@@ -5,7 +5,7 @@
  */
 
 import { ai } from './ai';
-import { HTTP_METHODS, request, requestPage, requestUpload } from './http';
+import { HTTP_METHODS, buildUrl, request, requestPage, requestUpload } from './http';
 
 const PATHS = Object.freeze({
   me: '/v1/me',
@@ -170,6 +170,8 @@ const CommunityPost = Object.freeze({
   like: (postId) => request(HTTP_METHODS.PUT, `${PATHS.posts}/${postId}/like`),
   unlike: (postId) => request(HTTP_METHODS.DELETE, `${PATHS.posts}/${postId}/like`),
   delete: (postId) => request(HTTP_METHODS.DELETE, `${PATHS.posts}/${postId}`),
+  /** A foto nao vem na lista: o `<img>` busca pela rota propria, com o cookie da sessao. */
+  imageUrl: (postId) => buildUrl(`${PATHS.posts}/${postId}/image`),
 });
 
 const CommunityComment = Object.freeze({

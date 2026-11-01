@@ -5,6 +5,7 @@
  */
 
 import { DomainError } from '../shared/errors/app.error';
+import { ResourceNotFoundError } from '../shared/errors/shared.error';
 import { ERROR_CODES } from '../shared/errors/codes';
 import { HTTP_STATUS } from '../shared/http/http.constant';
 
@@ -92,5 +93,12 @@ export class AudioInvalidError extends DomainError {
       message: 'Nao entendemos esse audio. Grave de novo pelo botao do microfone, falando perto do celular.',
       statusCode: 400,
     });
+  }
+}
+
+/** 404 e nao 403: filho de outro pai nao existe para quem pergunta. */
+export class SuggestionChildNotFoundError extends ResourceNotFoundError {
+  constructor() {
+    super(ERROR_CODES.child.CHILD_NOT_FOUND, 'Filho nao encontrado.');
   }
 }

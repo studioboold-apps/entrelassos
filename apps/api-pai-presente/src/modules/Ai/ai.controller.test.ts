@@ -211,6 +211,37 @@ describe('rotas de IA', () => {
     expect(readErrorCode(response)).toBe(ERROR_CODES.ai.RESPONSE_INVALID);
   });
 
+  test('sugestao para UM filho: so ele entra no prompt', async () => {
+    const provider = createFakeProvider({ suggestions: [] });
+    const luisa = { id: '11111111-1111-4111-8111-111111111111', name: 'Luisa', age: 3, gender: 'feminino' };
+    const maria = { id: '22222222-2222-4222-8222-222222222222', name: 'Maria', age: 9, gender: 'feminino' };
+    const client = createHarness({ provider, children: [luisa, maria] });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: ACTIVITY_SUGGESTIONS_PATH,
+      body: { childId: maria.id },
+    });
+
+    expect(response.status).toBe(200);
+    expect(provider.prompts[0]).toContain('Maria');
+    expect(provider.prompts[0]).not.toContain('Luisa');
+  });
+
+  test('sugestao para filho que nao e do pai: 404 e nenhuma chamada a IA', async () => {
+    const provider = createFakeProvider({ suggestions: [] });
+    const client = createHarness({ provider });
+
+    const response = await client.send({
+      method: HTTP_METHODS.POST,
+      path: ACTIVITY_SUGGESTIONS_PATH,
+      body: { childId: '33333333-3333-4333-8333-333333333333' },
+    });
+
+    expect(response.status).toBe(404);
+    expect(provider.prompts).toHaveLength(0);
+  });
+
   test('estourar o teto devolve 429 COM Retry-After', async () => {
     const provider = createFakeProvider({ suggestions: [] });
     const client = createHarness({ provider, policy: { maxRequests: 2, windowSeconds: 60 } });

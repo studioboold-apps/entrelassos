@@ -46,6 +46,7 @@ export type CreateChildParams = {
 
 /** O que o prompt precisa saber de um filho — nem hobby, nem cor, nem data. */
 export type ChildContextRow = {
+  readonly id: string;
   readonly name: string;
   readonly age: number;
   readonly gender: string;

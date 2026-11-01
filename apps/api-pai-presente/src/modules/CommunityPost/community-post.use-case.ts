@@ -10,6 +10,7 @@ import type {
   CommunityPostRepository,
   CommunityPostView,
   CreateCommunityPostParams,
+  CommunityPostImage,
   FindCommunityPostParams,
   ListCommunityPostsParams,
   ListCommunityPostsResult,
@@ -27,6 +28,7 @@ export type CommunityPostUseCases = {
   like(params: ToggleLikeParams): Promise<CommunityPostView>;
   unlike(params: ToggleLikeParams): Promise<CommunityPostView>;
   remove(params: { readonly postId: string; readonly authorId: string }): Promise<void>;
+  readImage(postId: string): Promise<CommunityPostImage>;
 };
 
 export function createCommunityPostUseCases(
@@ -54,6 +56,10 @@ export function createCommunityPostUseCases(
       if (!(await repository.exists(postId))) postNotFound();
       await repository.removeLike({ postId, userId });
       return reload(postId, userId);
+    },
+
+    async readImage(postId) {
+      return (await repository.findImage(postId)) ?? postNotFound();
     },
 
     async remove(params) {

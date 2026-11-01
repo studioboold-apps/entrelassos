@@ -13,6 +13,11 @@
   },
   "create": {
     "placeholder": "Comparte tu experiencia, consejo o duda con la comunidad...",
-    "publish": "Publicar"
+    "publish": "Publicar",
+    "addPhoto": "Agregar foto",
+    "removePhoto": "Quitar foto",
+    "photoAlt": "Foto de la publicación",
+    "photoUnreadable": "No pudimos leer esa foto. Prueba con otra.",
+    "changePhoto": "Cambiar foto"
   }
 }

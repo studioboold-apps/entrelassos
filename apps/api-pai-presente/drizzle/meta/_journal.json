@@ -50,6 +50,13 @@
       "when": 1793541961069,
       "tag": "0006_perfil_foto_cidade",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793557708083,
+      "tag": "0007_post_foto",
+      "breakpoints": true
     }
   ]
 }

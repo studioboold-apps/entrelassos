@@ -36,6 +36,9 @@
     "forChild": "Para: {child}",
     "accept": "Añadir al calendario",
     "regionOn": "Sugerencias pensadas para {city}.",
-    "regionOff": "¿Quieres paseos de tu región? Agrega tu ciudad en el Perfil."
+    "regionOff": "¿Quieres paseos de tu región? Agrega tu ciudad en el Perfil.",
+    "forWhom": "¿Para quién?",
+    "allChildren": "Todos juntos",
+    "loading": "Pensando en sugerencias..."
   }
 }

@@ -32,6 +32,8 @@ export type InsightDigestPort = {
 };
 
 export type ChildContext = {
+  /** So' para escolher o filho; nunca vai para o prompt. */
+  readonly id?: string;
   readonly name: string;
   readonly age: number;
   readonly gender: string;

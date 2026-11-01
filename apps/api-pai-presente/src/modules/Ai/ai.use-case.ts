@@ -6,7 +6,7 @@
 
 import { formatMonth } from '../shared/date.util';
 import { detectAudioFormat } from './ai.audio';
-import { AudioInvalidError, NoChildrenRegisteredError } from './ai.error';
+import { AudioInvalidError, NoChildrenRegisteredError, SuggestionChildNotFoundError } from './ai.error';
 import {
   buildChatPrompt,
   buildInsightsPrompt,
@@ -43,6 +43,18 @@ function dropUnansweredTail(turns: readonly LlmTurn[]): readonly LlmTurn[] {
   let end = turns.length;
   while (end > 0 && turns[end - 1]?.role === 'user') end -= 1;
   return turns.slice(0, end);
+}
+
+/**
+ * Pedido do design: o pai escolhe PARA QUEM e' a sugestao. Sem escolha, vale a
+ * familia toda; com escolha, so' aquele filho entra no prompt, para a IA nao
+ * diluir a ideia entre idades diferentes.
+ */
+function pickChildren(registered: readonly ChildContext[], childId: string | undefined): readonly ChildContext[] {
+  if (childId === undefined) return registered;
+  const chosen = registered.filter((child) => child.id === childId);
+  if (chosen.length === 0) throw new SuggestionChildNotFoundError();
+  return chosen;
 }
 
 /** O id do insight e do SERVIDOR: e ele que a nota do pai referencia depois. */
@@ -96,9 +108,10 @@ export function createAiUseCases({
     async suggestActivities({ userId, values }) {
       const [registered, city] = await Promise.all([requireChildren(userId), region?.findCity(userId)]);
       const month = values.month ?? formatMonth(new Date());
+      const chosen = pickChildren(registered, values.childId);
       const raw = await provider.generateStructured({
         systemPrompt: MENTOR_SYSTEM_PROMPT,
-        userPrompt: buildSuggestionsPrompt({ children: registered, month, city }),
+        userPrompt: buildSuggestionsPrompt({ children: chosen, month, city }),
         schemaName: 'suggestions',
         jsonSchema: toProviderJsonSchema(suggestionsOutputSchema),
       });

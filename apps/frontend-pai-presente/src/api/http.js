@@ -56,7 +56,7 @@ function renewSession() {
   return renewalInFlight;
 }
 
-function buildUrl(path, query) {
+export function buildUrl(path, query) {
   const params = new URLSearchParams();
   Object.entries(query ?? {}).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;

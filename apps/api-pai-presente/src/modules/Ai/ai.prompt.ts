@@ -121,12 +121,18 @@ function describeRegion(city: string | undefined): readonly string[] {
   ];
 }
 
+/** Um filho escolhido: as sugestoes sao so' dele, sem atividade "em familia". */
+function describeAudience(children: readonly ChildContext[]): string {
+  const [only] = children;
+  return children.length === 1 && only !== undefined ? `${only.name}, e só com ${only.name}` : 'os filhos';
+}
+
 export function buildSuggestionsPrompt({ children, month, city }: SuggestionsPromptParams): string {
   const { monthNumber } = parseMonth(month);
   const monthIndex = monthNumber - 1;
 
   return [
-    `Sugira ${ACTIVITY_SUGGESTION_COUNT} atividades para o pai fazer com os filhos.`,
+    `Sugira ${ACTIVITY_SUGGESTION_COUNT} atividades para o pai fazer com ${describeAudience(children)}.`,
     '',
     'Filhos:',
     describeChildren(children),

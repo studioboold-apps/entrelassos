@@ -28,7 +28,7 @@ export default function BoletimQuickStats({ stats }) {
           <Calendar aria-hidden="true" className="w-4 h-4 text-blue-600" />
           <span className="text-xs text-zinc-500">{t('boletim.stats.activities')}</span>
         </div>
-        <p className="text-2xl font-light text-zinc-100">
+        <p className="text-2xl font-bold text-zinc-100">
           {stats.completedActivities}/{stats.totalActivities}
         </p>
         <Progress value={stats.completionRate} className="mt-2 h-1.5" />
@@ -45,7 +45,7 @@ export default function BoletimQuickStats({ stats }) {
           <span className="text-xs text-zinc-500">{t('boletim.stats.averageRating')}</span>
         </div>
         {/* Zero e' uma nota — a pior. Ninguem ter avaliado e' outra coisa. */}
-        <p className="text-2xl font-light text-zinc-100">
+        <p className="text-2xl font-bold text-zinc-100">
           {stats.avgActivityRating === undefined ? (
             <span className="text-zinc-600">{t('boletim.stats.noRating')}</span>
           ) : (
@@ -67,7 +67,7 @@ export default function BoletimQuickStats({ stats }) {
           <Heart aria-hidden="true" className="w-4 h-4 text-emerald-600" />
           <span className="text-xs text-zinc-500">{t('boletim.stats.insightsRead')}</span>
         </div>
-        <p className="text-2xl font-light text-zinc-100">{stats.totalInsightsRead}</p>
+        <p className="text-2xl font-bold text-zinc-100">{stats.totalInsightsRead}</p>
       </motion.div>
 
       <motion.div
@@ -80,7 +80,7 @@ export default function BoletimQuickStats({ stats }) {
           <Target aria-hidden="true" className="w-4 h-4 text-blue-600" />
           <span className="text-xs text-zinc-500">{t('boletim.stats.completionRate')}</span>
         </div>
-        <p className="text-2xl font-light text-zinc-100">{stats.completionRate}%</p>
+        <p className="text-2xl font-bold text-zinc-100">{stats.completionRate}%</p>
       </motion.div>
     </div>
   );

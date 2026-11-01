@@ -70,7 +70,7 @@ export default function Perfil() {
             isBusy={isSavingAvatar}
           />
           <div className="min-w-0">
-            <h1 className="text-xl font-light text-zinc-100">{user?.full_name ?? t('perfil.fallbackName')}</h1>
+            <h1 className="text-xl font-bold text-zinc-100">{user?.full_name ?? t('perfil.fallbackName')}</h1>
             <p className="text-zinc-500 text-sm truncate">{user?.email}</p>
           </div>
         </div>
@@ -91,7 +91,7 @@ export default function Perfil() {
               transition={{ delay: index * 0.1 }}
               className={STAT_CARD}
             >
-              <p className={`text-2xl font-light ${tone}`}>{value}</p>
+              <p className={`text-2xl font-bold ${tone}`}>{value}</p>
               <p className="text-xs text-zinc-500 mt-1">{t(labelKey)}</p>
             </motion.div>
           ))}

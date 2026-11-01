@@ -38,10 +38,10 @@ export default function Juntinhos() {
       <div className="px-6 pt-10 pb-6">
         <div className="flex items-center gap-3 mb-4">
           <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-12 h-12 rounded-xl" />
-          <span className="text-emerald-600 font-medium">{t('juntinhos.sectionLabel')}</span>
+          <span className="text-blue-600 font-medium">{t('juntinhos.sectionLabel')}</span>
           <ChildQuickAccess />
         </div>
-        <h1 className="text-2xl font-light text-zinc-100">{t('juntinhos.title')}</h1>
+        <h1 className="text-2xl font-bold text-zinc-100">{t('juntinhos.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('juntinhos.subtitle')}</p>
       </div>
 

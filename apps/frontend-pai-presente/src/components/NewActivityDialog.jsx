@@ -16,7 +16,7 @@ import { ACTIVITY_CATEGORIES } from '@/lib/activity-categories';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-const FIELD_CLASS = 'mt-1.5 bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-600';
+const FIELD_CLASS = 'mt-1.5 bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-600';
 
 /**
  * Fatia da tela de Juntinhos: recebe o retorno do hook, nao props soltas.
@@ -92,7 +92,7 @@ export default function NewActivityDialog({ juntinhos }) {
               <SelectTrigger className={FIELD_CLASS}>
                 <SelectValue placeholder={t('juntinhos.form.childPlaceholder')} />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
+              <SelectContent className="bg-zinc-900 border-zinc-700">
                 {children.map((child) => (
                   <SelectItem key={child.id} value={child.id}>
                     {child.name}

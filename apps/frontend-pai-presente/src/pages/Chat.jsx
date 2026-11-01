@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, User, Loader2, Lightbulb } from 'lucide-react';
+import { Bot, User, Lightbulb } from 'lucide-react';
 import ChatComposer from '@/components/ChatComposer';
 import ExpandableMarkdown from '@/components/ExpandableMarkdown';
 import ChildQuickAccess from '@/components/ChildQuickAccess';
+import BrandLoader from '@/components/BrandLoader';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { MESSAGE_ROLES, SUGGESTED_QUESTION_KEYS, useChat } from './Chat.hook';
@@ -134,7 +135,7 @@ export default function Chat() {
                   <Bot aria-hidden="true" className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3">
-                  <Loader2 aria-hidden="true" className="w-5 h-5 text-zinc-500 animate-spin" />
+                  <BrandLoader size="sm" />
                 </div>
               </motion.div>
             )}

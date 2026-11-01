@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 import AvatarPicker from '@/components/AvatarPicker';
+import BrandWordmark from '@/components/BrandWordmark';
 import OnboardingChildrenStep from '@/components/OnboardingChildrenStep';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,8 +70,8 @@ export default function Onboarding() {
           {stepId === 'welcome' && (
             <motion.div {...STEP_MOTION} className="text-center">
               <img src={BRAND_LOGO} alt={t('common.brandLogoAlt')} className="w-28 h-28 mx-auto mb-8 rounded-3xl" />
-              <h1 className="text-3xl font-light text-zinc-100">{t('common.brandName')}</h1>
-              <p className="text-zinc-500 text-sm uppercase tracking-widest mb-4">{t('common.brandTagline')}</p>
+              <h1 className="sr-only">{t('common.brandName')}</h1>
+              <BrandWordmark size="lg" className="mb-6" />
               <p className="text-zinc-400 text-lg mb-2">{t('onboarding.welcome.lead')}</p>
               <p className="text-zinc-500 text-sm">{t('onboarding.welcome.body')}</p>
             </motion.div>
@@ -87,7 +88,7 @@ export default function Onboarding() {
                     size="lg"
                   />
                 </div>
-                <h2 className="text-2xl font-light text-zinc-100">{t('onboarding.about.title')}</h2>
+                <h2 className="text-2xl font-bold text-zinc-100">{t('onboarding.about.title')}</h2>
                 <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.about.subtitle')}</p>
               </div>
 
@@ -121,7 +122,7 @@ export default function Onboarding() {
           {stepId === 'preferences' && (
             <motion.div {...STEP_MOTION} className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-light text-zinc-100">{t('onboarding.preferences.title')}</h2>
+                <h2 className="text-2xl font-bold text-zinc-100">{t('onboarding.preferences.title')}</h2>
                 <p className="text-zinc-500 mt-2 text-sm">{t('onboarding.preferences.subtitle')}</p>
               </div>
 

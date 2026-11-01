@@ -49,7 +49,7 @@ export default function BoletimReportCard({ report }) {
       <Card className="bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border-blue-500/20">
         <CardContent className="pt-6 text-center">
           <p className="text-zinc-400 text-sm mb-2">{t('boletim.report.overallScore')}</p>
-          <p className={cn('text-6xl font-light', scoreClass)}>{report.nota_geral}</p>
+          <p className={cn('text-6xl font-bold', scoreClass)}>{report.nota_geral}</p>
           <p className={cn('text-lg mt-2', scoreClass)}>{t(scoreLabelKey(report.nota_geral))}</p>
         </CardContent>
       </Card>

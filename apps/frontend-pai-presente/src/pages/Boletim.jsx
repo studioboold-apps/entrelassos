@@ -44,7 +44,7 @@ export default function Boletim() {
           <span className="text-blue-600 font-medium">{t('boletim.sectionLabel')}</span>
           <ChildQuickAccess />
         </div>
-        <h1 className="text-2xl font-light text-zinc-100">{t('boletim.title')}</h1>
+        <h1 className="text-2xl font-bold text-zinc-100">{t('boletim.title')}</h1>
         <p className="text-zinc-500 text-sm mt-1">{t('boletim.subtitle')}</p>
       </div>
 

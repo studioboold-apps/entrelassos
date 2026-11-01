@@ -122,7 +122,7 @@ export default function CommunityPostCard({ post, delay = 0 }) {
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder={t('community.post.commentPlaceholder')}
-                  className="bg-zinc-800 border-zinc-700 text-zinc-100 text-sm placeholder:text-zinc-600"
+                  className="bg-zinc-900 border-zinc-700 text-zinc-100 text-sm placeholder:text-zinc-600"
                   onKeyDown={(e) => e.key === 'Enter' && handleComment()}
                 />
                 <Button

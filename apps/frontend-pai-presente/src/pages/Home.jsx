@@ -6,11 +6,12 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, HelpCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar, HelpCircle, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import InsightCard from '@/components/InsightCard';
 import ChildQuickAccess from '@/components/ChildQuickAccess';
+import BrandLoader from '@/components/BrandLoader';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { INSIGHT_CATEGORIES, findInsightCategory } from '@/lib/insight-categories';
@@ -58,7 +59,7 @@ export default function Home() {
             </div>
             <ChildQuickAccess />
           </div>
-          <h1 className="text-2xl font-light text-zinc-100">
+          <h1 className="text-2xl font-bold text-zinc-100">
             {greetingBefore}
             <span className="font-medium">{displayName}</span>
             {greetingAfter}
@@ -155,10 +156,7 @@ export default function Home() {
         )}
 
         {isLoadingInsights ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 aria-hidden="true" className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-            <p className="text-zinc-500">{t('insights.generating')}</p>
-          </div>
+          <BrandLoader label={t('insights.generating')} className="py-16" />
         ) : insightsFailure ? (
           <p role="alert" className="text-center py-16 text-red-600">
             {insightsFailure.message}

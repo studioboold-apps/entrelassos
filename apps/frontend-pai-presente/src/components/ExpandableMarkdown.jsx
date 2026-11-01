@@ -30,7 +30,7 @@ export default function ExpandableMarkdown({ children, className = '', moreLabel
         className={`relative overflow-hidden ${isClamped ? '' : 'max-h-none'}`}
         style={isClamped ? { maxHeight: `${COLLAPSED_MAX_HEIGHT_REM}rem` } : undefined}
       >
-        <ReactMarkdown className={className}>{children}</ReactMarkdown>
+        <ReactMarkdown className={`${className} [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-1.5 [&_p]:my-1.5`}>{children}</ReactMarkdown>
         {isClamped && (
           <div
             aria-hidden="true"

@@ -10,6 +10,16 @@ import { useEffect, useState } from 'react';
 export const SPLASH_MIN_DURATION_MS = 1300;
 const SPLASH_SEEN_KEY = 'entrelacos:splash-seen';
 
+/**
+ * Quanto tempo a abertura estatica do `index.html` ja' rodou (ela grava o
+ * instante em `window.__splashStartedAt`). Zero quando nao houve.
+ */
+export function splashElapsedMs() {
+  const startedAt = globalThis.window?.__splashStartedAt;
+  if (typeof startedAt !== 'number') return 0;
+  return Math.max(0, Math.round(performance.now() - startedAt));
+}
+
 function hasSeenSplash() {
   try {
     return sessionStorage.getItem(SPLASH_SEEN_KEY) === '1';
@@ -36,10 +46,11 @@ export function useSplashGate(isLoading) {
 
   useEffect(() => {
     if (!isHolding) return undefined;
+    const remaining = Math.max(0, SPLASH_MIN_DURATION_MS - splashElapsedMs());
     const timer = setTimeout(() => {
       markSplashSeen();
       setIsHolding(false);
-    }, SPLASH_MIN_DURATION_MS);
+    }, remaining);
     return () => clearTimeout(timer);
   }, [isHolding]);
 

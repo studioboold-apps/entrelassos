@@ -90,13 +90,16 @@ export const CHILD_FILE_FIT = Object.freeze({
 });
 
 /**
- * @param {{file: File | null, usage: {fileMaxBytes: number, child: {remainingBytes: number}, account: {remainingBytes: number}} | undefined}} params
+ * As chaves chegam em snake_case: o cliente HTTP converte toda resposta da API
+ * (`api/keys.js`). Lidas em camelCase davam `undefined` — "pode ter até .".
+ *
+ * @param {{file: File | null, usage: {file_max_bytes: number, child: {remaining_bytes: number}, account: {remaining_bytes: number}} | undefined}} params
  * @returns {string}
  */
 export function checkChildFileFit({ file, usage }) {
   if (file === null || usage === undefined) return CHILD_FILE_FIT.OK;
-  if (file.size > usage.fileMaxBytes) return CHILD_FILE_FIT.FILE_TOO_LARGE;
-  if (file.size > usage.child.remainingBytes) return CHILD_FILE_FIT.CHILD_QUOTA;
-  if (file.size > usage.account.remainingBytes) return CHILD_FILE_FIT.ACCOUNT_QUOTA;
+  if (file.size > usage.file_max_bytes) return CHILD_FILE_FIT.FILE_TOO_LARGE;
+  if (file.size > usage.child.remaining_bytes) return CHILD_FILE_FIT.CHILD_QUOTA;
+  if (file.size > usage.account.remaining_bytes) return CHILD_FILE_FIT.ACCOUNT_QUOTA;
   return CHILD_FILE_FIT.OK;
 }

@@ -26,7 +26,7 @@ export default function ChildFilesDialog({ child, onClose }) {
         if (!open) onClose();
       }}
     >
-      <DialogContent className="bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-white">
             {t('perfil.childFiles.title', { child: child?.name })}

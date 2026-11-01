@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, MessageCircle, Calendar, Award, User, Users } from 'lucide-react';
+import { Home, Calendar, Award, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [

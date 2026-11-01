@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, User, Loader2, Lightbulb } from 'lucide-react';
 import ChatComposer from '@/components/ChatComposer';
-import ReactMarkdown from 'react-markdown';
+import ExpandableMarkdown from '@/components/ExpandableMarkdown';
 import { BRAND_LOGO } from '@/lib/brand';
 import { useTranslation } from '@/lib/i18n';
 import { MESSAGE_ROLES, SUGGESTED_QUESTION_KEYS, useChat } from './Chat.hook';
@@ -100,9 +100,13 @@ export default function Chat() {
                     {message.role === MESSAGE_ROLES.USER ? (
                       <p className="text-sm">{message.content}</p>
                     ) : (
-                      <ReactMarkdown className="text-sm prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                      <ExpandableMarkdown
+                        className="text-sm prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                        moreLabel={t('chat.showMore')}
+                        lessLabel={t('chat.showLess')}
+                      >
                         {message.content}
-                      </ReactMarkdown>
+                      </ExpandableMarkdown>
                     )}
                   </div>
 

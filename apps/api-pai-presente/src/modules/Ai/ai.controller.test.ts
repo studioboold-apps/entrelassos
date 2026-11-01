@@ -184,7 +184,7 @@ describe('rotas de IA', () => {
     expect(response.status).toBe(200);
     expect(readDataRecord(response).grade).toBe(7);
     expect(provider.prompts[0]).toContain('atividades planejadas: 4');
-    expect(provider.prompts[0]).toContain('taxa de conclusao: 50%');
+    expect(provider.prompts[0]).toContain('taxa de conclusão: 50%');
   });
 
   test('mes fora de YYYY-MM para na fronteira, antes de gastar a chamada', async () => {
@@ -310,7 +310,7 @@ describe('foto no chat', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(provider.prompts[0]).toContain('mandou so a foto');
+    expect(provider.prompts[0]).toContain('mandou só a foto');
   });
 
   test('sem texto e sem foto para na fronteira', async () => {

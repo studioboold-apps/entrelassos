@@ -20,9 +20,9 @@ const FIT_MESSAGE_KEYS = Object.freeze({
   [CHILD_FILE_FIT.ACCOUNT_QUOTA]: 'perfil.childFiles.usage.accountQuota',
 });
 
-function toPercent({ usedBytes, quotaBytes }) {
-  if (quotaBytes === 0) return 0;
-  return Math.min(100, Math.round((usedBytes / quotaBytes) * 100));
+function toPercent({ used_bytes, quota_bytes }) {
+  if (quota_bytes === 0) return 0;
+  return Math.min(100, Math.round((used_bytes / quota_bytes) * 100));
 }
 
 /**
@@ -31,14 +31,14 @@ function toPercent({ usedBytes, quotaBytes }) {
  */
 function UsageRow({ label, scope }) {
   const percent = toPercent(scope);
-  const isNearlyFull = scope.usedBytes >= scope.quotaBytes * NEARLY_FULL_RATIO;
+  const isNearlyFull = scope.used_bytes >= scope.quota_bytes * NEARLY_FULL_RATIO;
 
   return (
     <div>
       <div className="flex items-baseline justify-between text-xs">
         <span className="text-zinc-400">{label}</span>
         <span className={cn('tabular-nums', isNearlyFull ? 'text-amber-400' : 'text-zinc-500')}>
-          {formatByteSize(scope.usedBytes)} / {formatByteSize(scope.quotaBytes)}
+          {formatByteSize(scope.used_bytes)} / {formatByteSize(scope.quota_bytes)}
         </span>
       </div>
       <div className="h-1.5 mt-1.5 rounded-full bg-zinc-800 overflow-hidden">
@@ -74,12 +74,12 @@ export default function ChildFilesUsage({ usage, fit, childName }) {
       <UsageRow label={t('perfil.childFiles.usage.account')} scope={usage.account} />
 
       <p className="text-xs text-zinc-500">
-        {t('perfil.childFiles.usage.fileMax', { size: formatByteSize(usage.fileMaxBytes) })}
+        {t('perfil.childFiles.usage.fileMax', { size: formatByteSize(usage.file_max_bytes) })}
       </p>
 
       {fitMessageKey !== undefined && (
         <p role="alert" className="text-sm text-amber-400">
-          {t(fitMessageKey, { size: formatByteSize(usage.fileMaxBytes) })}
+          {t(fitMessageKey, { size: formatByteSize(usage.file_max_bytes) })}
         </p>
       )}
     </div>

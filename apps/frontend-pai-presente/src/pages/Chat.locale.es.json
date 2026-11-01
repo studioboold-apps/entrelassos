@@ -25,5 +25,7 @@
   "voiceStop": "Detener y transcribir",
   "recording": "Grabando… toca el cuadrado para detener.",
   "transcribing": "Transcribiendo el audio…",
-  "micDenied": "No pudimos usar el micrófono. Permite el acceso en los permisos del navegador."
+  "micDenied": "No pudimos usar el micrófono. Permite el acceso en los permisos del navegador.",
+  "showMore": "Ver más",
+  "showLess": "Ver menos"
 }

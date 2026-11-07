@@ -103,29 +103,57 @@ export async function ensureFirstAdmin(params: {
   if (!firstAdmin || !firstAdmin.email || !firstAdmin.password) return;
 
   // Aceita uma lista separada por virgula: todos entram como admin com a mesma senha inicial.
-  const emails = firstAdmin.email
+  const emails = unquote(firstAdmin.email)
     .split(',')
-    .map((email) => email.trim())
+    .map(unquote)
     .filter((email) => email.length > 0);
+  const password = unquote(firstAdmin.password);
 
   for (const email of emails) {
-    const credentials = { email, password: firstAdmin.password };
+    // Acesso do painel nunca derruba a API: erro aqui vira log, e o resto sobe.
     try {
-      await params.createUser({ ...credentials, name: 'Administrador', role: PANEL_ROLES.ADMIN });
-      params.logger?.info('painel: acesso de admin criado', { email });
-      continue;
+      await ensureOneAdmin({ ...params, email, password, resetPassword: firstAdmin.resetPassword === true });
     } catch (error) {
-      // Ja existe: e' o caso de todo boot depois do primeiro.
-      if ((error as { code?: unknown }).code !== EMAIL_ALREADY_EXISTS_CODE) throw error;
+      params.logger?.error('painel: nao consegui preparar o acesso de admin', {
+        email,
+        code: (error as { code?: unknown }).code,
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    if (!firstAdmin.resetPassword) continue;
-    const updated = await params.resetAdminPassword(credentials);
-    params.logger?.warn('painel: senha do admin redefinida pelo PANEL_ADMIN_RESET; volte a variavel para 0', {
-      email,
-      updated,
-    });
   }
+}
+
+/** Valor colado com aspas no painel do provedor ("x") chega com as aspas: tira. */
+function unquote(value: string): string {
+  const trimmed = value.trim();
+  const quoted = trimmed.length >= 2 && /^(["']).*\1$/.test(trimmed);
+  return quoted ? trimmed.slice(1, -1).trim() : trimmed;
+}
+
+async function ensureOneAdmin(params: {
+  readonly email: string;
+  readonly password: string;
+  readonly resetPassword: boolean;
+  readonly createUser: (input: AdminCredentials & { readonly name: string; readonly role: PanelRole }) => Promise<unknown>;
+  readonly resetAdminPassword: (input: AdminCredentials) => Promise<number>;
+  readonly logger?: Logger | undefined;
+}): Promise<void> {
+  const credentials = { email: params.email, password: params.password };
+  try {
+    await params.createUser({ ...credentials, name: 'Administrador', role: PANEL_ROLES.ADMIN });
+    params.logger?.info('painel: acesso de admin criado', { email: params.email });
+    return;
+  } catch (error) {
+    // Ja existe: e' o caso de todo boot depois do primeiro.
+    if ((error as { code?: unknown }).code !== EMAIL_ALREADY_EXISTS_CODE) throw error;
+  }
+
+  if (!params.resetPassword) return;
+  const updated = await params.resetAdminPassword(credentials);
+  params.logger?.warn('painel: senha do admin redefinida pelo PANEL_ADMIN_RESET; volte a variavel para 0', {
+    email: params.email,
+    updated,
+  });
 }
 
 export async function buildPanelModule(params: BuildPanelModuleParams): Promise<PanelModule> {

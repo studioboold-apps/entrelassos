@@ -128,11 +128,35 @@ describe('primeiro acesso e recuperacao do admin', () => {
     expect(resets).toEqual(['a@x.dev']);
   });
 
-  test('sem e-mail ou senha nao faz nada; outro erro sobe', async () => {
+  test('sem e-mail ou senha nao faz nada', async () => {
     const empty = fakes();
     await ensureFirstAdmin({ ...empty, firstAdmin: { email: '', password: '', resetPassword: true } });
     expect(empty.calls.created).toBe(0);
-    const broken = fakes(new Error('banco fora'));
-    await expect(ensureFirstAdmin({ ...broken, firstAdmin: ADMIN })).rejects.toThrow('banco fora');
+  });
+
+  test('erro num acesso nao derruba o boot nem impede o proximo', async () => {
+    const created: string[] = [];
+    await ensureFirstAdmin({
+      firstAdmin: { email: 'quebrado@x.dev,b@x.dev', password: ADMIN.password },
+      createUser: async (input) => {
+        created.push(input.email);
+        if (input.email === 'quebrado@x.dev') throw new Error('banco fora');
+      },
+      resetAdminPassword: async () => 1,
+    });
+    expect(created).toEqual(['quebrado@x.dev', 'b@x.dev']);
+  });
+
+  test('aspas coladas junto com o valor saem do e-mail e da senha', async () => {
+    const seen: { email: string; password: string }[] = [];
+    await ensureFirstAdmin({
+      firstAdmin: { email: '"a@x.dev,b@x.dev"', password: `"${ADMIN.password}"` },
+      createUser: async (input) => void seen.push({ email: input.email, password: input.password }),
+      resetAdminPassword: async () => 1,
+    });
+    expect(seen).toEqual([
+      { email: 'a@x.dev', password: ADMIN.password },
+      { email: 'b@x.dev', password: ADMIN.password },
+    ]);
   });
 });

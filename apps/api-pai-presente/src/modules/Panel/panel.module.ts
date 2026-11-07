@@ -40,7 +40,14 @@ export type BuildPanelModuleParams = {
   readonly customers: CustomerModule;
   readonly recommendations: RecommendationModule;
   readonly jwtSecret: string;
-  readonly firstAdmin?: { readonly email: string; readonly password: string };
+  readonly firstAdmin?: {
+    readonly email: string;
+    readonly password: string;
+    /** Sobrescreve a senha de quem ja existe. Ver `PANEL_ADMIN_RESET`. */
+    readonly resetPassword?: boolean;
+  };
+  /** Troca a senha de um acesso ja existente; injetavel para o teste nao precisar de banco. */
+  readonly resetAdminPassword?: (input: { readonly email: string; readonly password: string }) => Promise<number>;
   readonly logger?: Logger;
 };
 
@@ -78,6 +85,49 @@ export function createPanelAuthResolver(users: Pick<UserModule, 'verifyAccessTok
   };
 }
 
+type FirstAdmin = NonNullable<BuildPanelModuleParams['firstAdmin']>;
+type AdminCredentials = { readonly email: string; readonly password: string };
+
+/**
+ * Cria o primeiro admin se o e-mail ainda nao existe. Se ja existe, a senha so
+ * e' trocada com `resetPassword` (variavel `PANEL_ADMIN_RESET=1`): e' a porta de
+ * recuperacao para quando ninguem mais consegue entrar no painel.
+ */
+export async function ensureFirstAdmin(params: {
+  readonly firstAdmin?: FirstAdmin | undefined;
+  readonly createUser: (input: AdminCredentials & { readonly name: string; readonly role: PanelRole }) => Promise<unknown>;
+  readonly resetAdminPassword: (input: AdminCredentials) => Promise<number>;
+  readonly logger?: Logger | undefined;
+}): Promise<void> {
+  const { firstAdmin } = params;
+  if (!firstAdmin || !firstAdmin.email || !firstAdmin.password) return;
+
+  // Aceita uma lista separada por virgula: todos entram como admin com a mesma senha inicial.
+  const emails = firstAdmin.email
+    .split(',')
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0);
+
+  for (const email of emails) {
+    const credentials = { email, password: firstAdmin.password };
+    try {
+      await params.createUser({ ...credentials, name: 'Administrador', role: PANEL_ROLES.ADMIN });
+      params.logger?.info('painel: acesso de admin criado', { email });
+      continue;
+    } catch (error) {
+      // Ja existe: e' o caso de todo boot depois do primeiro.
+      if ((error as { code?: unknown }).code !== EMAIL_ALREADY_EXISTS_CODE) throw error;
+    }
+
+    if (!firstAdmin.resetPassword) continue;
+    const updated = await params.resetAdminPassword(credentials);
+    params.logger?.warn('painel: senha do admin redefinida pelo PANEL_ADMIN_RESET; volte a variavel para 0', {
+      email,
+      updated,
+    });
+  }
+}
+
 export async function buildPanelModule(params: BuildPanelModuleParams): Promise<PanelModule> {
   // Os modulos tipam o banco pelo drizzle 1.x deles; o app esta no 0.4x. A API
   // usada (select/insert/update/onConflict) e' a mesma nas duas linhas.
@@ -107,20 +157,12 @@ export async function buildPanelModule(params: BuildPanelModuleParams): Promise<
   });
 
   async function bootstrap(): Promise<void> {
-    if (params.firstAdmin && params.firstAdmin.email && params.firstAdmin.password) {
-      try {
-        await users.useCases.createUser.execute({
-          email: params.firstAdmin.email,
-          name: 'Administrador',
-          password: params.firstAdmin.password,
-          role: PANEL_ROLES.ADMIN,
-        });
-        params.logger?.info('painel: primeiro acesso criado', { email: params.firstAdmin.email });
-      } catch (error) {
-        // Ja existe: e' o caso de todo boot depois do primeiro. A senha nunca e' trocada aqui.
-        if ((error as { code?: unknown }).code !== EMAIL_ALREADY_EXISTS_CODE) throw error;
-      }
-    }
+    await ensureFirstAdmin({
+      firstAdmin: params.firstAdmin,
+      createUser: (input) => users.useCases.createUser.execute(input),
+      resetAdminPassword: params.resetAdminPassword ?? createPanelRepository(params.database).resetAdminPassword,
+      logger: params.logger,
+    });
 
     const settings = await customers.useCases.getSettings.execute({});
     if (!settings.fieldCatalog.some((field) => field.name === ADVERTISER_CATEGORY_FIELD.name)) {

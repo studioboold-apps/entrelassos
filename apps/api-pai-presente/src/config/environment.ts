@@ -147,6 +147,15 @@ const panelShape = {
     .string()
     .default('')
     .refine((value) => value === '' || value.length >= 12, 'PANEL_ADMIN_PASSWORD precisa de 12+ caracteres'),
+  /**
+   * Recuperacao de acesso. Com `1`, o boot grava `PANEL_ADMIN_PASSWORD` como a
+   * senha atual de `PANEL_ADMIN_EMAIL` (e reativa a conta como admin). Serve
+   * para quando ninguem mais entra no painel; depois do login, volte para `0`.
+   */
+  PANEL_ADMIN_RESET: z
+    .enum(['0', '1'])
+    .default('0')
+    .transform((value) => value === '1'),
 } as const;
 
 const databaseEnvironmentSchema = z.object({ ...runtimeShape, ...databaseShape });

@@ -249,6 +249,7 @@ export default defineRailway(() => {
       PANEL_JWT_SECRET: preserve(),
       PANEL_ADMIN_EMAIL: preserve(),
       PANEL_ADMIN_PASSWORD: preserve(),
+      PANEL_ADMIN_RESET: preserve(),
     },
   });
 

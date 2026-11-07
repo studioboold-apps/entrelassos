@@ -101,23 +101,31 @@ export async function ensureFirstAdmin(params: {
 }): Promise<void> {
   const { firstAdmin } = params;
   if (!firstAdmin || !firstAdmin.email || !firstAdmin.password) return;
-  const credentials = { email: firstAdmin.email, password: firstAdmin.password };
 
-  try {
-    await params.createUser({ ...credentials, name: 'Administrador', role: PANEL_ROLES.ADMIN });
-    params.logger?.info('painel: primeiro acesso criado', { email: firstAdmin.email });
-    return;
-  } catch (error) {
-    // Ja existe: e' o caso de todo boot depois do primeiro.
-    if ((error as { code?: unknown }).code !== EMAIL_ALREADY_EXISTS_CODE) throw error;
+  // Aceita uma lista separada por virgula: todos entram como admin com a mesma senha inicial.
+  const emails = firstAdmin.email
+    .split(',')
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0);
+
+  for (const email of emails) {
+    const credentials = { email, password: firstAdmin.password };
+    try {
+      await params.createUser({ ...credentials, name: 'Administrador', role: PANEL_ROLES.ADMIN });
+      params.logger?.info('painel: acesso de admin criado', { email });
+      continue;
+    } catch (error) {
+      // Ja existe: e' o caso de todo boot depois do primeiro.
+      if ((error as { code?: unknown }).code !== EMAIL_ALREADY_EXISTS_CODE) throw error;
+    }
+
+    if (!firstAdmin.resetPassword) continue;
+    const updated = await params.resetAdminPassword(credentials);
+    params.logger?.warn('painel: senha do admin redefinida pelo PANEL_ADMIN_RESET; volte a variavel para 0', {
+      email,
+      updated,
+    });
   }
-
-  if (!firstAdmin.resetPassword) return;
-  const updated = await params.resetAdminPassword(credentials);
-  params.logger?.warn('painel: senha do admin redefinida pelo PANEL_ADMIN_RESET; volte a variavel para 0', {
-    email: firstAdmin.email,
-    updated,
-  });
 }
 
 export async function buildPanelModule(params: BuildPanelModuleParams): Promise<PanelModule> {

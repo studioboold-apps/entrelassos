@@ -113,6 +113,21 @@ describe('primeiro acesso e recuperacao do admin', () => {
     expect(deps.calls.resets).toEqual([]);
   });
 
+  test('lista separada por virgula cria cada admin e reseta os que ja existem', async () => {
+    const created: string[] = [];
+    const resets: string[] = [];
+    await ensureFirstAdmin({
+      firstAdmin: { email: ' a@x.dev , b@x.dev ', password: ADMIN.password, resetPassword: true },
+      createUser: async (input) => {
+        created.push(input.email);
+        if (input.email === 'a@x.dev') throw alreadyExists;
+      },
+      resetAdminPassword: async (input) => (resets.push(input.email), 1),
+    });
+    expect(created).toEqual(['a@x.dev', 'b@x.dev']);
+    expect(resets).toEqual(['a@x.dev']);
+  });
+
   test('sem e-mail ou senha nao faz nada; outro erro sobe', async () => {
     const empty = fakes();
     await ensureFirstAdmin({ ...empty, firstAdmin: { email: '', password: '', resetPassword: true } });

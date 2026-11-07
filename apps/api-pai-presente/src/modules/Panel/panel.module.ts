@@ -60,6 +60,7 @@ export type PanelModule = {
 
 const BEARER_PREFIX = 'bearer ';
 const EMAIL_ALREADY_EXISTS_CODE = USER_ERROR_CODE.EMAIL_ALREADY_EXISTS;
+const MIN_ADMIN_PASSWORD_LENGTH = 12;
 
 function isPanelRole(role: string): role is PanelRole {
   return Object.values(PANEL_ROLES).includes(role as PanelRole);
@@ -108,6 +109,12 @@ export async function ensureFirstAdmin(params: {
     .map(unquote)
     .filter((email) => email.length > 0);
   const password = unquote(firstAdmin.password);
+  if (password.length < MIN_ADMIN_PASSWORD_LENGTH) {
+    params.logger?.error('painel: PANEL_ADMIN_PASSWORD precisa de 12+ caracteres; acesso de admin nao preparado', {
+      length: password.length,
+    });
+    return;
+  }
 
   for (const email of emails) {
     // Acesso do painel nunca derruba a API: erro aqui vira log, e o resto sobe.

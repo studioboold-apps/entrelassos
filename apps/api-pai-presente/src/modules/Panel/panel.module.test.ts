@@ -6,11 +6,13 @@
 
 import { describe, expect, test } from 'bun:test';
 
+import { USER_ERROR_CODE } from '@adatechnology/user-contracts';
+
 import { listSdkMigrations } from '../../database/sdk-migrations';
 import { withTrackRateLimit } from '../Recommendation/recommendation.module';
 import { createRateLimiter } from '../shared/http/rate-limit';
 import { PANEL_SCOPES } from './panel.constant';
-import { createPanelAuthResolver, scopesForRole } from './panel.module';
+import { createPanelAuthResolver, ensureFirstAdmin, scopesForRole } from './panel.module';
 
 describe('papeis da equipe', () => {
   test('admin cria acessos; editor nao; viewer so le', () => {
@@ -70,5 +72,52 @@ describe('rastreio de recomendacao', () => {
     await routes[1]?.handler(context);
     await routes[1]?.handler(context);
     expect(calls).toEqual(['track', 'feed', 'feed']);
+  });
+});
+
+describe('primeiro acesso e recuperacao do admin', () => {
+  const ADMIN = { email: 'admin@exemplo.dev', password: 'senha-nova-bem-longa' };
+  const alreadyExists = Object.assign(new Error('existe'), { code: USER_ERROR_CODE.EMAIL_ALREADY_EXISTS });
+
+  function fakes(createError?: Error) {
+    const calls = { created: 0, resets: [] as { email: string; password: string }[] };
+    return {
+      calls,
+      createUser: async () => {
+        calls.created += 1;
+        if (createError) throw createError;
+      },
+      resetAdminPassword: async (input: { email: string; password: string }) => {
+        calls.resets.push(input);
+        return 1;
+      },
+    };
+  }
+
+  test('sem a flag, admin que ja existe fica com a senha que tinha', async () => {
+    const deps = fakes(alreadyExists);
+    await ensureFirstAdmin({ ...deps, firstAdmin: ADMIN });
+    expect(deps.calls.resets).toEqual([]);
+  });
+
+  test('com a flag, admin que ja existe ganha a senha da variavel', async () => {
+    const deps = fakes(alreadyExists);
+    await ensureFirstAdmin({ ...deps, firstAdmin: { ...ADMIN, resetPassword: true } });
+    expect(deps.calls.resets).toEqual([ADMIN]);
+  });
+
+  test('admin novo e criado e nao precisa de reset', async () => {
+    const deps = fakes();
+    await ensureFirstAdmin({ ...deps, firstAdmin: { ...ADMIN, resetPassword: true } });
+    expect(deps.calls.created).toBe(1);
+    expect(deps.calls.resets).toEqual([]);
+  });
+
+  test('sem e-mail ou senha nao faz nada; outro erro sobe', async () => {
+    const empty = fakes();
+    await ensureFirstAdmin({ ...empty, firstAdmin: { email: '', password: '', resetPassword: true } });
+    expect(empty.calls.created).toBe(0);
+    const broken = fakes(new Error('banco fora'));
+    await expect(ensureFirstAdmin({ ...broken, firstAdmin: ADMIN })).rejects.toThrow('banco fora');
   });
 });

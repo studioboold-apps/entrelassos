@@ -51,6 +51,22 @@ function escapeLike(value: string): string {
 
 export function createPanelRepository(database: Database) {
   return {
+    /**
+     * Recuperacao de acesso do painel: grava a senha nova no formato do
+     * `user-module` (Bun.password), reativa e devolve o papel de admin. O
+     * e-mail casa sem diferenciar maiusculas, que e' o erro mais comum.
+     */
+    async resetAdminPassword(input: { readonly email: string; readonly password: string }): Promise<number> {
+      const passwordHash = await Bun.password.hash(input.password);
+      const result = await database.execute(sql`
+        update "user"."users"
+           set password_hash = ${passwordHash}, is_active = true, role = 'admin', updated_at = now()
+         where lower(email) = lower(${input.email.trim()}) and deleted_at is null
+         returning id
+      `);
+      return (result as unknown as readonly unknown[]).length;
+    },
+
     async overview(now: Date = new Date()): Promise<PanelOverview> {
       const since7 = new Date(now.getTime() - 7 * DAY_MS);
       const since30 = new Date(now.getTime() - 30 * DAY_MS);

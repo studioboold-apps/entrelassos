@@ -95,6 +95,11 @@ jobs:
       # versao que nao migra ou nao responde nao e' promovida.
       - name: api
         run: railway up --service api --ci
+      # Healthcheck reprovado nao diz POR QUE o processo nao subiu: mostra aqui
+      # o fim do log de execucao, para nao depender de abrir o painel do Railway.
+      - name: log da api quando o deploy falha
+        if: failure()
+        run: timeout 45 railway logs --service api --deployment 2>&1 | tail -n 80 || true
       - name: web
         run: railway up --service web --ci
       # O painel da equipe e' um servico proprio: falhar aqui nao derruba o app

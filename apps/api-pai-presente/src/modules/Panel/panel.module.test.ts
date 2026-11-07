@@ -134,6 +134,13 @@ describe('primeiro acesso e recuperacao do admin', () => {
     expect(empty.calls.created).toBe(0);
   });
 
+  test('senha curta nao cria nem reseta ninguem, e nao derruba o boot', async () => {
+    const deps = fakes(alreadyExists);
+    await ensureFirstAdmin({ ...deps, firstAdmin: { ...ADMIN, password: 'curta', resetPassword: true } });
+    expect(deps.calls.created).toBe(0);
+    expect(deps.calls.resets).toEqual([]);
+  });
+
   test('erro num acesso nao derruba o boot nem impede o proximo', async () => {
     const created: string[] = [];
     await ensureFirstAdmin({
